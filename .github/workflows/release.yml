@@ -1,0 +1,166 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - master
+    tags:
+      - 'v*.*.*'
+
+jobs:
+  build:
+    name: Upload Release Assets
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - target: x86_64-unknown-linux-musl
+            os: ubuntu-latest
+            ext: tar.gz
+          - target: i686-unknown-linux-musl
+            os: ubuntu-latest
+            ext: tar.gz
+          - target: arm-unknown-linux-gnueabi
+            os: ubuntu-latest
+            ext: tar.gz
+          - target: armv7-unknown-linux-gnueabihf
+            os: ubuntu-latest
+            ext: tar.gz
+          - target: x86_64-unknown-linux-musl
+            os: ubuntu-latest
+            ext: tar.gz
+          - target: x86_64-unknown-linux-musl
+            os: ubuntu-latest
+            ext: rpm
+          - target: x86_64-unknown-linux-musl
+            os: ubuntu-latest
+            ext: deb
+          - target: x86_64-apple-darwin
+            os: macOS-latest
+            ext: tar.gz
+
+    steps:
+      - name: Set envs
+        id: vars
+        run: |
+          echo ::set-output name=ver::${GITHUB_REF/refs\/tags\/v/}
+
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Cross compile
+        uses: actions-rs/cargo@v1
+        with:
+          use-cross: true
+          command: build
+          args: --release --target ${{ matrix.target }}
+
+      - name: Build packages
+        run: |
+          _TAR=teip-${{ steps.vars.outputs.ver }}.${{ matrix.target }}.tar.gz
+          mkdir -p package/bin
+          mv target/${{ matrix.target }}/release/teip package/bin
+          mkdir -p package/man
+          cp man/teip.1 package/man
+          ## sed -i is not used due to difference between macOS and Linux
+          perl -i -pe s/___VERSION___/${{ steps.vars.outputs.ver }}/ ./package/.tar2package.yml
+          tar zcvf "$_TAR" -C "$PWD/package" bin man .tar2package.yml
+
+      - name: Build rpm
+        id: rpm
+        if: matrix.ext == 'rpm'
+        run: |
+          _TAR=teip-${{ steps.vars.outputs.ver }}.${{ matrix.target }}.tar.gz
+          docker run -i "greymd/tar2rpm:1.0.1" < "$_TAR" > teip-${{ steps.vars.outputs.ver }}.${{ matrix.target }}.rpm
+          echo ::set-output name=sha256::$( sha256sum teip-${{ steps.vars.outputs.ver }}.${{ matrix.target }}.rpm | awk '{print $1}' )
+
+      - name: Build deb
+        id: deb
+        if: matrix.ext == 'deb'
+        run: |
+          _TAR=teip-${{ steps.vars.outputs.ver }}.${{ matrix.target }}.tar.gz
+          docker run -i "greymd/tar2deb:1.0.1" < "$_TAR" > teip-${{ steps.vars.outputs.ver }}.${{ matrix.target }}.deb
+          echo ::set-output name=sha256::$( sha256sum teip-${{ steps.vars.outputs.ver }}.${{ matrix.target }}.deb | awk '{print $1}' )
+
+      - name: Upload binaries to release
+        uses: svenstaro/upload-release-action@v1-release
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: teip-${{ steps.vars.outputs.ver }}.${{ matrix.target }}.${{ matrix.ext }}
+          asset_name: teip-${{ steps.vars.outputs.ver }}.${{ matrix.target }}.${{ matrix.ext }}
+          tag: ${{ github.ref }}
+          overwrite: true
+
+      - name: README for rpm
+        if: matrix.ext == 'rpm'
+        run: |
+          _TAR=teip-${{ steps.vars.outputs.ver }}.${{ matrix.target }}.rpm
+          echo "$_TAR" > ./digest.txt
+          echo "${{ steps.rpm.outputs.sha256 }}" >> ./digest.txt
+
+      - name: Upload artifact
+        if: matrix.ext == 'rpm'
+        uses: actions/upload-artifact@v1
+        with:
+          name: rpm.x86_64
+          path: digest.txt
+
+      - name: README for deb
+        if: matrix.ext == 'deb'
+        run: |
+          _TAR=teip-${{ steps.vars.outputs.ver }}.${{ matrix.target }}.deb
+          echo "$_TAR" > ./digest.txt
+          echo "${{ steps.deb.outputs.sha256 }}" >> ./digest.txt
+
+      - name: Upload artifact
+        if: matrix.ext == 'deb'
+        uses: actions/upload-artifact@v1
+        with:
+          name: deb.x86_64
+          path: digest.txt
+
+  readme:
+    name: Update README.md
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Set envs
+        id: vars
+        run: |
+          echo ::set-output name=ver::${GITHUB_REF/refs\/tags\/v/}
+
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Apply artifacts rpm
+        uses: actions/download-artifact@v1
+        with:
+          name: rpm.x86_64
+      - shell: bash
+        run: |
+          _url="https://github.com/greymd/teip/releases/download/v${{ steps.vars.outputs.ver }}/$(head -n 1 rpm.x86_64/digest.txt)"
+          _sha=$(tail -n 1 rpm.x86_64/digest.txt)
+          sed -i "/rpm_x86_64_start/,/rpm_x86_64_end/s|https://.*rpm|$_url|g" ./README.md
+          sed -i "/rpm_x86_64_sha256/s/SHA256:.*/SHA256: $_sha/" ./README.md
+
+      - name: Apply artifacts deb
+        uses: actions/download-artifact@v1
+        with:
+          name: deb.x86_64
+      - shell: bash
+        run: |
+          _url="https://github.com/greymd/teip/releases/download/v${{ steps.vars.outputs.ver }}/$(head -n 1 deb.x86_64/digest.txt)"
+          _sha=$(tail -n 1 deb.x86_64/digest.txt)
+          sed -i "/deb_x86_64_start/,/deb_x86_64_end/s|https://.*deb|$_url|g" ./README.md
+          sed -i "/deb_x86_64_sha256/s/SHA256:.*/SHA256: $_sha/" ./README.md
+
+      - name: Release README
+        uses: EndBug/add-and-commit@v4
+        with:
+          add: README.md
+          author_name: GitHub Action
+          author_email: yamadagrep@gmail.com
+          message: '[skip ci] Update README.md'
+          ref: 'master'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

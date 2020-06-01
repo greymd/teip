@@ -1,0 +1,212 @@
+.TH TEIP 1 "MAY 2020" "User Commands" ""
+.SH NAME
+.PP
+teip \- Highly efficient "Masking tape" for standard input
+.SH SYNOPSIS
+.PP
+\fB\fCteip\fR \-r <\fIpattern\fP> [\-svz] [\-\-] [<\fIcommand\fP>...]
+.PP
+\fB\fCteip\fR \-f <\fIlist\fP> [\-d <\fIdelimiter\fP> | \-D <\fIpattern\fP>] [\-svz] [\-\-] [<\fIcommand\fP>...]
+.PP
+\fB\fCteip\fR \-c <\fIlist\fP> [\-svz] [\-\-] [<\fIcommand\fP>...]
+.PP
+\fB\fCteip\fR \-\-help | \-\-version
+.SH DESCRIPTION
+.PP
+Only a selected part of standard input is passed to any command for execution.
+.SH OPTIONS
+.TP
+\fB\fC\-\-help\fR
+Display this help and exit
+.TP
+\fB\fC\-\-version\fR
+Show version and exit
+.TP
+\fB\fC\-r\fR <\fIpattern\fP>
+Select strings matched by a regular expression <\fIpattern\fP>
+.TP
+\fB\fC\-f\fR <\fIlist\fP>
+Select only these white\-space separated fields
+.TP
+\fB\fC\-d\fR <\fIdelimiter\fP>
+Use <\fIdelimiter\fP> for field delimiter of \-f
+.TP
+\fB\fC\-D\fR <\fIpattern\fP>
+Use a regular expression <\fIpattern\fP> for field delimiter of \-f
+.TP
+\fB\fC\-c\fR <\fIlist\fP>
+Select only these characters
+.TP
+\fB\fC\-s\fR
+Execute command for each selected part
+.TP
+\fB\fC\-v\fR
+Invert the sense of selecting
+.TP
+\fB\fC\-z\fR
+NUL is used as line delimiter instead of the newline
+.SS \fIcommand\fP
+.PP
+\fIcommand\fP is the command and its arguments that \fB\fCteip\fR executes.
+\fIcommand\fP must print a single line of result for each line of the input.
+In the simplest example, the 
+.BR cat (1) 
+command always succeeds.
+Because the cat prints the same number of lines against the input.
+.PP
+.RS
+.nf
+$ echo ABCDEF | teip \-r . \-\- cat
+ABCDEF
+.fi
+.RE
+.PP
+.BR sed (1) 
+works with the typical pattern.
+.PP
+.RS
+.nf
+$ echo ABCDEF | teip \-r . \-\- sed 's/[ADF]/@/'
+@BC@E@
+.fi
+.RE
+.PP
+If the rule is not satisfied, the result will be inconsistent.
+For example, the 
+.BR grep (1) 
+may fail. Here is an example.
+.PP
+.RS
+.nf
+$ echo ABCDEF | teip \-r . \-\- grep '[ABC]'
+ABC
+teip: Output of given command is exhausted
+.fi
+.RE
+.PP
+\fB\fCteip\fR could not get the result corresponding to D, E, and F. That is why the example fails.
+If such the inconsistency occurs, \fB\fCteip\fR will exit with the error message. Then, the exit status will be 1.
+.PP
+.RS
+.nf
+$ echo $?
+1
+.fi
+.RE
+.PP
+If \fIcommand\fP is not given, \fB\fCteip\fR prints how standard input is tokenized.
+.PP
+.RS
+.nf
+$ echo ABCDEF | teip \-r .
+[A][B][C][D][E][F]
+.fi
+.RE
+.SS \fIlist\fP
+.PP
+\fIlist\fP is an expression to specify the range of fields or characters.
+The notation is compatible with the one used in 
+.BR cut (1). 
+Refer to the 
+.BR cut (1) 
+manual in detail.
+Here are some examples.
+.PP
+Select 1st, 3rd, and 5th fields.
+.PP
+.RS
+.nf
+$ echo 1 2 3 4 5 | teip \-f 1,3,5 \-\- sed 's/./@/'
+@ 2 @ 4 @
+.fi
+.RE
+.PP
+Select fields between 2nd and 4th.
+.PP
+.RS
+.nf
+$ echo 1 2 3 4 5 | teip \-f 2\-4 \-\- sed 's/./@/'
+1 @ @ @ 5
+.fi
+.RE
+.PP
+Select all the fields after 3rd.
+.PP
+.RS
+.nf
+$ echo 1 2 3 4 5 | teip \-f 3\- \-\- sed 's/./@/'
+1 2 @ @ @
+.fi
+.RE
+.PP
+Select all the fields before 4th.
+.PP
+.RS
+.nf
+$ echo 1 2 3 4 5 | teip \-f \-4 \-\- sed 's/./@/'
+@ @ @ @ 5
+.fi
+.RE
+.SS \fIpattern\fP
+.PP
+\fIpattern\fP is a regular expression whose grammar follows "regex crate".
+Refer to the link in \fISEE ALSO\fP about the details.
+.SS Necessity of \fB\-\-\fP
+.PP
+If \fB\-\-\fP is omitted, the command fails.
+.PP
+.RS
+.nf
+$ echo "100 200 300 400" | teip \-f 3 cut \-c 1
+teip: Invalid arguments.
+.fi
+.RE
+.PP
+This is because the \fB\fCcut\fR uses the \fB\fC\-c\fR option. The option of the same name is also provided by teip, which is confusing.
+\fB\fCteip\fR interprets arguments after \fB\fC\-\-\fR as \fIcommand\fP and its argument.
+.PP
+.RS
+.nf
+$ echo "100 200 300 400" | teip \-f 3 \-\- cut \-c 1
+100 200 3 400
+.fi
+.RE
+.SH EXAMPLES
+.PP
+Edit 2nd, 3rd, and 4th columns in the CSV file
+.PP
+.RS
+.nf
+$ cat file.csv | teip \-f 2\-4 \-d , \-\- sed 's/./@/g'
+.fi
+.RE
+.PP
+Convert timestamps in /var/log/secure to UNIX time
+.PP
+.RS
+.nf
+$ cat /var/log/secure | teip \-c 1\-15 \-\- date \-f\- +%s
+.fi
+.RE
+.PP
+Percent\-encode bare\-minimum range of the file (\fB\fCphp\-cli\fR is required)
+.PP
+.RS
+.nf
+$ teip \-r '[^\-a\-zA\-Z0\-9@:%._\\+~#=/]+' \-\- php \-R 'echo urlencode($argn)."\\n";'
+.fi
+.RE
+.SH SEE ALSO
+.SS Manual pages
+.PP
+.BR cut (1)
+.SS Full documentation
+.PP
+\[la]https://github.com/greymd/teip\[ra]
+.SS Regular expression
+.PP
+\[la]https://docs.rs/regex/\[ra]
+.SH AUTHOR AND COPYRIGHT
+.PP
+Copyright (c) 2020 Yamada, Yasuhiro \[la]yamadagrep@gmail.com\[ra] Released under the MIT License.
+\[la]https://github.com/greymd/teip\[ra]

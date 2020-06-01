@@ -1,0 +1,10 @@
+name : teip
+cmdname : teip
+summary : Highly efficient "Masking tape" for standard input
+description : Only selected parts of the standard input is passed to the given command for execution
+version : ___VERSION___
+changelog : See https://github.com/greymd/teip/releases
+url : https://github.com/greymd/teip
+author : Yasuhiro Yamada
+email : yamadagrep@gmail.com
+libdir : null

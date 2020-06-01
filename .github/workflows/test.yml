@@ -1,0 +1,51 @@
+name: Test
+
+on:
+  push:
+    branches:
+      - master
+      - 'develop-**'
+      - 'bugfix/**'
+      - 'feature/**'
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+
+jobs:
+  test:
+    name: test
+    runs-on: ${{matrix.os}}
+    if: "! contains(github.event.head_commit.message, '[skip ci]')"
+    strategy:
+      matrix:
+        include:
+          - build: linux
+            os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+          - build: linux-musl
+            os: ubuntu-latest
+            target: x86_64-unknown-linux-musl
+          - build: mac
+            os: macOS-latest
+            target: x86_64-apple-darwin
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install musl-gcc if required
+        if: contains(matrix.target, 'musl')
+        run: |
+          sudo apt-get install musl-tools
+      - name: Run cargo check
+        uses: actions-rs/cargo@v1
+        with:
+          command: check
+      - name: Build the release target
+        run: |
+          rustup target add ${{ matrix.target }}
+          cargo build --release --target ${{ matrix.target }}
+          mv target/${{matrix.target}}/release/teip target/release
+      - name: Run tests
+        timeout-minutes: 10
+        run: cargo test --verbose

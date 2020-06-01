@@ -1,0 +1,17 @@
+#compdef teip
+
+_teip () {
+  local opts_omit="--help --version"
+  # (<options which should not exist together>)-option[description]:name:(element1 element2 ...)
+  _arguments "(: -)--help[Display this help and exit]" \
+    "(: -)--version[Show version and exit]" \
+    "($opts_omit -r -f -d -D -c)-r[Select strings matched by given regular expression <pattern>]:pattern:" \
+    "($opts_omit -f -r -c)-f[Select only these white-space separated fields]:list:" \
+    "($opts_omit -d -D -r -c)-d[Use <delimiter> for field delimiter of -f]:delimiter:" \
+    "($opts_omit -D -d -r -c)-D[Use regular expression <pattern> for field delimiter of -f]:pattern:" \
+    "($opts_omit -c -f -D -d -r)-c[Select only these characters]:list:" \
+    "($opts_omit -s)-s[Execute command for each selected part]" \
+    "($opts_omit -v)-v[Invert the sense of selecting]" \
+    "($opts_omit -z)-z[Line delimiter is NUL instead of newline]" \
+    "($opts_omit -- -r -f -d -D -c -s -v -z)--[Follow commands after --]"
+}

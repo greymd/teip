@@ -1,0 +1,22 @@
+[package]
+name = "teip"
+version = "0.0.1"
+authors = ["greymd <yamadagrep@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+docopt = "1"
+serde = { version = "1", features = ["derive"] }
+regex = "1"
+log = { version = "0.4", features = ["max_level_trace", "release_max_level_warn"] }
+env_logger = "0.7.1"
+lazy_static = "1.4.0"
+atty = "0.2.14"
+
+[dev-dependencies]
+assert_cmd = "1.0.1"
+criterion = "0.3.2"
+
+[[bench]]
+name = "cmdbench"
+harness = false
