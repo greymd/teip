@@ -92,6 +92,29 @@ $ sudo install -m 755 bin/teip /usr/bin/teip
 ```
 
 # Usage
+
+```
+teip: Only a selected part of standard input is passed to any command for execution.
+
+Usage:
+  teip -r <pattern> [-svz] [--] [<command>...]
+  teip -f <list> [-d <delimiter> | -D <pattern>] [-svz] [--] [<command>...]
+  teip -c <list> [-svz] [--] [<command>...]
+  teip --help | --version
+
+Options:
+  --help          Display this help and exit
+  --version       Show version and exit
+  -r <pattern>    Select strings matched by given regular expression <pattern>
+  -f <list>       Select only these white-space separated fields
+  -d <delimiter>  Use <delimiter> for field delimiter of -f
+  -D <pattern>    Use regular expression <pattern> for field delimiter of -f
+  -c <list>       Select only these characters
+  -s              Execute command for each selected part
+  -v              Invert the sense of selecting
+  -z              Line delimiter is NUL instead of newline
+```
+
 ## Getting Started
 
 Try this at first.
