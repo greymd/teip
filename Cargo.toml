@@ -1,6 +1,6 @@
 [package]
 name = "teip"
-version = "0.0.1"
+version = "1.0.0"
 authors = ["greymd <yamadagrep@gmail.com>"]
 edition = "2018"
 
