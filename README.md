@@ -65,20 +65,20 @@ $ brew install greymd/tools/teip
 
 <!-- deb_x86_64_start -->
 ```bash
-$ wget https://github.com/greymd/teip/releases/download/v0.0.2/teip-0.0.2.x86_64-unknown-linux-musl.deb
+$ wget https://github.com/greymd/teip/releases/download/v1.0.0/teip-1.0.0.x86_64-unknown-linux-musl.deb
 $ sudo dpkg -i ./teip*.deb
 ```
 <!-- deb_x86_64_end -->
-<!-- deb_x86_64_sha256 -->SHA256: 2de5121023c2a5a77b79e279465810c832a017e2baffdbc0557ab94eda667c95
+<!-- deb_x86_64_sha256 -->SHA256: d892b986b89b5e86ea5ade91c59bf098b8ea3a901e8098ac6c199b3b1c8d1fe8
 
 ## With yum (For CentOS7, RHEL7 users)
 
 <!-- rpm_x86_64_start -->
 ```bash
-$ sudo yum install https://github.com/greymd/teip/releases/download/v0.0.2/teip-0.0.2.x86_64-unknown-linux-musl.rpm
+$ sudo yum install https://github.com/greymd/teip/releases/download/v1.0.0/teip-1.0.0.x86_64-unknown-linux-musl.rpm
 ```
 <!-- rpm_x86_64_end -->
-<!-- rpm_x86_64_sha256 -->SHA256: 26ec9874fdf6f68f709a436f5a36b236059b6564aa031ca2f3f9e145214756b6
+<!-- rpm_x86_64_sha256 -->SHA256: e15d8ac1a6f16622367877cf87b3fb9dc60bbcf2cdae31076145898a07e43cff
 
 ## Installation for i686, ARM architectures
 
