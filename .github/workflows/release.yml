@@ -2,13 +2,12 @@ name: Release
 
 on:
   push:
-    branches:
-      - master
     tags:
       - 'v*.*.*'
 
 jobs:
   build:
+    if: {{ github.ref == 'ref/head/master' }}
     name: Upload Release Assets
     runs-on: ${{ matrix.os }}
     strategy:
@@ -120,6 +119,7 @@ jobs:
           path: digest.txt
 
   readme:
+    if: {{ github.ref == 'ref/head/master' }}
     name: Update README.md
     runs-on: ubuntu-latest
     needs: build
