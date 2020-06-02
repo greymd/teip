@@ -1,7 +1,14 @@
 [package]
 name = "teip"
 version = "1.0.0"
-authors = ["greymd <yamadagrep@gmail.com>"]
+authors = ["Yasuhiro Yamada <yamadagrep@gmail.com>"]
+description = "Highly efficient \"Masking tape\" for standard input"
+keywords = ["sed", "awk", "util"]
+documentation = "https://github.com/greymd/teip"
+homepage = "https://github.com/greymd/teip"
+repository = "https://github.com/greymd/teip"
+readme = "README.md"
+license = "MIT"
 edition = "2018"
 
 [dependencies]
