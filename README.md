@@ -10,9 +10,11 @@
 </p>
 
 # TL;DR
+<!--
 <p align="center">
   <img src="https://raw.githubusercontent.com/wiki/greymd/teip/movies/movie_v1.gif" alt="Git Animation for Introduction" />
 </p>
+-->
 
 * Edit 4th and 6th columns in the CSV file
 
