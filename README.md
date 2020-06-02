@@ -53,6 +53,12 @@ See detail on <a href="https://github.com/greymd/teip/wiki/Benchmark">wiki > Ben
   - The targeted command's standard input/output are intercepted by multiple `teip`'s threads asynchronously.
   - If general UNIX commands in your environment can process a few hundred MB files in a few seconds, then `teip` can do the same or better performance.
 
+# Installation with Cargo
+
+```bash
+$ cargo install teip
+```
+
 # Installation (x86_64)
 
 ## With Homebrew (for macOS users)
@@ -79,6 +85,8 @@ $ sudo yum install https://github.com/greymd/teip/releases/download/v1.0.0/teip-
 ```
 <!-- rpm_x86_64_end -->
 <!-- rpm_x86_64_sha256 -->SHA256: e15d8ac1a6f16622367877cf87b3fb9dc60bbcf2cdae31076145898a07e43cff
+
+## With yum (For CentOS7, RHEL7 users)
 
 ## Installation for i686, ARM architectures
 
