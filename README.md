@@ -1,6 +1,6 @@
 <h1 align="center">
   <br />
-  <img src="https://raw.githubusercontent.com/wiki/greymd/teip/img/logo.png" height="208" width="208" />
+  <img src="https://raw.githubusercontent.com/wiki/greymd/teip/img/logo.png" width="208" />
   <h4 align="center">Highly efficient "Masking tape" for Shell</h4>
 </h1>
 <p align="center">
