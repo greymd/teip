@@ -1,7 +1,7 @@
 <h1 align="center">
   <br />
   <img src="https://raw.githubusercontent.com/wiki/greymd/teip/img/logo.png" height="208" width="208" />
-  <h4 align="center">Highly efficient "Masking tape" for standard input</h4>
+  <h4 align="center">Highly efficient "Masking tape" for Shell</h4>
 </h1>
 <p align="center">
   <a href="https://github.com/greymd/teip/releases/latest"><img src="https://img.shields.io/github/release/greymd/teip.svg" alt="Latest version" /></a>
@@ -31,7 +31,7 @@ $ cat /var/log/secure | teip -c 1-15 -- date -f- +%s
 * Percent-encode bare-minimum range of the file
 
 ```bash
-$ teip -r '[^-a-zA-Z0-9@:%._\+~#=/]+' -- php -R 'echo urlencode($argn)."\n";'
+$ cat file | teip -r '[^-a-zA-Z0-9@:%._\+~#=/]+' -- php -R 'echo urlencode($argn)."\n";'
 ```
 
 # Performance enhancement
