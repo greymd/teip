@@ -34,9 +34,9 @@ $ cat file | teip -r '[^-a-zA-Z0-9@:%._\+~#=/]+' -- php -R 'echo urlencode($argn
 ```
 
 # Performance enhancement
-`teip` allows any command to focus on its own tasks.
+`teip` allows a command to focus on its own task.
 
-Here is the comparison of processing time to replace 760K IP addresses with dummy ones in 100 MiB text file.
+Here is the comparison of processing time to replace approx 761,000 IP addresses with dummy ones in 100 MiB text file.
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/wiki/greymd/teip/benchmark/secure_bench.svg" width="80%" alt="benchmark bar chart" />
@@ -636,7 +636,7 @@ ABAB  ### Same color as grep
 # Background
 
 ## Why made it?
-TBD
+See this [post](https://dev.to/greymd/teip-masking-tape-for-shell-is-what-we-needed-5e05).
 
 ## Why "teip"?
 * Came from Irish verb "teip" which means "fail" and it can also mean "blank out", "cut off".
