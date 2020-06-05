@@ -18,6 +18,8 @@ use std::os::unix::io::{AsRawFd, FromRawFd};
 use std::process::{Command, Stdio};
 use std::sync::mpsc::{self, Sender};
 use std::thread::{self, JoinHandle};
+use enum_set::EnumSet;
+use pcre::Pcre;
 use token::Token;
 
 const CMD: &'static str = env!("CARGO_PKG_NAME"); // "teip"
@@ -312,7 +314,7 @@ lazy_static! {
 Only a selected part of standard input is passed to any command for execution.
 
 Usage:
-  {cmd} -r <pattern> [-svz] [--] [<command>...]
+  {cmd} -r <pattern> [-svzP] [--] [<command>...]
   {cmd} -f <list> [-d <delimiter> | -D <pattern>] [-svz] [--] [<command>...]
   {cmd} -c <list> [-svz] [--] [<command>...]
   {cmd} --help | --version
@@ -325,6 +327,7 @@ Options:
   -d <delimiter>  Use <delimiter> for field delimiter of -f
   -D <pattern>    Use regular expression <pattern> for field delimiter of -f
   -c <list>       Select only these characters
+  -P              Interpret <pattern> of -r as Perl-compatible regular expressions (PCREs)
   -s              Execute command for each selected part
   -v              Invert the sense of selecting
   -z              Line delimiter is NUL instead of newline
@@ -364,8 +367,20 @@ fn main() {
     }
     let cmds = args.get_vec("<command>");
     let flag_regex = args.get_bool("-r");
-    let regex = Regex::new(&(regex_mode.to_string() + args.get_str("-r")))
+    let flag_pcre = args.get_bool("-P");
+    let mut regex = Regex::new("").unwrap();
+    if ! flag_pcre {
+        regex = Regex::new(&(regex_mode.to_string() + args.get_str("-r")))
         .unwrap_or_else(|e| error_exit(&e.to_string()));
+    }
+
+    let mut compile_options: EnumSet<pcre::CompileOption> = EnumSet::new();
+    compile_options.insert(pcre::CompileOption::Extra);
+    compile_options.insert(pcre::CompileOption::Ucp);
+    let mut regex_pcre = match Pcre::compile_with_options(&args.get_str("-r"), &compile_options) {
+        Ok(re) => re,
+        Err(e) => error_exit(&e.to_string()),
+    };
 
     let flag_invert = args.get_bool("-v");
     let flag_char = args.get_bool("-c");
@@ -426,8 +441,13 @@ fn main() {
                 }
                 let eol = trim_eol(&mut buf);
                 if flag_regex {
-                    regex_proc(&mut ch, &buf, &regex, flag_invert)
-                        .unwrap_or_else(|e| error_exit(&e.to_string()));
+                    if flag_pcre {
+                        regex_pcre_proc(&mut ch, &buf, &mut regex_pcre, flag_invert)
+                            .unwrap_or_else(|e| error_exit(&e.to_string()));
+                    } else {
+                        regex_proc(&mut ch, &buf, &regex, flag_invert)
+                            .unwrap_or_else(|e| error_exit(&e.to_string()));
+                    }
                 } else if flag_char {
                     char_proc(&mut ch, &buf, &char_list)
                         .unwrap_or_else(|e| error_exit(&e.to_string()));
@@ -444,6 +464,56 @@ fn main() {
             Err(e) => msg_error(&e.to_string()),
         }
     }
+}
+
+/// Handles regex pcre ( -r -P )
+fn regex_pcre_proc(
+    ch: &mut PipeIntercepter,
+    line: &Vec<u8>,
+    re: &mut Pcre,
+    invert: bool,
+) -> Result<(), errors::TokenSendError> {
+    let line = String::from_utf8_lossy(&line).to_string();
+    let mut left_index = 0;
+    let mut right_index;
+    let iter = re.matches(&line);
+
+    for (_, cap) in iter.enumerate() {
+        right_index = cap.group_start(0);
+        let unmatched = &line[left_index..right_index];
+        let matched = &line[cap.group_start(0)..cap.group_end(0)];
+        // Ignore empty string.
+        // Regex "*" matches empty, but , in most situations,
+        // handling empty string is not helpful for users.
+        if !unmatched.is_empty() {
+            if !invert {
+                ch.send_msg(unmatched.to_string())?;
+            } else {
+                ch.send_pipe(unmatched.to_string())?;
+            }
+        }
+        if !matched.is_empty() {
+            if !invert {
+                ch.send_pipe(matched.to_string())?;
+            } else {
+                ch.send_msg(matched.to_string())?;
+            }
+        }
+        left_index = cap.group_end(0);
+        if left_index == right_index {
+            // Break because pcre library may go into infinite loop
+            break;
+        }
+    }
+    if left_index < line.len() {
+        let unmatched = &line[left_index..line.len()];
+        if !invert {
+            ch.send_msg(unmatched.to_string())?;
+        } else {
+            ch.send_pipe(unmatched.to_string())?;
+        }
+    }
+    Ok(())
 }
 
 /// Handles regex ( -r )
