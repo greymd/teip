@@ -377,7 +377,7 @@ fn main() {
     let mut compile_options: EnumSet<pcre::CompileOption> = EnumSet::new();
     compile_options.insert(pcre::CompileOption::Extra);
     compile_options.insert(pcre::CompileOption::Ucp);
-    let mut regex_pcre = match Pcre::compile_with_options(&args.get_str("-r"), &compile_options) {
+    let regex_pcre = match Pcre::compile_with_options(&args.get_str("-r"), &compile_options) {
         Ok(re) => re,
         Err(e) => error_exit(&e.to_string()),
     };
@@ -442,7 +442,7 @@ fn main() {
                 let eol = trim_eol(&mut buf);
                 if flag_regex {
                     if flag_pcre {
-                        regex_pcre_proc(&mut ch, &buf, &mut regex_pcre, flag_invert)
+                        regex_pcre_proc(&mut ch, &buf, &regex_pcre, flag_invert)
                             .unwrap_or_else(|e| error_exit(&e.to_string()));
                     } else {
                         regex_proc(&mut ch, &buf, &regex, flag_invert)
@@ -470,7 +470,7 @@ fn main() {
 fn regex_pcre_proc(
     ch: &mut PipeIntercepter,
     line: &Vec<u8>,
-    re: &mut Pcre,
+    re: &Pcre,
     invert: bool,
 ) -> Result<(), errors::TokenSendError> {
     let line = String::from_utf8_lossy(&line).to_string();
@@ -492,18 +492,12 @@ fn regex_pcre_proc(
                 ch.send_pipe(unmatched.to_string())?;
             }
         }
-        if !matched.is_empty() {
-            if !invert {
-                ch.send_pipe(matched.to_string())?;
-            } else {
-                ch.send_msg(matched.to_string())?;
-            }
+        if !invert {
+            ch.send_pipe(matched.to_string())?;
+        } else {
+            ch.send_msg(matched.to_string())?;
         }
         left_index = cap.group_end(0);
-        if left_index == right_index {
-            // Break because pcre library may go into infinite loop
-            break;
-        }
     }
     if left_index < line.len() {
         let unmatched = &line[left_index..line.len()];
