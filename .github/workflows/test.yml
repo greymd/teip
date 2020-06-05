@@ -37,6 +37,10 @@ jobs:
         if: contains(matrix.target, 'musl')
         run: |
           sudo apt-get install musl-tools
+      - name: Install buildtools if required
+        if: contains(matrix.target, 'apple')
+        run: |
+          brew install autoconf
       - name: Run cargo check
         uses: actions-rs/cargo@v1
         with:
@@ -44,8 +48,9 @@ jobs:
       - name: Build the release target
         run: |
           rustup target add ${{ matrix.target }}
-          cargo build --release --target ${{ matrix.target }}
+          CC="musl-gcc -static" cargo build --release --target ${{ matrix.target }}
           mv target/${{matrix.target}}/release/teip target/release
+          ldd target/release
       - name: Run tests
         timeout-minutes: 10
         run: cargo test --verbose
