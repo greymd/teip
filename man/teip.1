@@ -4,7 +4,7 @@
 teip \- Highly efficient "Masking tape" for standard input
 .SH SYNOPSIS
 .PP
-\fB\fCteip\fR \-r <\fIpattern\fP> [\-svz] [\-\-] [<\fIcommand\fP>...]
+\fB\fCteip\fR (\-r <\fIpattern\fP> | \-P <\fIpattern\fP>) [\-svz] [\-\-] [<\fIcommand\fP>...]
 .PP
 \fB\fCteip\fR \-f <\fIlist\fP> [\-d <\fIdelimiter\fP> | \-D <\fIpattern\fP>] [\-svz] [\-\-] [<\fIcommand\fP>...]
 .PP
@@ -24,6 +24,9 @@ Show version and exit
 .TP
 \fB\fC\-r\fR <\fIpattern\fP>
 Select strings matched by a regular expression <\fIpattern\fP>
+.TP
+\fB\fC\-P\fR <\fIpattern\fP>
+EXPERIMENTAL: Same as \-r but use Perl\-compatible regular expressions (PCREs)
 .TP
 \fB\fC\-f\fR <\fIlist\fP>
 Select only these white\-space separated fields
@@ -153,7 +156,9 @@ $ echo 1 2 3 4 5 | teip \-f \-4 \-\- sed 's/./@/'
 Refer to the link in \fISEE ALSO\fP about the details.
 .SS Necessity of \fB\-\-\fP
 .PP
-If \fB\-\-\fP is omitted, the command fails.
+\fB\fCteip\fR interprets arguments after \fB\fC\-\-\fR as \fIcommand\fP and its argument.
+.PP
+If \fB\-\-\fP is omitted, the command fails in this example.
 .PP
 .RS
 .nf
@@ -162,8 +167,7 @@ teip: Invalid arguments.
 .fi
 .RE
 .PP
-This is because the \fB\fCcut\fR uses the \fB\fC\-c\fR option. The option of the same name is also provided by teip, which is confusing.
-\fB\fCteip\fR interprets arguments after \fB\fC\-\-\fR as \fIcommand\fP and its argument.
+This is because the \fB\fCcut\fR uses the \fB\fC\-c\fR option. The option of the same name is also provided by \fB\fCteip\fR, which is confusing.
 .PP
 .RS
 .nf

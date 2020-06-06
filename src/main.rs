@@ -323,7 +323,7 @@ Options:
   --help          Display this help and exit
   --version       Show version and exit
   -r <pattern>    Select strings matched by given regular expression <pattern>
-  -P <pattern>    Same as -r but use Perl-compatible regular expressions (PCREs)
+  -P <pattern>    EXPERIMENTAL: Same as -r but use Perl-compatible regular expressions (PCREs)
   -f <list>       Select only these white-space separated fields
   -d <delimiter>  Use <delimiter> for field delimiter of -f
   -D <pattern>    Use regular expression <pattern> for field delimiter of -f

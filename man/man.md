@@ -38,6 +38,7 @@ OPTIONS
 
 `-P` <*pattern*>
   Same as -r but use Perl-compatible regular expressions (PCREs)
+  **This feature is experimental and might be abolished in the future**
 
 `-f` <*list*>
   Select only these white-space separated fields
