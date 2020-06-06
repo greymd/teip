@@ -54,12 +54,6 @@ See detail on <a href="https://github.com/greymd/teip/wiki/Benchmark">wiki > Ben
   - The targeted command's standard input/output are intercepted by multiple `teip`'s threads asynchronously.
   - If general UNIX commands in your environment can process a few hundred MB files in a few seconds, then `teip` can do the same or better performance.
 
-# Installation with Cargo
-
-```bash
-$ cargo install teip
-```
-
 # Installation (x86_64)
 
 ## With Homebrew (for macOS users)
@@ -87,18 +81,37 @@ $ sudo yum install https://github.com/greymd/teip/releases/download/v1.0.0/teip-
 <!-- rpm_x86_64_end -->
 <!-- rpm_x86_64_sha256 -->SHA256: e15d8ac1a6f16622367877cf87b3fb9dc60bbcf2cdae31076145898a07e43cff
 
-## With yum (For CentOS7, RHEL7 users)
+## For other architectures (i686, ARM, etc..)
 
-## Installation for i686, ARM architectures
+v1.0.0 has pre-build binary executables.
+See [v1.0.0 release page](https://github.com/greymd/teip/releases/tag/v1.0.0).
 
-Extract the prepared tarball and install it manually.
-See [releases](https://github.com/greymd/teip/releases) for built files.
-
-```bash
-$ wget https://github.com/greymd/teip/releases/download/v<VERSION>/teip-<VERSION>.x86_64-arm-unknown-linux-gnueabi.tar.gz
-$ tar zxvf teip*.tar.gz
-$ sudo install -m 755 bin/teip /usr/bin/teip
 ```
+$ wget https://github.com/greymd/teip/releases/download/v<VERSION>/teip-<VERSION>.<ARCH>.tar.gz
+$ tar zxvf teip*.tar.gz
+$ sudo install -m 755 bin/teip /usr/local/bin/teip
+```
+
+Since v1.1.0, pre-build binary is not prepared but `teip` works.
+`libpcre` must be prepared before the compile because `teip` v1.1.0 or later are depending on it.
+
+```
+$ sudo apt install libpcre3-dev pkg-config
+$ cargo install teip
+```
+
+OR, please make sure C compiler and general tools for compiling are prepared.
+Also `libpcre` will be built on your environment.
+
+```
+$ gcc --version ; autoreconf --version ; make --version ; tar --version
+## => Confirm all the tools have been on installed
+$ cargo install teip
+```
+
+### For Windows
+
+Unfortunately, `teip` does not work on Windows due to technical reason.
 
 # Usage
 
