@@ -15,18 +15,6 @@ jobs:
           - target: x86_64-unknown-linux-musl
             os: ubuntu-latest
             ext: tar.gz
-          - target: i686-unknown-linux-musl
-            os: ubuntu-latest
-            ext: tar.gz
-          - target: arm-unknown-linux-gnueabi
-            os: ubuntu-latest
-            ext: tar.gz
-          - target: armv7-unknown-linux-gnueabihf
-            os: ubuntu-latest
-            ext: tar.gz
-          - target: x86_64-unknown-linux-musl
-            os: ubuntu-latest
-            ext: tar.gz
           - target: x86_64-unknown-linux-musl
             os: ubuntu-latest
             ext: rpm
@@ -46,12 +34,27 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: Cross compile
-        uses: actions-rs/cargo@v1
-        with:
-          use-cross: true
-          command: build
-          args: --release --target ${{ matrix.target }}
+      - name: Install musl-gcc if required
+        if: contains(matrix.target, 'musl')
+        run: |
+          sudo apt-get install musl-tools autoconf autotools-dev
+
+      - name: Install buildtools if required
+        if: contains(matrix.target, 'apple')
+        run: |
+          brew install pcre pkg-config
+
+      - name: Compile for musl
+        if: contains(matrix.target, 'musl')
+        run: |
+          rustup target add ${{ matrix.target }}
+          CC="musl-gcc -static" cargo build --verbose --release --target ${{ matrix.target }}
+
+      - name: Compile
+        if: "! contains(matrix.target, 'musl')"
+        run: |
+          rustup target add ${{ matrix.target }}
+          cargo build --verbose --release --target ${{ matrix.target }}
 
       - name: Build packages
         run: |
