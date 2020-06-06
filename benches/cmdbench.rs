@@ -44,6 +44,28 @@ fn standard_regex_double(lap: usize) {
     let _ = child.wait_with_output();
 }
 
+fn pcre_double(lap: usize) {
+    let mut child = Command::new(CMD)
+        .stdin(Stdio::piped())
+        .stdout(Stdio::null()) // comment out to check output.
+        .args(&["-P", "\\d+", "sed", "s/./@/"])
+        .spawn()
+        .expect("Failed to swapn process");
+    {
+        let stdin = child
+            .stdin
+            .as_mut()
+            .ok_or("Child process stdin has not been captured!")
+            .unwrap();
+        stdin
+            .write_all("ABC123DEF456\n".repeat(lap).as_bytes())
+            .unwrap();
+    }
+    let _ = child.wait_with_output();
+}
+
+
+
 fn field_double(lap: usize) {
     let mut child = Command::new(CMD)
         .stdin(Stdio::piped())
@@ -170,6 +192,9 @@ fn criterion_benchmark(c: &mut Criterion) {
     });
     c.bench_function("standard_regex_double 10000", |b| {
         b.iter(|| standard_regex_double(black_box(10000)))
+    });
+    c.bench_function("pcre_double 10000", |b| {
+        b.iter(|| pcre_double(black_box(10000)))
     });
     c.bench_function("field_double 10000", |b| {
         b.iter(|| field_double(black_box(10000)))
