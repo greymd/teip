@@ -19,8 +19,10 @@ log = { version = "0.4", features = ["max_level_trace", "release_max_level_warn"
 env_logger = "0.7.1"
 lazy_static = "1.4.0"
 atty = "0.2.14"
-pcre = { git = "https://github.com/greymd/rust-pcre" }
 enum-set = ">= 0.0.5"
+
+[target.'cfg(unix)'.dependencies]
+pcre = { git = "https://github.com/greymd/rust-pcre", branch = "unix" }
 
 [dev-dependencies]
 assert_cmd = "1.0.1"
