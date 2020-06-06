@@ -1,6 +1,6 @@
 [package]
 name = "teip"
-version = "1.1.1-beta"
+version = "1.1.2-beta"
 authors = ["Yasuhiro Yamada <yamadagrep@gmail.com>"]
 description = "Highly efficient \"Masking tape\" for standard input"
 keywords = ["sed", "awk", "util"]
@@ -18,7 +18,7 @@ regex = "1"
 log = { version = "0.4", features = ["max_level_trace", "release_max_level_warn"] }
 env_logger = "0.7.1"
 lazy_static = "1.4.0"
-pcre2 = "0.2.3"
+onig = "6"
 
 [dev-dependencies]
 assert_cmd = "1.0.1"

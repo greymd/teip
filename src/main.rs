@@ -7,7 +7,6 @@ mod token;
 
 #[macro_use]
 extern crate lazy_static;
-extern crate pcre2;
 
 use docopt::Docopt;
 use log::debug;
@@ -19,7 +18,7 @@ use std::os::unix::io::{AsRawFd, FromRawFd};
 use std::process::{Command, Stdio};
 use std::sync::mpsc::{self, Sender};
 use std::thread::{self, JoinHandle};
-use pcre2::bytes;
+use onig::{self};
 use token::Token;
 
 const CMD: &'static str = env!("CARGO_PKG_NAME"); // "teip"
@@ -375,12 +374,12 @@ fn main() {
         .unwrap_or_else(|e| error_exit(&e.to_string()));
     }
 
-    let regex_pcre: bytes::Regex;
+    let regex_pcre: onig::Regex;
     if flag_zero {
-        regex_pcre = bytes::RegexBuilder::new().ucp(true).build(&args.get_str("-P"))
+        regex_pcre = onig::Regex::with_options(&args.get_str("-P"), onig::RegexOptions::REGEX_OPTION_MULTILINE, onig::Syntax::default())
         .unwrap_or_else(|e| error_exit(&e.to_string()));
     } else {
-        regex_pcre = bytes::RegexBuilder::new().ucp(true).multi_line(true).build(&args.get_str("-P"))
+        regex_pcre = onig::Regex::with_options(&args.get_str("-P"), onig::RegexOptions::REGEX_OPTION_NONE, onig::Syntax::default())
         .unwrap_or_else(|e| error_exit(&e.to_string()));
     }
 
@@ -470,17 +469,16 @@ fn main() {
 fn regex_pcre_proc(
     ch: &mut PipeIntercepter,
     line: &Vec<u8>,
-    re: &pcre2::bytes::Regex,
+    re: &onig::Regex,
     invert: bool,
 ) -> Result<(), errors::TokenSendError> {
-    // let line = String::from_utf8_lossy(&line).to_string();
+    let line = String::from_utf8_lossy(&line).to_string();
     let mut left_index = 0;
     let mut right_index;
-    for result in re.find_iter(&line) {
-        let cap = result.unwrap();
-        right_index = cap.start();
-        let unmatched = String::from_utf8_lossy(&line[left_index..right_index]);
-        let matched = String::from_utf8_lossy(&line[cap.start()..cap.end()]);
+    for cap in re.find_iter(&line) {
+        right_index = cap.0;
+        let unmatched = &line[left_index..right_index];
+        let matched = &line[cap.0..cap.1];
         // Ignore empty string.
         // Regex "*" matches empty, but , in most situations,
         // handling empty string is not helpful for users.
@@ -496,10 +494,10 @@ fn regex_pcre_proc(
         } else {
             ch.send_msg(matched.to_string())?;
         }
-        left_index = cap.end();
+        left_index = cap.1;
     }
     if left_index < line.len() {
-        let unmatched = String::from_utf8_lossy(&line[left_index..line.len()]);
+        let unmatched = &line[left_index..line.len()];
         if !invert {
             ch.send_msg(unmatched.to_string())?;
         } else {
