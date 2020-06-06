@@ -54,12 +54,6 @@ See detail on <a href="https://github.com/greymd/teip/wiki/Benchmark">wiki > Ben
   - The targeted command's standard input/output are intercepted by multiple `teip`'s threads asynchronously.
   - If general UNIX commands in your environment can process a few hundred MB files in a few seconds, then `teip` can do the same or better performance.
 
-# Installation with Cargo
-
-```bash
-$ cargo install teip
-```
-
 # Installation (x86_64)
 
 ## With Homebrew (for macOS users)
@@ -78,7 +72,7 @@ $ sudo dpkg -i ./teip*.deb
 <!-- deb_x86_64_end -->
 <!-- deb_x86_64_sha256 -->SHA256: d892b986b89b5e86ea5ade91c59bf098b8ea3a901e8098ac6c199b3b1c8d1fe8
 
-## With yum (For CentOS7, RHEL7 users)
+## With yum (For CentOS7, RHEL7, Amazon Linux 2 users)
 
 <!-- rpm_x86_64_start -->
 ```bash
@@ -87,26 +81,19 @@ $ sudo yum install https://github.com/greymd/teip/releases/download/v1.0.0/teip-
 <!-- rpm_x86_64_end -->
 <!-- rpm_x86_64_sha256 -->SHA256: e15d8ac1a6f16622367877cf87b3fb9dc60bbcf2cdae31076145898a07e43cff
 
-## With yum (For CentOS7, RHEL7 users)
+## For other architectures (i686, ARM, etc..)
 
-## Installation for i686, ARM architectures
+See [Wiki > Installation](https://github.com/greymd/teip/wiki/Installation)
 
-Extract the prepared tarball and install it manually.
-See [releases](https://github.com/greymd/teip/releases) for built files.
+### For Windows
 
-```bash
-$ wget https://github.com/greymd/teip/releases/download/v<VERSION>/teip-<VERSION>.x86_64-arm-unknown-linux-gnueabi.tar.gz
-$ tar zxvf teip*.tar.gz
-$ sudo install -m 755 bin/teip /usr/bin/teip
-```
+Unfortunately, `teip` does not work on Windows due to technical reason.
 
 # Usage
 
 ```
-teip: Only a selected part of standard input is passed to any command for execution.
-
 Usage:
-  teip -r <pattern> [-svz] [--] [<command>...]
+  teip (-r <pattern> | -P <pattern>) [-svz] [--] [<command>...]
   teip -f <list> [-d <delimiter> | -D <pattern>] [-svz] [--] [<command>...]
   teip -c <list> [-svz] [--] [<command>...]
   teip --help | --version
@@ -115,6 +102,7 @@ Options:
   --help          Display this help and exit
   --version       Show version and exit
   -r <pattern>    Select strings matched by given regular expression <pattern>
+  -P <pattern>    EXPERIMENTAL: Same as -r but use Perl-compatible regular expressions (PCREs)
   -f <list>       Select only these white-space separated fields
   -d <delimiter>  Use <delimiter> for field delimiter of -f
   -D <pattern>    Use regular expression <pattern> for field delimiter of -f

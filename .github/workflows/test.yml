@@ -21,9 +21,6 @@ jobs:
     strategy:
       matrix:
         include:
-          - build: linux
-            os: ubuntu-latest
-            target: x86_64-unknown-linux-gnu
           - build: linux-musl
             os: ubuntu-latest
             target: x86_64-unknown-linux-musl
@@ -36,15 +33,19 @@ jobs:
       - name: Install musl-gcc if required
         if: contains(matrix.target, 'musl')
         run: |
-          sudo apt-get install musl-tools
-      - name: Run cargo check
-        uses: actions-rs/cargo@v1
-        with:
-          command: check
+          sudo apt-get install musl-tools autoconf autotools-dev
+      - name: Install buildtools if required
+        if: contains(matrix.target, 'apple')
+        run: |
+          brew install pcre pkg-config
       - name: Build the release target
         run: |
           rustup target add ${{ matrix.target }}
-          cargo build --release --target ${{ matrix.target }}
+          if [[ ${{ matrix.target }} =~ "musl" ]] ;then
+            CC="musl-gcc -static" cargo build --verbose --release --target ${{ matrix.target }}
+          else
+            cargo build --verbose --release --target ${{ matrix.target }}
+          fi
           mv target/${{matrix.target}}/release/teip target/release
       - name: Run tests
         timeout-minutes: 10

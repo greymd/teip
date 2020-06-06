@@ -18,6 +18,8 @@ use std::os::unix::io::{AsRawFd, FromRawFd};
 use std::process::{Command, Stdio};
 use std::sync::mpsc::{self, Sender};
 use std::thread::{self, JoinHandle};
+use enum_set::{self, EnumSet};
+use pcre::Pcre;
 use token::Token;
 
 const CMD: &'static str = env!("CARGO_PKG_NAME"); // "teip"
@@ -312,7 +314,7 @@ lazy_static! {
 Only a selected part of standard input is passed to any command for execution.
 
 Usage:
-  {cmd} -r <pattern> [-svz] [--] [<command>...]
+  {cmd} (-r <pattern> | -P <pattern>) [-svz] [--] [<command>...]
   {cmd} -f <list> [-d <delimiter> | -D <pattern>] [-svz] [--] [<command>...]
   {cmd} -c <list> [-svz] [--] [<command>...]
   {cmd} --help | --version
@@ -321,6 +323,7 @@ Options:
   --help          Display this help and exit
   --version       Show version and exit
   -r <pattern>    Select strings matched by given regular expression <pattern>
+  -P <pattern>    EXPERIMENTAL: Same as -r but use Perl-compatible regular expressions (PCREs)
   -f <list>       Select only these white-space separated fields
   -d <delimiter>  Use <delimiter> for field delimiter of -f
   -D <pattern>    Use regular expression <pattern> for field delimiter of -f
@@ -357,15 +360,28 @@ fn main() {
 
     let mut line_end = b'\n';
     let mut regex_mode = String::new();
+    let mut pcre_options: EnumSet<pcre::CompileOption> = EnumSet::new();
+    pcre_options.insert(pcre::CompileOption::Ucp);
+
     let flag_zero = args.get_bool("-z");
     if flag_zero {
         regex_mode = "(?ms)".to_string();
         line_end = b'\0';
+        pcre_options.insert(pcre::CompileOption::Multiline);
     }
     let cmds = args.get_vec("<command>");
     let flag_regex = args.get_bool("-r");
-    let regex = Regex::new(&(regex_mode.to_string() + args.get_str("-r")))
+    let flag_pcre = args.get_bool("-P");
+    let mut regex = Regex::new("").unwrap();
+    if ! flag_pcre {
+        regex = Regex::new(&(regex_mode.to_string() + args.get_str("-r")))
         .unwrap_or_else(|e| error_exit(&e.to_string()));
+    }
+
+    let regex_pcre = match Pcre::compile_with_options(&args.get_str("-P"), &pcre_options) {
+        Ok(re) => re,
+        Err(e) => error_exit(&e.to_string()),
+    };
 
     let flag_invert = args.get_bool("-v");
     let flag_char = args.get_bool("-c");
@@ -428,6 +444,9 @@ fn main() {
                 if flag_regex {
                     regex_proc(&mut ch, &buf, &regex, flag_invert)
                         .unwrap_or_else(|e| error_exit(&e.to_string()));
+                } else if flag_pcre {
+                    regex_pcre_proc(&mut ch, &buf, &regex_pcre, flag_invert)
+                        .unwrap_or_else(|e| error_exit(&e.to_string()));
                 } else if flag_char {
                     char_proc(&mut ch, &buf, &char_list)
                         .unwrap_or_else(|e| error_exit(&e.to_string()));
@@ -444,6 +463,49 @@ fn main() {
             Err(e) => msg_error(&e.to_string()),
         }
     }
+}
+
+/// Handles regex pcre ( -r -P )
+fn regex_pcre_proc(
+    ch: &mut PipeIntercepter,
+    line: &Vec<u8>,
+    re: &Pcre,
+    invert: bool,
+) -> Result<(), errors::TokenSendError> {
+    let line = String::from_utf8_lossy(&line).to_string();
+    let mut left_index = 0;
+    let mut right_index;
+    let iter = re.matches(&line);
+    for (_, cap) in iter.enumerate() {
+        right_index = cap.group_start(0);
+        let unmatched = &line[left_index..right_index];
+        let matched = &line[cap.group_start(0)..cap.group_end(0)];
+        // Ignore empty string.
+        // Regex "*" matches empty, but , in most situations,
+        // handling empty string is not helpful for users.
+        if !unmatched.is_empty() {
+            if !invert {
+                ch.send_msg(unmatched.to_string())?;
+            } else {
+                ch.send_pipe(unmatched.to_string())?;
+            }
+        }
+        if !invert {
+            ch.send_pipe(matched.to_string())?;
+        } else {
+            ch.send_msg(matched.to_string())?;
+        }
+        left_index = cap.group_end(0);
+    }
+    if left_index < line.len() {
+        let unmatched = &line[left_index..line.len()];
+        if !invert {
+            ch.send_msg(unmatched.to_string())?;
+        } else {
+            ch.send_pipe(unmatched.to_string())?;
+        }
+    }
+    Ok(())
 }
 
 /// Handles regex ( -r )

@@ -14,27 +14,60 @@ on:
       - reopened
 
 jobs:
-  test:
+  bench:
     name: Benchmark
     runs-on: ubuntu-latest
     if: "! contains(github.event.head_commit.message, '[skip ci]')"
     steps:
     - uses: actions/checkout@v2
+    - name: Build
+      run: cargo build --release
+    - name: Benchmark for each functions
+      run: cargo bench
+
+  files:
+    name: Benchmark with a large file
+    runs-on: ubuntu-latest
+    if: "! contains(github.event.head_commit.message, '[skip ci]')"
+    strategy:
+      matrix:
+        include:
+          - name: regex_match
+            cmd: teip -r '.*sshd' < test_secure
+          - name: pcre_match
+            cmd: teip -P '.*sshd' < test_secure
+          - name: convert_date
+            cmd: teip -c1-15 -- date -f- +%s < test_secure
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get install musl-tools autoconf autotools-dev
+
+    - name: Build
+      run: |
+        rustup target add x86_64-unknown-linux-musl
+        CC="musl-gcc -static" cargo build --verbose --release --target x86_64-unknown-linux-musl
+        mv target/x86_64-unknown-linux-musl/release/teip target/release
+
     - name: Prepare benchmarking
       run: |
         wget https://github.com/sharkdp/hyperfine/releases/download/v1.9.0/hyperfine_1.9.0_amd64.deb
         sudo dpkg -i ./hyperfine_1.9.0_amd64.deb
         wget https://github.com/greymd/test_files/raw/master/logs/test_secure.gz
         gzip -d ./test_secure.gz
-    - name: Build
-      run: cargo build --release
-    - name: Benchmark for each functions
-      run: cargo bench
+
     - name: Benchmark for a large file
       run: |
-        hyperfine --export-json ./read.json "./target/release/teip -r '.*sshd' < test_secure"
-        hyperfine  --export-json ./convert.json './target/release/teip -c1-15 -- date -f- +%s < test_secure'
-    - name: Benchmark result
+        hyperfine --export-json ./${{ matrix.name }}.json "./target/release/${{ matrix.cmd }}"
+
+    - name: Save benchmark result
+      uses: actions/upload-artifact@v1
+      with:
+        name: ${{ matrix.name }}
+        path: ./${{ matrix.name }}.json
+
+    - name: Show benchmark result
       run: |
-        cat ./read.json
-        cat ./convert.json
+        cat ./${{ matrix.name }}.json
