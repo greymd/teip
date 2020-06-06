@@ -34,10 +34,10 @@ jobs:
         if: contains(matrix.target, 'musl')
         run: |
           sudo apt-get install musl-tools autoconf autotools-dev
-      - name: Install buildtools if required
-        if: contains(matrix.target, 'apple')
-        run: |
-          brew install pcre pkg-config
+          #      - name: Install buildtools if required
+          #        if: contains(matrix.target, 'apple')
+          #        run: |
+          #          brew install pcre pkg-config
       - name: Build the release target
         run: |
           rustup target add ${{ matrix.target }}
