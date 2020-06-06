@@ -1,6 +1,6 @@
 [package]
 name = "teip"
-version = "1.1.0"
+version = "1.1.1-beta"
 authors = ["Yasuhiro Yamada <yamadagrep@gmail.com>"]
 description = "Highly efficient \"Masking tape\" for standard input"
 keywords = ["sed", "awk", "util"]
@@ -20,9 +20,7 @@ env_logger = "0.7.1"
 lazy_static = "1.4.0"
 atty = "0.2.14"
 enum-set = ">= 0.0.5"
-
-[target.'cfg(unix)'.dependencies]
-pcre = { git = "https://github.com/greymd/rust-pcre", branch = "unix" }
+pcre2 = "0.2.3"
 
 [dev-dependencies]
 assert_cmd = "1.0.1"
