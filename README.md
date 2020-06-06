@@ -72,7 +72,7 @@ $ sudo dpkg -i ./teip*.deb
 <!-- deb_x86_64_end -->
 <!-- deb_x86_64_sha256 -->SHA256: d892b986b89b5e86ea5ade91c59bf098b8ea3a901e8098ac6c199b3b1c8d1fe8
 
-## With yum (For CentOS7, RHEL7 users)
+## With yum (For CentOS7, RHEL7, Amazon Linux 2 users)
 
 <!-- rpm_x86_64_start -->
 ```bash
@@ -83,31 +83,7 @@ $ sudo yum install https://github.com/greymd/teip/releases/download/v1.0.0/teip-
 
 ## For other architectures (i686, ARM, etc..)
 
-v1.0.0 has pre-build binary executables.
-See [v1.0.0 release page](https://github.com/greymd/teip/releases/tag/v1.0.0).
-
-```
-$ wget https://github.com/greymd/teip/releases/download/v<VERSION>/teip-<VERSION>.<ARCH>.tar.gz
-$ tar zxvf teip*.tar.gz
-$ sudo install -m 755 bin/teip /usr/local/bin/teip
-```
-
-Since v1.1.0, pre-build binary is not prepared but `teip` works.
-`libpcre` must be prepared before the compile because `teip` v1.1.0 or later are depending on it.
-
-```
-$ sudo apt install libpcre3-dev pkg-config
-$ cargo install teip
-```
-
-OR, please make sure C compiler and general tools for compiling are prepared.
-Also `libpcre` will be built on your environment.
-
-```
-$ gcc --version ; autoreconf --version ; make --version ; tar --version
-## => Confirm all the tools have been on installed
-$ cargo install teip
-```
+See [Wiki > Installation](https://github.com/greymd/teip/wiki/Installation)
 
 ### For Windows
 
