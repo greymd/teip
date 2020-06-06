@@ -156,6 +156,7 @@ jobs:
           sed -i "/deb_x86_64_sha256/s/SHA256:.*/SHA256: $_sha/" ./README.md
 
       - name: Release README
+        if: "! contains (steps.vars.outputs.ver, 'beta')"
         uses: EndBug/add-and-commit@v4
         with:
           add: README.md
