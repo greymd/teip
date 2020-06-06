@@ -377,15 +377,11 @@ fn main() {
 
     let regex_pcre: bytes::Regex;
     if flag_zero {
-        regex_pcre = match bytes::RegexBuilder::new().ucp(true).build(&args.get_str("-P")) {
-            Ok(re) => re,
-            Err(e) => error_exit(&e.to_string()),
-        };
+        regex_pcre = bytes::RegexBuilder::new().ucp(true).build(&args.get_str("-P"))
+        .unwrap_or_else(|e| error_exit(&e.to_string()));
     } else {
-        regex_pcre = match bytes::RegexBuilder::new().ucp(true).multi_line(true).build(&args.get_str("-P")) {
-            Ok(re) => re,
-            Err(e) => error_exit(&e.to_string()),
-        };
+        regex_pcre = bytes::RegexBuilder::new().ucp(true).multi_line(true).build(&args.get_str("-P"))
+        .unwrap_or_else(|e| error_exit(&e.to_string()));
     }
 
     let flag_invert = args.get_bool("-v");
