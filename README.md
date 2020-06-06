@@ -636,10 +636,6 @@ See this [post](https://dev.to/greymd/teip-masking-tape-for-shell-is-what-we-nee
 
 Thank you so much for helpful modules!
 
-* pcre crate
-  - Based on [cadencemarseille/rust-pcre](https://github.com/cadencemarseille/rust-pcre) forked by [omakoto](https://github.com/omakoto/rust-pcre)
-  - Original souce codes are distributed under MIT/Apache-2.0 license
-
 * ./src/list/ranges.rs
   - One of the module used in `cut` command of [uutils/coreutils](https://github.com/uutils/coreutils)
   - Original souce codes are distributed under MIT license
