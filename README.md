@@ -66,20 +66,20 @@ $ brew install greymd/tools/teip
 
 <!-- deb_x86_64_start -->
 ```bash
-$ wget https://github.com/greymd/teip/releases/download/v1.0.0/teip-1.0.0.x86_64-unknown-linux-musl.deb
+$ wget https://github.com/greymd/teip/releases/download/v1.1.0/teip-1.1.0.x86_64-unknown-linux-musl.deb
 $ sudo dpkg -i ./teip*.deb
 ```
 <!-- deb_x86_64_end -->
-<!-- deb_x86_64_sha256 -->SHA256: d892b986b89b5e86ea5ade91c59bf098b8ea3a901e8098ac6c199b3b1c8d1fe8
+<!-- deb_x86_64_sha256 -->SHA256: 077683f9ac3cb84d712216dec3aba03f9b04c12c700cbffea2b38fbaff849872
 
 ## With yum (For CentOS7, RHEL7, Amazon Linux 2 users)
 
 <!-- rpm_x86_64_start -->
 ```bash
-$ sudo yum install https://github.com/greymd/teip/releases/download/v1.0.0/teip-1.0.0.x86_64-unknown-linux-musl.rpm
+$ sudo yum install https://github.com/greymd/teip/releases/download/v1.1.0/teip-1.1.0.x86_64-unknown-linux-musl.rpm
 ```
 <!-- rpm_x86_64_end -->
-<!-- rpm_x86_64_sha256 -->SHA256: e15d8ac1a6f16622367877cf87b3fb9dc60bbcf2cdae31076145898a07e43cff
+<!-- rpm_x86_64_sha256 -->SHA256: d00399fbd0fdd338bbd5fabfb53fc855fd686752dab945c224e766e944e0abff
 
 ## For other architectures (i686, ARM, etc..)
 
@@ -631,6 +631,19 @@ See this [post](https://dev.to/greymd/teip-masking-tape-for-shell-is-what-we-nee
 * Sounds similar to Masking-"tape".
 
 # License
+
+## Modules imported from other repositories
+
+Thank you so much for helpful modules!
+
+* pcre crate
+  - Based on [cadencemarseille/rust-pcre](https://github.com/cadencemarseille/rust-pcre) forked by [omakoto](https://github.com/omakoto/rust-pcre)
+  - Original souce codes are distributed under MIT/Apache-2.0 license
+
+* ./src/list/ranges.rs
+  - One of the module used in `cut` command of [uutils/coreutils](https://github.com/uutils/coreutils)
+  - Original souce codes are distributed under MIT license
+  - The license file is on the same directory
 
 ## Source code
 The scripts are available as open source under the terms of the [MIT License](http://opensource.org/licenses/MIT).
