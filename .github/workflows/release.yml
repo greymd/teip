@@ -135,10 +135,14 @@ jobs:
           name: rpm.x86_64
       - shell: bash
         run: |
-          _url="https://github.com/greymd/teip/releases/download/v${{ steps.vars.outputs.ver }}/$(head -n 1 rpm.x86_64/digest.txt)"
+          _shorter=./.github/gitio_shorter.sh
+          _ver=${{ steps.vars.outputs.ver }}
+          _url="https://github.com/greymd/teip/releases/download/v${_ver}/$(head -n 1 rpm.x86_64/digest.txt)"
           _sha=$(tail -n 1 rpm.x86_64/digest.txt)
-          sed -i "/rpm_x86_64_start/,/rpm_x86_64_end/s|https://.*rpm|$_url|g" ./README.md
+          _short_url=$($_shorter "${_url}" "teip-${_ver}.x86_64.rpm" || $_shorter "${_url}" "teip-${_ver}-${_sha:1:5}.x86_64.rpm" || echo "${_url}")
+          sed -i "/rpm_x86_64_start/,/rpm_x86_64_end/s|https://.*rpm|$_short_url|g" ./README.md
           sed -i "/rpm_x86_64_sha256/s/SHA256:.*/SHA256: $_sha/" ./README.md
+          cat ./README.md
 
       - name: Apply artifacts deb
         uses: actions/download-artifact@v1
@@ -146,10 +150,14 @@ jobs:
           name: deb.x86_64
       - shell: bash
         run: |
-          _url="https://github.com/greymd/teip/releases/download/v${{ steps.vars.outputs.ver }}/$(head -n 1 deb.x86_64/digest.txt)"
+          _shorter=./.github/gitio_shorter.sh
+          _ver=${{ steps.vars.outputs.ver }}
+          _url="https://github.com/greymd/teip/releases/download/v${_ver}/$(head -n 1 deb.x86_64/digest.txt)"
           _sha=$(tail -n 1 deb.x86_64/digest.txt)
-          sed -i "/deb_x86_64_start/,/deb_x86_64_end/s|https://.*deb|$_url|g" ./README.md
+          _short_url=$($_shorter "${_url}" "teip-${_ver}.x86_64.deb" || $_shorter "${_url}" "teip-${_ver}-${_sha:1:5}.x86_64.deb" || echo "${_url}")
+          sed -i "/deb_x86_64_start/,/deb_x86_64_end/s|https://.*deb|$_short_url|g" ./README.md
           sed -i "/deb_x86_64_sha256/s/SHA256:.*/SHA256: $_sha/" ./README.md
+          cat ./README.md
 
       - name: Release README
         if: "! contains (steps.vars.outputs.ver, 'beta')"
