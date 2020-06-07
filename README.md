@@ -66,7 +66,7 @@ $ brew install greymd/tools/teip
 
 <!-- deb_x86_64_start -->
 ```bash
-$ wget https://git.io/teip-1.1.2-3c54c.x86_64.deb
+$ wget https://git.io/teip-1.1.2.x86_64.deb
 $ sudo dpkg -i ./teip*.deb
 ```
 <!-- deb_x86_64_end -->
@@ -76,7 +76,7 @@ $ sudo dpkg -i ./teip*.deb
 
 <!-- rpm_x86_64_start -->
 ```bash
-$ sudo dnf install https://git.io/teip-1.1.2-5597b.x86_64.rpm
+$ sudo dnf install https://git.io/teip-1.1.2.x86_64.rpm
 ```
 <!-- rpm_x86_64_end -->
 <!-- rpm_x86_64_sha256 -->SHA256: 15597b5ee5678d28058decd53ff8e75b3831d1287fceeedf5988ae363309b4f6
@@ -85,7 +85,7 @@ $ sudo dnf install https://git.io/teip-1.1.2-5597b.x86_64.rpm
 
 <!-- rpm_x86_64_start -->
 ```bash
-$ sudo yum install https://git.io/teip-1.1.2-5597b.x86_64.rpm
+$ sudo yum install https://git.io/teip-1.1.2.x86_64.rpm
 ```
 <!-- rpm_x86_64_end -->
 <!-- rpm_x86_64_sha256 -->SHA256: 15597b5ee5678d28058decd53ff8e75b3831d1287fceeedf5988ae363309b4f6
