@@ -13,7 +13,7 @@ teip - Highly efficient "Masking tape" for standard input
 SYNOPSIS
 --------
 
-`teip` (-r <*pattern*> | -P <*pattern*>) [-svz] [--] [<*command*>...]
+`teip` (-r <*pattern*> | -R <*pattern*>) [-svz] [--] [<*command*>...]
 
 `teip` -f <*list*> [-d <*delimiter*> | -D <*pattern*>] [-svz] [--] [<*command*>...]
 
@@ -36,9 +36,9 @@ OPTIONS
 `-r` <*pattern*>
   Select strings matched by a regular expression <*pattern*>
 
-`-P` <*pattern*>
-  Same as -r but use Perl-compatible regular expressions (PCREs)
-  **This feature is experimental and might be abolished in the future**
+`-R` <*pattern*>
+  Same as -r but use Oniguruma regular expressions
+  **This feature might be abolished in the future because it is experimental**
 
 `-f` <*list*>
   Select only these white-space separated fields

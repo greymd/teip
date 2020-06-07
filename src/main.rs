@@ -18,8 +18,7 @@ use std::os::unix::io::{AsRawFd, FromRawFd};
 use std::process::{Command, Stdio};
 use std::sync::mpsc::{self, Sender};
 use std::thread::{self, JoinHandle};
-use enum_set::{self, EnumSet};
-use pcre::Pcre;
+use onig::{self};
 use token::Token;
 
 const CMD: &'static str = env!("CARGO_PKG_NAME"); // "teip"
@@ -314,7 +313,7 @@ lazy_static! {
 Only a selected part of standard input is passed to any command for execution.
 
 Usage:
-  {cmd} (-r <pattern> | -P <pattern>) [-svz] [--] [<command>...]
+  {cmd} (-r <pattern> | -R <pattern>) [-svz] [--] [<command>...]
   {cmd} -f <list> [-d <delimiter> | -D <pattern>] [-svz] [--] [<command>...]
   {cmd} -c <list> [-svz] [--] [<command>...]
   {cmd} --help | --version
@@ -323,7 +322,7 @@ Options:
   --help          Display this help and exit
   --version       Show version and exit
   -r <pattern>    Select strings matched by given regular expression <pattern>
-  -P <pattern>    EXPERIMENTAL: Same as -r but use Perl-compatible regular expressions (PCREs)
+  -R <pattern>    EXPERIMENTAL: Same as -r but use Oniguruma regular expressions
   -f <list>       Select only these white-space separated fields
   -d <delimiter>  Use <delimiter> for field delimiter of -f
   -D <pattern>    Use regular expression <pattern> for field delimiter of -f
@@ -360,28 +359,29 @@ fn main() {
 
     let mut line_end = b'\n';
     let mut regex_mode = String::new();
-    let mut pcre_options: EnumSet<pcre::CompileOption> = EnumSet::new();
-    pcre_options.insert(pcre::CompileOption::Ucp);
 
     let flag_zero = args.get_bool("-z");
     if flag_zero {
         regex_mode = "(?ms)".to_string();
         line_end = b'\0';
-        pcre_options.insert(pcre::CompileOption::Multiline);
     }
     let cmds = args.get_vec("<command>");
     let flag_regex = args.get_bool("-r");
-    let flag_pcre = args.get_bool("-P");
+    let flag_onig = args.get_bool("-R");
     let mut regex = Regex::new("").unwrap();
-    if ! flag_pcre {
+    if ! flag_onig {
         regex = Regex::new(&(regex_mode.to_string() + args.get_str("-r")))
         .unwrap_or_else(|e| error_exit(&e.to_string()));
     }
 
-    let regex_pcre = match Pcre::compile_with_options(&args.get_str("-P"), &pcre_options) {
-        Ok(re) => re,
-        Err(e) => error_exit(&e.to_string()),
-    };
+    let regex_onig: onig::Regex;
+    if flag_zero {
+        regex_onig = onig::Regex::with_options(&args.get_str("-R"), onig::RegexOptions::REGEX_OPTION_MULTILINE, onig::Syntax::default())
+        .unwrap_or_else(|e| error_exit(&e.to_string()));
+    } else {
+        regex_onig = onig::Regex::with_options(&args.get_str("-R"), onig::RegexOptions::REGEX_OPTION_NONE, onig::Syntax::default())
+        .unwrap_or_else(|e| error_exit(&e.to_string()));
+    }
 
     let flag_invert = args.get_bool("-v");
     let flag_char = args.get_bool("-c");
@@ -444,8 +444,8 @@ fn main() {
                 if flag_regex {
                     regex_proc(&mut ch, &buf, &regex, flag_invert)
                         .unwrap_or_else(|e| error_exit(&e.to_string()));
-                } else if flag_pcre {
-                    regex_pcre_proc(&mut ch, &buf, &regex_pcre, flag_invert)
+                } else if flag_onig {
+                    regex_onig_proc(&mut ch, &buf, &regex_onig, flag_invert)
                         .unwrap_or_else(|e| error_exit(&e.to_string()));
                 } else if flag_char {
                     char_proc(&mut ch, &buf, &char_list)
@@ -465,21 +465,20 @@ fn main() {
     }
 }
 
-/// Handles regex pcre ( -r -P )
-fn regex_pcre_proc(
+/// Handles regex onig ( -r -R )
+fn regex_onig_proc(
     ch: &mut PipeIntercepter,
     line: &Vec<u8>,
-    re: &Pcre,
+    re: &onig::Regex,
     invert: bool,
 ) -> Result<(), errors::TokenSendError> {
     let line = String::from_utf8_lossy(&line).to_string();
     let mut left_index = 0;
     let mut right_index;
-    let iter = re.matches(&line);
-    for (_, cap) in iter.enumerate() {
-        right_index = cap.group_start(0);
+    for cap in re.find_iter(&line) {
+        right_index = cap.0;
         let unmatched = &line[left_index..right_index];
-        let matched = &line[cap.group_start(0)..cap.group_end(0)];
+        let matched = &line[cap.0..cap.1];
         // Ignore empty string.
         // Regex "*" matches empty, but , in most situations,
         // handling empty string is not helpful for users.
@@ -495,7 +494,7 @@ fn regex_pcre_proc(
         } else {
             ch.send_msg(matched.to_string())?;
         }
-        left_index = cap.group_end(0);
+        left_index = cap.1;
     }
     if left_index < line.len() {
         let unmatched = &line[left_index..line.len()];

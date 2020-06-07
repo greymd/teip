@@ -4,7 +4,7 @@
 teip \- Highly efficient "Masking tape" for standard input
 .SH SYNOPSIS
 .PP
-\fB\fCteip\fR (\-r <\fIpattern\fP> | \-P <\fIpattern\fP>) [\-svz] [\-\-] [<\fIcommand\fP>...]
+\fB\fCteip\fR (\-r <\fIpattern\fP> | \-R <\fIpattern\fP>) [\-svz] [\-\-] [<\fIcommand\fP>...]
 .PP
 \fB\fCteip\fR \-f <\fIlist\fP> [\-d <\fIdelimiter\fP> | \-D <\fIpattern\fP>] [\-svz] [\-\-] [<\fIcommand\fP>...]
 .PP
@@ -25,8 +25,9 @@ Show version and exit
 \fB\fC\-r\fR <\fIpattern\fP>
 Select strings matched by a regular expression <\fIpattern\fP>
 .TP
-\fB\fC\-P\fR <\fIpattern\fP>
-EXPERIMENTAL: Same as \-r but use Perl\-compatible regular expressions (PCREs)
+\fB\fC\-R\fR <\fIpattern\fP>
+Same as \-r but use Oniguruma regular expressions
+\fBThis feature might be abolished in the future because it is experimental\fP
 .TP
 \fB\fC\-f\fR <\fIlist\fP>
 Select only these white\-space separated fields

@@ -6,7 +6,7 @@ _teip () {
   _arguments "(: -)--help[Display this help and exit]" \
     "(: -)--version[Show version and exit]" \
     "($opts_omit -r -f -d -D -c)-r[Select strings matched by given regular expression <pattern>]:pattern:" \
-    "($opts_omit -P -r -f -d -D -c)-r[EXPERIMENTAL: Same as -r but use Perl-compatible regular expressions (PCREs)]:pattern:" \
+    "($opts_omit -R -r -f -d -D -c)-R[EXPERIMENTAL: Same as -r but use Oniguruma regular expressions]:pattern:" \
     "($opts_omit -f -r -c)-f[Select only these white-space separated fields]:list:" \
     "($opts_omit -d -D -r -c)-d[Use <delimiter> for field delimiter of -f]:delimiter:" \
     "($opts_omit -D -d -r -c)-D[Use regular expression <pattern> for field delimiter of -f]:pattern:" \
