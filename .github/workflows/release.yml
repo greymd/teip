@@ -39,11 +39,6 @@ jobs:
         run: |
           sudo apt-get install musl-tools
 
-      - name: Install buildtools if required
-        if: contains(matrix.target, 'apple')
-        run: |
-          brew install pcre pkg-config
-
       - name: Compile for musl
         if: contains(matrix.target, 'musl')
         run: |

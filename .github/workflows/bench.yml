@@ -34,8 +34,8 @@ jobs:
         include:
           - name: regex_match
             cmd: teip -r '.*sshd' < test_secure
-          - name: pcre_match
-            cmd: teip -P '.*sshd' < test_secure
+          - name: onig_match
+            cmd: teip -R '.*sshd' < test_secure
           - name: convert_date
             cmd: teip -c1-15 -- date -f- +%s < test_secure
     steps:
