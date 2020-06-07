@@ -33,16 +33,12 @@ jobs:
       - name: Install musl-gcc if required
         if: contains(matrix.target, 'musl')
         run: |
-          sudo apt-get install musl-tools autoconf autotools-dev
-          #      - name: Install buildtools if required
-          #        if: contains(matrix.target, 'apple')
-          #        run: |
-          #          brew install pcre pkg-config
+          sudo apt-get install musl-tools
       - name: Build the release target
         run: |
           rustup target add ${{ matrix.target }}
           if [[ ${{ matrix.target }} =~ "musl" ]] ;then
-            CC="musl-gcc -static" cargo build --verbose --release --target ${{ matrix.target }}
+            CFLAGS="-fPIE" CC="musl-gcc -static" cargo build --release --verbose --target x86_64-unknown-linux-musl
           else
             cargo build --verbose --release --target ${{ matrix.target }}
           fi

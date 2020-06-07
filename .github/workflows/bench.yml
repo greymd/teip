@@ -48,7 +48,7 @@ jobs:
     - name: Build
       run: |
         rustup target add x86_64-unknown-linux-musl
-        CC="musl-gcc -static" cargo build --verbose --release --target x86_64-unknown-linux-musl
+        CFLAGS="-fPIE" CC="musl-gcc -static" cargo build --verbose --release --target x86_64-unknown-linux-musl
         mv target/x86_64-unknown-linux-musl/release/teip target/release
 
     - name: Prepare benchmarking
