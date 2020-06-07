@@ -93,7 +93,7 @@ Unfortunately, `teip` does not work on Windows due to technical reason.
 
 ```
 Usage:
-  teip (-r <pattern> | -P <pattern>) [-svz] [--] [<command>...]
+  teip (-r <pattern> | -R <pattern>) [-svz] [--] [<command>...]
   teip -f <list> [-d <delimiter> | -D <pattern>] [-svz] [--] [<command>...]
   teip -c <list> [-svz] [--] [<command>...]
   teip --help | --version
@@ -102,7 +102,7 @@ Options:
   --help          Display this help and exit
   --version       Show version and exit
   -r <pattern>    Select strings matched by given regular expression <pattern>
-  -P <pattern>    EXPERIMENTAL: Same as -r but use Perl-compatible regular expressions (PCREs)
+  -R <pattern>    EXPERIMENTAL: Same as -r but use Oniguruma regular expressions
   -f <list>       Select only these white-space separated fields
   -d <delimiter>  Use <delimiter> for field delimiter of -f
   -D <pattern>    Use regular expression <pattern> for field delimiter of -f

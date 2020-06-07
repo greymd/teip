@@ -136,30 +136,30 @@ mod cmdtest {
     }
 
     #[test]
-    fn test_pcre() {
+    fn test_onig() {
         let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
-        cmd.args(&["-P", "\\d+(?=D)", "sed", "s/./@/g"])
+        cmd.args(&["-R", "\\d+(?=D)", "sed", "s/./@/g"])
             .write_stdin("ABC123DEF456\n")
             .assert()
             .stdout("ABC@@@DEF456\n");
     }
 
     #[test]
-    fn test_pcre_invert() {
+    fn test_onig_invert() {
         let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
-        cmd.args(&["-vP", "\\d+(?=D)", "sed", "s/./@/g"])
+        cmd.args(&["-vR", "\\d+(?=D)", "sed", "s/./@/g"])
             .write_stdin("ABC123DEF456\n")
             .assert()
             .stdout("@@@123@@@@@@\n");
     }
 
     #[test]
-    fn test_pcre_null() {
+    fn test_onig_null() {
         let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
         // Use perl -0 instead of sed -z because BSD does not support it.
         cmd.args(&[
             "-z",
-            "-P",
+            "-R",
             ".\\n.",
             "--",
             "perl",
@@ -173,57 +173,57 @@ mod cmdtest {
     }
 
     #[test]
-    fn test_pcre_null_invert() {
+    fn test_onig_null_invert() {
         let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
         // Use perl -0 instead of sed -z because BSD does not support it.
-        cmd.args(&["-zvP", "^...", "tr", "[:alnum:]", "@"])
+        cmd.args(&["-zvR", "^...", "tr", "[:alnum:]", "@"])
             .write_stdin("ABC123EFG\0HIJKLM456")
             .assert()
             .stdout("ABC@@@@@@\0HIJ@@@@@@");
     }
 
     #[test]
-    fn test_pcre_multiple() {
+    fn test_onig_multiple() {
         let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
-        cmd.args(&["-P", "C\\K\\d+(?=D)", "sed", "s/./@/g"])
+        cmd.args(&["-R", "C\\K\\d+(?=D)", "sed", "s/./@/g"])
             .write_stdin("ABC123DEF456\nEFG123ABC456DEF\n")
             .assert()
             .stdout("ABC@@@DEF456\nEFG123ABC@@@DEF\n");
     }
 
     #[test]
-    fn test_solid_pcre() {
+    fn test_solid_onig() {
         let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
-        cmd.args(&["-s", "-P", "2", "sed", "s/./A/"])
+        cmd.args(&["-s", "-R", "2", "sed", "s/./A/"])
             .write_stdin("118\n119\n120\n121\n")
             .assert()
             .stdout("118\n119\n1A0\n1A1\n");
     }
 
     #[test]
-    fn test_solid_pcre_invert() {
+    fn test_solid_onig_invert() {
         let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
-        cmd.args(&["-s", "-P", "\\d+", "-v", "tr", "[:upper:]", "[:lower:]"])
+        cmd.args(&["-s", "-R", "\\d+", "-v", "tr", "[:upper:]", "[:lower:]"])
             .write_stdin("ABC123EFG\nHIJKLM456")
             .assert()
             .stdout("abc123efg\nhijklm456");
     }
 
     #[test]
-    fn test_solid_pcre_null_invert() {
+    fn test_solid_onig_null_invert() {
         let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
-        cmd.args(&["-svP", "\\d+", "tr", "[:upper:]", "[:lower:]"])
+        cmd.args(&["-svR", "\\d+", "tr", "[:upper:]", "[:lower:]"])
             .write_stdin("ABC123EFG\0\nHIJKLM456")
             .assert()
             .stdout("abc123efg\0\nhijklm456");
     }
 
     #[test]
-    fn test_solid_pcre_null() {
+    fn test_solid_onig_null() {
         let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
         cmd.args(&[
             "-sz",
-            "-P",
+            "-R",
             ".\\n.",
             "--",
             "perl",
@@ -236,9 +236,9 @@ mod cmdtest {
     }
 
     #[test]
-    fn test_solid_pcre_null2() {
+    fn test_solid_onig_null2() {
         let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
-        cmd.args(&["-sz", "-P", "(..\\n..|F.G)", "--", "tr", "-dc", "."])
+        cmd.args(&["-sz", "-R", "(..\\n..|F.G)", "--", "tr", "-dc", "."])
             .write_stdin("ABC\nDEF\0GHI\nJKL")
             .assert()
             .stdout("AF\0GL");

@@ -313,7 +313,7 @@ lazy_static! {
 Only a selected part of standard input is passed to any command for execution.
 
 Usage:
-  {cmd} (-r <pattern> | -P <pattern>) [-svz] [--] [<command>...]
+  {cmd} (-r <pattern> | -R <pattern>) [-svz] [--] [<command>...]
   {cmd} -f <list> [-d <delimiter> | -D <pattern>] [-svz] [--] [<command>...]
   {cmd} -c <list> [-svz] [--] [<command>...]
   {cmd} --help | --version
@@ -322,7 +322,7 @@ Options:
   --help          Display this help and exit
   --version       Show version and exit
   -r <pattern>    Select strings matched by given regular expression <pattern>
-  -P <pattern>    EXPERIMENTAL: Same as -r but use Perl-compatible regular expressions (PCREs)
+  -R <pattern>    EXPERIMENTAL: Same as -r but use Oniguruma regular expressions
   -f <list>       Select only these white-space separated fields
   -d <delimiter>  Use <delimiter> for field delimiter of -f
   -D <pattern>    Use regular expression <pattern> for field delimiter of -f
@@ -367,19 +367,19 @@ fn main() {
     }
     let cmds = args.get_vec("<command>");
     let flag_regex = args.get_bool("-r");
-    let flag_pcre = args.get_bool("-P");
+    let flag_onig = args.get_bool("-R");
     let mut regex = Regex::new("").unwrap();
-    if ! flag_pcre {
+    if ! flag_onig {
         regex = Regex::new(&(regex_mode.to_string() + args.get_str("-r")))
         .unwrap_or_else(|e| error_exit(&e.to_string()));
     }
 
-    let regex_pcre: onig::Regex;
+    let regex_onig: onig::Regex;
     if flag_zero {
-        regex_pcre = onig::Regex::with_options(&args.get_str("-P"), onig::RegexOptions::REGEX_OPTION_MULTILINE, onig::Syntax::default())
+        regex_onig = onig::Regex::with_options(&args.get_str("-R"), onig::RegexOptions::REGEX_OPTION_MULTILINE, onig::Syntax::default())
         .unwrap_or_else(|e| error_exit(&e.to_string()));
     } else {
-        regex_pcre = onig::Regex::with_options(&args.get_str("-P"), onig::RegexOptions::REGEX_OPTION_NONE, onig::Syntax::default())
+        regex_onig = onig::Regex::with_options(&args.get_str("-R"), onig::RegexOptions::REGEX_OPTION_NONE, onig::Syntax::default())
         .unwrap_or_else(|e| error_exit(&e.to_string()));
     }
 
@@ -444,8 +444,8 @@ fn main() {
                 if flag_regex {
                     regex_proc(&mut ch, &buf, &regex, flag_invert)
                         .unwrap_or_else(|e| error_exit(&e.to_string()));
-                } else if flag_pcre {
-                    regex_pcre_proc(&mut ch, &buf, &regex_pcre, flag_invert)
+                } else if flag_onig {
+                    regex_onig_proc(&mut ch, &buf, &regex_onig, flag_invert)
                         .unwrap_or_else(|e| error_exit(&e.to_string()));
                 } else if flag_char {
                     char_proc(&mut ch, &buf, &char_list)
@@ -465,8 +465,8 @@ fn main() {
     }
 }
 
-/// Handles regex pcre ( -r -P )
-fn regex_pcre_proc(
+/// Handles regex onig ( -r -R )
+fn regex_onig_proc(
     ch: &mut PipeIntercepter,
     line: &Vec<u8>,
     re: &onig::Regex,
