@@ -66,29 +66,29 @@ $ brew install greymd/tools/teip
 
 <!-- deb_x86_64_start -->
 ```bash
-$ wget https://github.com/greymd/teip/releases/download/v1.1.0/teip-1.1.0.x86_64-unknown-linux-musl.deb
+$ wget https://git.io/teip-1.1.2-3c54c.x86_64.deb
 $ sudo dpkg -i ./teip*.deb
 ```
 <!-- deb_x86_64_end -->
-<!-- deb_x86_64_sha256 -->SHA256: 077683f9ac3cb84d712216dec3aba03f9b04c12c700cbffea2b38fbaff849872
+<!-- deb_x86_64_sha256 -->SHA256: 73c54c36c1c30e2137629f08993693a154d7f08c80655ae7fd485ca60b1eaae7
 
 ## With dnf (For CentOS, RHEL users)
 
 <!-- rpm_x86_64_start -->
 ```bash
-$ sudo dnf install https://github.com/greymd/teip/releases/download/v1.1.0/teip-1.1.0.x86_64-unknown-linux-musl.rpm
+$ sudo dnf install https://git.io/teip-1.1.2-5597b.x86_64.rpm
 ```
 <!-- rpm_x86_64_end -->
-<!-- rpm_x86_64_sha256 -->SHA256: d00399fbd0fdd338bbd5fabfb53fc855fd686752dab945c224e766e944e0abff
+<!-- rpm_x86_64_sha256 -->SHA256: 15597b5ee5678d28058decd53ff8e75b3831d1287fceeedf5988ae363309b4f6
 
 ## With yum (For CentOS7, RHEL7, Amazon Linux 2 users)
 
 <!-- rpm_x86_64_start -->
 ```bash
-$ sudo yum install https://github.com/greymd/teip/releases/download/v1.1.0/teip-1.1.0.x86_64-unknown-linux-musl.rpm
+$ sudo yum install https://git.io/teip-1.1.2-5597b.x86_64.rpm
 ```
 <!-- rpm_x86_64_end -->
-<!-- rpm_x86_64_sha256 -->SHA256: d00399fbd0fdd338bbd5fabfb53fc855fd686752dab945c224e766e944e0abff
+<!-- rpm_x86_64_sha256 -->SHA256: 15597b5ee5678d28058decd53ff8e75b3831d1287fceeedf5988ae363309b4f6
 
 ## For other architectures (i686, ARM, etc..)
 
