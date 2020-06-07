@@ -61,7 +61,7 @@ jobs:
           cp -r completion package/
           ## sed -i is not used due to difference between macOS and Linux
           perl -i -pe s/___VERSION___/${{ steps.vars.outputs.ver }}/ ./package/.tar2package.yml
-          tar zcvf "$_TAR" -C "$PWD/package" bin man .tar2package.yml
+          tar zcvf "$_TAR" -C "$PWD/package" completion bin man .tar2package.yml
 
       - name: Build rpm
         id: rpm
