@@ -313,7 +313,7 @@ lazy_static! {
 Only a selected part of standard input is passed to any command for execution.
 
 Usage:
-  {cmd} (-r <pattern> | -R <pattern>) [-svz] [--] [<command>...]
+  {cmd} -g <pattern> [-oGsvz] [--] [<command>...]
   {cmd} -f <list> [-d <delimiter> | -D <pattern>] [-svz] [--] [<command>...]
   {cmd} -c <list> [-svz] [--] [<command>...]
   {cmd} --help | --version
@@ -321,8 +321,9 @@ Usage:
 Options:
   --help          Display this help and exit
   --version       Show version and exit
-  -r <pattern>    Select strings matched by given regular expression <pattern>
-  -R <pattern>    EXPERIMENTAL: Same as -r but use Oniguruma regular expressions
+  -g <pattern>    Select lines matched to the regular expression <pattern>
+  -o              -g selects only matched parts.
+  -G              -g adopts Oniguruma regular expressions
   -f <list>       Select only these white-space separated fields
   -d <delimiter>  Use <delimiter> for field delimiter of -f
   -D <pattern>    Use regular expression <pattern> for field delimiter of -f
@@ -357,34 +358,27 @@ fn main() {
         error_exit("Invalid format in TEIP_HIGHLIGHT variable")
     }
 
-    let mut line_end = b'\n';
-    let mut regex_mode = String::new();
-
     let flag_zero = args.get_bool("-z");
-    if flag_zero {
-        regex_mode = "(?ms)".to_string();
-        line_end = b'\0';
-    }
     let cmds = args.get_vec("<command>");
-    let flag_regex = args.get_bool("-r");
-    let flag_onig = args.get_bool("-R");
-    let mut regex = Regex::new("").unwrap();
-    if ! flag_onig {
-        regex = Regex::new(&(regex_mode.to_string() + args.get_str("-r")))
-        .unwrap_or_else(|e| error_exit(&e.to_string()));
-    }
-
-    let regex_onig: onig::Regex;
-    if flag_zero {
-        regex_onig = onig::Regex::with_options(&args.get_str("-R"), onig::RegexOptions::REGEX_OPTION_MULTILINE, onig::Syntax::default())
-        .unwrap_or_else(|e| error_exit(&e.to_string()));
-    } else {
-        regex_onig = onig::Regex::with_options(&args.get_str("-R"), onig::RegexOptions::REGEX_OPTION_NONE, onig::Syntax::default())
-        .unwrap_or_else(|e| error_exit(&e.to_string()));
-    }
-
+    let flag_only = args.get_bool("-o");
+    let flag_regex = args.get_bool("-g");
+    let flag_onig = args.get_bool("-G");
+    let flag_solid = args.get_bool("-s");
     let flag_invert = args.get_bool("-v");
     let flag_char = args.get_bool("-c");
+    let flag_field = args.get_bool("-f");
+    let flag_delimiter = args.get_bool("-d");
+    let delimiter = args.get_str("-d");
+    let flag_regex_delimiter = args.get_bool("-D");
+
+    let mut regex_mode = String::new();
+    let mut regex = Regex::new("").unwrap();
+    let mut regex_onig = onig::Regex::new("").unwrap();
+    let mut line_end = b'\n';
+    let mut line_mode = false;
+    let mut ch: PipeIntercepter;
+    let mut flag_dryrun = true;
+    let regex_delimiter;
     let char_list =
         list::converter::to_ranges(args.get_str("-c"), flag_invert).unwrap_or_else(|e| {
             if flag_char {
@@ -393,7 +387,6 @@ fn main() {
             list::converter::to_ranges("1", true).unwrap()
         });
 
-    let flag_field = args.get_bool("-f");
     let field_list =
         list::converter::to_ranges(args.get_str("-f"), flag_invert).unwrap_or_else(|e| {
             if flag_field {
@@ -402,10 +395,26 @@ fn main() {
             list::converter::to_ranges("1", true).unwrap()
         });
 
-    let flag_delimiter = args.get_bool("-d");
-    let delimiter = args.get_str("-d");
-    let flag_regex_delimiter = args.get_bool("-D");
-    let regex_delimiter;
+    if flag_zero {
+        regex_mode = "(?ms)".to_string();
+        line_end = b'\0';
+    }
+
+    if ! flag_onig {
+        regex = Regex::new(&(regex_mode.to_owned() + args.get_str("-g")))
+                .unwrap_or_else(|e| error_exit(&e.to_string()));
+    } else {
+        if flag_zero {
+            regex_onig =
+                onig::Regex::with_options(&args.get_str("-g"), onig::RegexOptions::REGEX_OPTION_MULTILINE, onig::Syntax::default())
+                .unwrap_or_else(|e| error_exit(&e.to_string()));
+        } else {
+            regex_onig =
+                onig::Regex::with_options(&args.get_str("-g"), onig::RegexOptions::REGEX_OPTION_NONE, onig::Syntax::default())
+                    .unwrap_or_else(|e| error_exit(&e.to_string()));
+        }
+    }
+
     if flag_regex_delimiter {
         regex_delimiter = Regex::new(&(regex_mode.to_string() + args.get_str("-D")))
             .unwrap_or_else(|e| error_exit(&e.to_string()));
@@ -413,14 +422,14 @@ fn main() {
         regex_delimiter = REGEX_WS.clone();
     }
 
-    let mut flag_dryrun = true;
     if cmds.len() > 0 {
         flag_dryrun = false;
     }
 
-    let flag_solid = args.get_bool("-s");
+    if !flag_only && flag_regex {
+        line_mode = true;
+    }
 
-    let mut ch: PipeIntercepter;
     if flag_solid {
         ch =
             PipeIntercepter::start_solid_output(vecstr_rm_references(&cmds), line_end, flag_dryrun)
@@ -432,40 +441,118 @@ fn main() {
 
     // ***** Start processing *****
     let stdin = io::stdin();
-    loop {
-        let mut buf = Vec::with_capacity(DEFAULT_CAP);
-        match stdin.lock().read_until(line_end, &mut buf) {
-            Ok(n) => {
-                if n == 0 {
-                    ch.send_eof().unwrap_or_else(|e| msg_error(&e.to_string()));
-                    break;
+    if line_mode {
+        loop {
+            let mut buf = Vec::with_capacity(DEFAULT_CAP);
+            match stdin.lock().read_until(line_end, &mut buf) {
+                Ok(n) => {
+                    if n == 0 {
+                        ch.send_eof().unwrap_or_else(|e| msg_error(&e.to_string()));
+                        break;
+                    }
+                    let eol = trim_eol(&mut buf);
+                    if flag_regex {
+                        if flag_onig {
+                            regex_onig_line_proc(&mut ch, &buf, &regex_onig, flag_invert)
+                                .unwrap_or_else(|e| error_exit(&e.to_string()));
+                        } else {
+                            regex_line_proc(&mut ch, &buf, &regex, flag_invert)
+                                .unwrap_or_else(|e| error_exit(&e.to_string()));
+                        }
+                    }
+                    ch.send_msg(eol)
+                        .unwrap_or_else(|e| msg_error(&e.to_string()));
                 }
-                let eol = trim_eol(&mut buf);
-                if flag_regex {
-                    regex_proc(&mut ch, &buf, &regex, flag_invert)
-                        .unwrap_or_else(|e| error_exit(&e.to_string()));
-                } else if flag_onig {
-                    regex_onig_proc(&mut ch, &buf, &regex_onig, flag_invert)
-                        .unwrap_or_else(|e| error_exit(&e.to_string()));
-                } else if flag_char {
-                    char_proc(&mut ch, &buf, &char_list)
-                        .unwrap_or_else(|e| error_exit(&e.to_string()));
-                } else if flag_field && flag_delimiter {
-                    field_proc(&mut ch, &buf, delimiter, &field_list)
-                        .unwrap_or_else(|e| error_exit(&e.to_string()));
-                } else if flag_field {
-                    field_regex_proc(&mut ch, &buf, &regex_delimiter, &field_list)
-                        .unwrap_or_else(|e| error_exit(&e.to_string()));
-                }
-                ch.send_msg(eol)
-                    .unwrap_or_else(|e| msg_error(&e.to_string()));
+                Err(e) => msg_error(&e.to_string()),
             }
-            Err(e) => msg_error(&e.to_string()),
+        }
+    } else {
+        loop {
+            let mut buf = Vec::with_capacity(DEFAULT_CAP);
+            match stdin.lock().read_until(line_end, &mut buf) {
+                Ok(n) => {
+                    if n == 0 {
+                        ch.send_eof().unwrap_or_else(|e| msg_error(&e.to_string()));
+                        break;
+                    }
+                    let eol = trim_eol(&mut buf);
+                    if flag_regex {
+                        if flag_onig {
+                            regex_onig_proc(&mut ch, &buf, &regex_onig, flag_invert)
+                                .unwrap_or_else(|e| error_exit(&e.to_string()));
+                        } else {
+                            regex_proc(&mut ch, &buf, &regex, flag_invert)
+                                .unwrap_or_else(|e| error_exit(&e.to_string()));
+                        }
+                    } else if flag_char {
+                        char_proc(&mut ch, &buf, &char_list)
+                            .unwrap_or_else(|e| error_exit(&e.to_string()));
+                    } else if flag_field && flag_delimiter {
+                        field_proc(&mut ch, &buf, delimiter, &field_list)
+                            .unwrap_or_else(|e| error_exit(&e.to_string()));
+                    } else if flag_field {
+                        field_regex_proc(&mut ch, &buf, &regex_delimiter, &field_list)
+                            .unwrap_or_else(|e| error_exit(&e.to_string()));
+                    }
+                    ch.send_msg(eol)
+                        .unwrap_or_else(|e| msg_error(&e.to_string()));
+                }
+                Err(e) => msg_error(&e.to_string()),
+            }
         }
     }
 }
 
-/// Handles regex onig ( -r -R )
+fn regex_onig_line_proc(
+    ch: &mut PipeIntercepter,
+    line: &Vec<u8>,
+    re: &onig::Regex,
+    invert: bool,
+) -> Result<(), errors::TokenSendError> {
+    let line = String::from_utf8_lossy(&line).to_string();
+    match re.find(&line) {
+        Some(_) => {
+            if invert {
+                ch.send_msg(line.to_string())?;
+            } else {
+                ch.send_pipe(line.to_string())?;
+            }
+        },
+        None => {
+            if invert {
+                ch.send_pipe(line.to_string())?;
+            } else {
+                ch.send_msg(line.to_string())?;
+            }
+        }
+    };
+    Ok(())
+}
+
+fn regex_line_proc(
+    ch: &mut PipeIntercepter,
+    line: &Vec<u8>,
+    re: &Regex,
+    invert: bool,
+) -> Result<(), errors::TokenSendError> {
+    let line = String::from_utf8_lossy(&line).to_string();
+    if re.is_match(&line) {
+        if invert {
+            ch.send_msg(line.to_string())?;
+        } else {
+            ch.send_pipe(line.to_string())?;
+        }
+    } else {
+        if invert {
+            ch.send_pipe(line.to_string())?;
+        } else {
+            ch.send_msg(line.to_string())?;
+        }
+    }
+    Ok(())
+}
+
+/// Handles regex onig ( -g -G )
 fn regex_onig_proc(
     ch: &mut PipeIntercepter,
     line: &Vec<u8>,
@@ -507,7 +594,7 @@ fn regex_onig_proc(
     Ok(())
 }
 
-/// Handles regex ( -r )
+/// Handles regex ( -g )
 fn regex_proc(
     ch: &mut PipeIntercepter,
     line: &Vec<u8>,
