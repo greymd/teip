@@ -54,15 +54,17 @@ See detail on <a href="https://github.com/greymd/teip/wiki/Benchmark">wiki > Ben
   - The targeted command's standard input/output are intercepted by multiple `teip`'s threads asynchronously.
   - If general UNIX commands in your environment can process a few hundred MB files in a few seconds, then `teip` can do the same or better performance.
 
-# Installation (x86_64)
+# Installation
 
-## With Homebrew (for macOS users)
+### On macOS (x86_64)
+
+Using [Homebrew](https://brew.sh/)
 
 ```bash
 $ brew install greymd/tools/teip
 ```
 
-## With apt (For Ubuntu users)
+### With `dpkg` on Ubuntu, Debian, etc (x86_64)
 
 <!-- deb_x86_64_start -->
 ```bash
@@ -72,7 +74,7 @@ $ sudo dpkg -i ./teip*.deb
 <!-- deb_x86_64_end -->
 <!-- deb_x86_64_sha256 -->SHA256: 73c54c36c1c30e2137629f08993693a154d7f08c80655ae7fd485ca60b1eaae7
 
-## With dnf (For CentOS, RHEL users)
+### With `dnf` on Fedora, CentOS, RHEL, etc (x86_64)
 
 <!-- rpm_x86_64_start -->
 ```bash
@@ -81,7 +83,7 @@ $ sudo dnf install https://git.io/teip-1.1.2.x86_64.rpm
 <!-- rpm_x86_64_end -->
 <!-- rpm_x86_64_sha256 -->SHA256: 15597b5ee5678d28058decd53ff8e75b3831d1287fceeedf5988ae363309b4f6
 
-## With yum (For CentOS7, RHEL7, Amazon Linux 2 users)
+### With `yum` on CentOS7, RHEL7, etc (x86_64)
 
 <!-- rpm_x86_64_start -->
 ```bash
@@ -90,13 +92,26 @@ $ sudo yum install https://git.io/teip-1.1.2.x86_64.rpm
 <!-- rpm_x86_64_end -->
 <!-- rpm_x86_64_sha256 -->SHA256: 15597b5ee5678d28058decd53ff8e75b3831d1287fceeedf5988ae363309b4f6
 
-## For other architectures (i686, ARM, etc..)
+### On other UNIX or other architectures (i686, ARM, etc..)
 
-See [Wiki > Installation](https://github.com/greymd/teip/wiki/Installation)
+Pre-built binary is not prepared for now.
+Install with `cargo`. Make sure `libclang` shared library is on your environment.
+
+```
+### Example for Ubuntu
+$ sudo apt install cargo clang
+$ cargo install teip
+```
+
+```
+### Example for RHEL
+$ sudo dnf install cargo clang
+$ cargo install teip
+```
 
 ### For Windows
 
-Unfortunately, `teip` does not work on Windows due to technical reason.
+Unfortunately, `teip` does not work on non-UNIX environment due to technical reason.
 
 # Usage
 
