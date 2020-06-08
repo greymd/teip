@@ -316,7 +316,7 @@ Usage:
   {cmd} -g <pattern> [-oGsvz] [--] [<command>...]
   {cmd} -f <list> [-d <delimiter> | -D <pattern>] [-svz] [--] [<command>...]
   {cmd} -c <list> [-svz] [--] [<command>...]
-  {cmd} -l <list> [-vz] [--] [<command>...]
+  {cmd} -l <list> [-svz] [--] [<command>...]
   {cmd} --help | --version
 
 Options:
