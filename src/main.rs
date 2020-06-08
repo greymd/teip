@@ -316,6 +316,7 @@ Usage:
   {cmd} -g <pattern> [-oGsvz] [--] [<command>...]
   {cmd} -f <list> [-d <delimiter> | -D <pattern>] [-svz] [--] [<command>...]
   {cmd} -c <list> [-svz] [--] [<command>...]
+  {cmd} -l <list> [-vz] [--] [<command>...]
   {cmd} --help | --version
 
 Options:
@@ -328,6 +329,7 @@ Options:
   -d <delimiter>  Use <delimiter> for field delimiter of -f
   -D <pattern>    Use regular expression <pattern> for field delimiter of -f
   -c <list>       Select only these characters
+  -l <list>       Select only these lines
   -s              Execute command for each selected part
   -v              Invert the sense of selecting
   -z              Line delimiter is NUL instead of newline
@@ -366,6 +368,7 @@ fn main() {
     let flag_solid = args.get_bool("-s");
     let flag_invert = args.get_bool("-v");
     let flag_char = args.get_bool("-c");
+    let flag_lines = args.get_bool("-l");
     let flag_field = args.get_bool("-f");
     let flag_delimiter = args.get_bool("-d");
     let delimiter = args.get_str("-d");
@@ -375,7 +378,7 @@ fn main() {
     let mut regex = Regex::new("").unwrap();
     let mut regex_onig = onig::Regex::new("").unwrap();
     let mut line_end = b'\n';
-    let mut line_mode = false;
+    let mut single_token_per_line = false;
     let mut ch: PipeIntercepter;
     let mut flag_dryrun = true;
     let regex_delimiter;
@@ -390,6 +393,14 @@ fn main() {
     let field_list =
         list::converter::to_ranges(args.get_str("-f"), flag_invert).unwrap_or_else(|e| {
             if flag_field {
+                error_exit(&e.to_string());
+            }
+            list::converter::to_ranges("1", true).unwrap()
+        });
+
+    let line_list =
+        list::converter::to_ranges(args.get_str("-l"), flag_invert).unwrap_or_else(|e| {
+            if flag_lines {
                 error_exit(&e.to_string());
             }
             list::converter::to_ranges("1", true).unwrap()
@@ -426,8 +437,8 @@ fn main() {
         flag_dryrun = false;
     }
 
-    if !flag_only && flag_regex {
-        line_mode = true;
+    if (!flag_only && flag_regex) || flag_lines {
+        single_token_per_line = true;
     }
 
     if flag_solid {
@@ -440,18 +451,21 @@ fn main() {
     }
 
     // ***** Start processing *****
-    let stdin = io::stdin();
-    if line_mode {
-        loop {
-            let mut buf = Vec::with_capacity(DEFAULT_CAP);
-            match stdin.lock().read_until(line_end, &mut buf) {
-                Ok(n) => {
-                    if n == 0 {
-                        ch.send_eof().unwrap_or_else(|e| msg_error(&e.to_string()));
-                        break;
-                    }
-                    let eol = trim_eol(&mut buf);
-                    if flag_regex {
+    if single_token_per_line {
+        if flag_lines {
+            line_line_proc(&mut ch, &line_list, line_end)
+                .unwrap_or_else(|e| error_exit(&e.to_string()));
+        } else if flag_regex {
+            let stdin = io::stdin();
+            loop {
+                let mut buf = Vec::with_capacity(DEFAULT_CAP);
+                match stdin.lock().read_until(line_end, &mut buf) {
+                    Ok(n) => {
+                        if n == 0 {
+                            ch.send_eof().unwrap_or_else(|e| msg_error(&e.to_string()));
+                            break;
+                        }
+                        let eol = trim_eol(&mut buf);
                         if flag_onig {
                             regex_onig_line_proc(&mut ch, &buf, &regex_onig, flag_invert)
                                 .unwrap_or_else(|e| error_exit(&e.to_string()));
@@ -459,14 +473,15 @@ fn main() {
                             regex_line_proc(&mut ch, &buf, &regex, flag_invert)
                                 .unwrap_or_else(|e| error_exit(&e.to_string()));
                         }
-                    }
-                    ch.send_msg(eol)
-                        .unwrap_or_else(|e| msg_error(&e.to_string()));
+                        ch.send_msg(eol)
+                            .unwrap_or_else(|e| msg_error(&e.to_string()));
+                        }
+                    Err(e) => msg_error(&e.to_string()),
                 }
-                Err(e) => msg_error(&e.to_string()),
             }
         }
     } else {
+        let stdin = io::stdin();
         loop {
             let mut buf = Vec::with_capacity(DEFAULT_CAP);
             match stdin.lock().read_until(line_end, &mut buf) {
@@ -501,6 +516,41 @@ fn main() {
             }
         }
     }
+}
+
+fn line_line_proc(
+    ch: &mut PipeIntercepter,
+    ranges: &Vec<list::ranges::Range>,
+    line_end: u8,
+) -> Result<(), errors::TokenSendError> {
+    let mut i: usize = 0;
+    let mut ri: usize = 0;
+    let stdin = io::stdin();
+    loop {
+        let mut buf = Vec::with_capacity(DEFAULT_CAP);
+        match stdin.lock().read_until(line_end, &mut buf) {
+            Ok(n) => {
+                let eol = trim_eol(&mut buf);
+                let line = String::from_utf8_lossy(&buf).to_string();
+                if n == 0 {
+                    ch.send_eof()?;
+                    break;
+                }
+                if ranges[ri].high < (i + 1) && (ri + 1) < ranges.len() {
+                    ri += 1;
+                }
+                if ranges[ri].low <= (i + 1) && (i + 1) <= ranges[ri].high {
+                    ch.send_pipe(line.to_string())?;
+                } else {
+                    ch.send_msg(line.to_string())?;
+                }
+                ch.send_msg(eol)?;
+            }
+            Err(e) => msg_error(&e.to_string()),
+        }
+        i += 1;
+    }
+    Ok(())
 }
 
 fn regex_onig_line_proc(
