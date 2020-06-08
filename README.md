@@ -47,12 +47,12 @@ See detail on <a href="https://github.com/greymd/teip/wiki/Benchmark">wiki > Ben
 # Features
 
 * Allows any command to "ignore unwanted input" which most commands cannot do
-  - Execute the targeted command with masking standard input partially
-  - Flexible methods for selecting a range
+  - Pass the partially masked standard input to the targeted command and execute it
+  - Flexible methods for selecting a range (Select like AWK, `cut` command, or a regular expression)
 
-* High performance
+* High performer
   - The targeted command's standard input/output are intercepted by multiple `teip`'s threads asynchronously.
-  - If general UNIX commands in your environment can process a few hundred MB files in a few seconds, then `teip` can do the same or better performance.
+  - If general UNIX commands on your environment can process a few hundred MB files in a few seconds, then `teip` can do the same or better performance.
 
 # Installation
 
