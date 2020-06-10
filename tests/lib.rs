@@ -9,7 +9,25 @@ mod cmdtest {
     }
 
     #[test]
-    fn test_regex() {
+    fn test_line() {
+        let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
+        cmd.args(&["-l", "2,4-5", "sed", "s/./@/"])
+            .write_stdin("111\n222\n333\n444\n555\n666\n")
+            .assert()
+            .stdout("111\n@22\n333\n@44\n@55\n666\n");
+    }
+
+    #[test]
+    fn test_regex_line() {
+        let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
+        cmd.args(&["-g", "[AB]", "sed", "s/./@/"])
+            .write_stdin("ABC\nDFE\nBCC\nCCA\n")
+            .assert()
+            .stdout("@BC\nDFE\n@CC\n@CA\n");
+    }
+
+    #[test]
+    fn test_regex_only() {
         let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
         cmd.args(&["-og", "2", "sed", "s/./A/"])
             .write_stdin("118\n119\n120\n121\n")
@@ -18,7 +36,7 @@ mod cmdtest {
     }
 
     #[test]
-    fn test_regex_invert() {
+    fn test_regex_only_invert() {
         let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
         cmd.args(&["-og", "\\d+", "-v", "tr", "[:upper:]", "[:lower:]"])
             .write_stdin("ABC123EFG\nHIJKLM456")
@@ -27,7 +45,7 @@ mod cmdtest {
     }
 
     #[test]
-    fn test_regex_null() {
+    fn test_regex_only_null() {
         let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
         // Use perl -0 instead of sed -z because BSD does not support it.
         cmd.args(&[
@@ -46,7 +64,7 @@ mod cmdtest {
     }
 
     #[test]
-    fn test_regex_null_invert() {
+    fn test_regex_only_null_invert() {
         let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
         // Use perl -0 instead of sed -z because BSD does not support it.
         cmd.args(&["-zv","-og", "^...", "tr", "[:alnum:]", "@"])
@@ -56,7 +74,7 @@ mod cmdtest {
     }
 
     #[test]
-    fn test_regex_multiple() {
+    fn test_regex_only_multiple() {
         let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
         cmd.args(&["-og", "\\d", "sed", "s/./AA/g"])
             .write_stdin("120\n121\n")
@@ -65,7 +83,25 @@ mod cmdtest {
     }
 
     #[test]
-    fn test_solid_regex() {
+    fn test_solid_line() {
+        let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
+        cmd.args(&["-l", "2,4-5", "sed", "s/./@/"])
+            .write_stdin("111\n222\n333\n444\n555\n666\n")
+            .assert()
+            .stdout("111\n@22\n333\n@44\n@55\n666\n");
+    }
+
+    #[test]
+    fn test_solid_regex_line() {
+        let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
+        cmd.args(&["-s", "-g", "[AB]", "sed", "s/./@/"])
+            .write_stdin("ABC\nDFE\nBCC\nCCA\n")
+            .assert()
+            .stdout("@BC\nDFE\n@CC\n@CA\n");
+    }
+
+    #[test]
+    fn test_solid_regex_only() {
         let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
         cmd.args(&["-s", "-og", "2", "sed", "s/./A/"])
             .write_stdin("118\n119\n120\n121\n")
@@ -74,7 +110,7 @@ mod cmdtest {
     }
 
     #[test]
-    fn test_solid_regex_invert() {
+    fn test_solid_regex_only_invert() {
         let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
         cmd.args(&["-s", "-og", "\\d+", "-v", "tr", "[:upper:]", "[:lower:]"])
             .write_stdin("ABC123EFG\nHIJKLM456")
@@ -83,7 +119,7 @@ mod cmdtest {
     }
 
     #[test]
-    fn test_solid_regex_null_invert() {
+    fn test_solid_regex_only_null_invert() {
         let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
         cmd.args(&["-sv","-og", "\\d+", "tr", "[:upper:]", "[:lower:]"])
             .write_stdin("ABC123EFG\0\nHIJKLM456")
@@ -92,7 +128,7 @@ mod cmdtest {
     }
 
     #[test]
-    fn test_solid_regex_null() {
+    fn test_solid_regex_only_null() {
         let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
         cmd.args(&[
             "-sz",
@@ -109,7 +145,7 @@ mod cmdtest {
     }
 
     #[test]
-    fn test_solid_regex_null2() {
+    fn test_solid_regex_only_null2() {
         let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
         cmd.args(&["-sz", "-og", "(..\\n..|F.G)", "--", "tr", "-dc", "."])
             .write_stdin("ABC\nDEF\0GHI\nJKL")
@@ -127,7 +163,7 @@ mod cmdtest {
     }
 
     #[test]
-    fn test_solid_regex_multiple() {
+    fn test_solid_regex_only_multiple() {
         let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
         cmd.args(&["-s", "-og", "\\d", "sed", "s/./AA/g"])
             .write_stdin("120\n121\n")
