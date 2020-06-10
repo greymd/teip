@@ -13,7 +13,7 @@ teip - Highly efficient "Masking tape" for standard input
 SYNOPSIS
 --------
 
-`teip` (-r <*pattern*> | -R <*pattern*>) [-svz] [--] [<*command*>...]
+`teip` -g <*pattern*> [-oGsvz] [--] [<*command*>...]
 
 `teip` -f <*list*> [-d <*delimiter*> | -D <*pattern*>] [-svz] [--] [<*command*>...]
 
@@ -33,12 +33,14 @@ OPTIONS
 `--version`
   Show version and exit
 
-`-r` <*pattern*>
-  Select strings matched by a regular expression <*pattern*>
+`-g` <*pattern*>
+  Select lines that match the regular expression <*pattern*>
 
-`-R` <*pattern*>
-  Same as -r but use Oniguruma regular expressions
-  **This feature might be abolished in the future because it is experimental**
+`-o`
+  -g selects only matched parts
+
+`-G`
+  -g adopts Oniguruma regular expressions
 
 `-f` <*list*>
   Select only these white-space separated fields
@@ -69,14 +71,14 @@ In the simplest example, the cat(1) command always succeeds.
 Because the cat prints the same number of lines against the input.
 
 ```
-$ echo ABCDEF | teip -r . -- cat
+$ echo ABCDEF | teip -og . -- cat
 ABCDEF
 ```
 
 sed(1) works with the typical pattern.
 
 ```
-$ echo ABCDEF | teip -r . -- sed 's/[ADF]/@/'
+$ echo ABCDEF | teip -og . -- sed 's/[ADF]/@/'
 @BC@E@
 ```
 
@@ -84,7 +86,7 @@ If the rule is not satisfied, the result will be inconsistent.
 For example, the grep(1) may fail. Here is an example.
 
 ```
-$ echo ABCDEF | teip -r . -- grep '[ABC]'
+$ echo ABCDEF | teip -og . -- grep '[ABC]'
 ABC
 teip: Output of given command is exhausted
 ```
@@ -100,7 +102,7 @@ $ echo $?
 If *command* is not given, `teip` prints how standard input is tokenized.
 
 ```
-$ echo ABCDEF | teip -r .
+$ echo ABCDEF | teip -og .
 [A][B][C][D][E][F]
 ```
 
@@ -179,7 +181,7 @@ $ cat /var/log/secure | teip -c 1-15 -- date -f- +%s
 Percent-encode bare-minimum range of the file (`php-cli` is required)
 
 ```
-$ teip -r '[^-a-zA-Z0-9@:%._\+~#=/]+' -- php -R 'echo urlencode($argn)."\n";'
+$ teip -og '[^-a-zA-Z0-9@:%._\+~#=/]+' -- php -R 'echo urlencode($argn)."\n";'
 ```
 
 SEE ALSO

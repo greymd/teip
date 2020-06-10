@@ -5,14 +5,15 @@ _teip () {
   # (<options which should not exist together>)-option[description]:name:(element1 element2 ...)
   _arguments "(: -)--help[Display this help and exit]" \
     "(: -)--version[Show version and exit]" \
-    "($opts_omit -r -f -d -D -c)-r[Select strings matched by given regular expression <pattern>]:pattern:" \
-    "($opts_omit -R -r -f -d -D -c)-R[EXPERIMENTAL: Same as -r but use Oniguruma regular expressions]:pattern:" \
-    "($opts_omit -f -r -c)-f[Select only these white-space separated fields]:list:" \
-    "($opts_omit -d -D -r -c)-d[Use <delimiter> for field delimiter of -f]:delimiter:" \
-    "($opts_omit -D -d -r -c)-D[Use regular expression <pattern> for field delimiter of -f]:pattern:" \
-    "($opts_omit -c -f -D -d -r)-c[Select only these characters]:list:" \
+    "($opts_omit -g -f -d -D -c)-g[Select lines that match the regular expression <pattern>]:pattern:" \
+    "($opts_omit -o -f -d -D -c)-o[-g selects only matched parts]" \
+    "($opts_omit -G -f -d -D -c)-G[-g adopts Oniguruma regular expressions]" \
+    "($opts_omit -f -g -o -G -c)-f[Select only these white-space separated fields]:list:" \
+    "($opts_omit -d -D -g -o -G -c)-d[Use <delimiter> for field delimiter of -f]:delimiter:" \
+    "($opts_omit -D -d -g -o -G -c)-D[Use regular expression <pattern> for field delimiter of -f]:pattern:" \
+    "($opts_omit -c -f -D -d -g -o -G)-c[Select only these characters]:list:" \
     "($opts_omit -s)-s[Execute command for each selected part]" \
     "($opts_omit -v)-v[Invert the sense of selecting]" \
     "($opts_omit -z)-z[Line delimiter is NUL instead of newline]" \
-    "($opts_omit -- -r -f -d -D -c -s -v -z)--[Follow commands after --]"
+    "($opts_omit -- -g -o -G -f -d -D -c -s -v -z)--[Follow commands after --]"
 }

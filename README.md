@@ -30,7 +30,7 @@ $ cat /var/log/secure | teip -c 1-15 -- date -f- +%s
 * Percent-encode bare-minimum range of the file
 
 ```bash
-$ cat file | teip -r '[^-a-zA-Z0-9@:%._\+~#=/]+' -- php -R 'echo urlencode($argn)."\n";'
+$ cat file | teip -og '[^-a-zA-Z0-9@:%._\+~#=/]+' -- php -R 'echo urlencode($argn)."\n";'
 ```
 
 # Performance enhancement
@@ -117,20 +117,23 @@ Unfortunately, `teip` does not work on non-UNIX environment due to technical rea
 
 ```
 Usage:
-  teip (-r <pattern> | -R <pattern>) [-svz] [--] [<command>...]
+  teip -g <pattern> [-oGsvz] [--] [<command>...]
   teip -f <list> [-d <delimiter> | -D <pattern>] [-svz] [--] [<command>...]
   teip -c <list> [-svz] [--] [<command>...]
+  teip -l <list> [-svz] [--] [<command>...]
   teip --help | --version
 
 Options:
   --help          Display this help and exit
   --version       Show version and exit
-  -r <pattern>    Select strings matched by given regular expression <pattern>
-  -R <pattern>    EXPERIMENTAL: Same as -r but use Oniguruma regular expressions
+  -g <pattern>    Select lines that match the regular expression <pattern>
+  -o              -g selects only matched parts.
+  -G              -g adopts Oniguruma regular expressions
   -f <list>       Select only these white-space separated fields
   -d <delimiter>  Use <delimiter> for field delimiter of -f
   -D <pattern>    Use regular expression <pattern> for field delimiter of -f
   -c <list>       Select only these characters
+  -l <list>       Select only these lines
   -s              Execute command for each selected part
   -v              Invert the sense of selecting
   -z              Line delimiter is NUL instead of newline
@@ -290,14 +293,14 @@ Regarding available notations of the regular expression, refer to [regular expre
 
 ## Matching with Regular Expression
 
-You can also specify the range by a regular expression with `-r`.
+You can also specify the range by a regular expression with `-og`.
 Here is an example of using `\d` which matches numbers.
 
 ```bash
-$ echo ABC100EFG200 | teip -r '\d+'
+$ echo ABC100EFG200 | teip -og '\d+'
 ABC[100]EFG[200]
 
-$ echo ABC100EFG200 | teip -r '\d+' -- sed 's/.*/@@@/g'
+$ echo ABC100EFG200 | teip -og '\d+' -- sed 's/.*/@@@/g'
 ABC@@@EFG@@@
 ```
 
@@ -308,7 +311,7 @@ However, you should pay attention to use it.
 The below example is almost the same as above one but `\d+` is replaced with `\d`.
 
 ```bash
-$ echo ABC100EFG200 | teip -r '\d' -- sed 's/.*/@@@/g'
+$ echo ABC100EFG200 | teip -og '\d' -- sed 's/.*/@@@/g'
 ABC@@@@@@@@@EFG@@@@@@@@@
 ```
 
@@ -325,7 +328,7 @@ After that, the matched token is replaced with the result of the targeted comman
 In the next example, the standard input is divided into four tokens as follows.
 
 ```bash
-echo ABC100EFG200 | teip -r '\d+' -- sed 's/.*/@@@/g'
+echo ABC100EFG200 | teip -og '\d+' -- sed 's/.*/@@@/g'
 ```
 
 ```
@@ -367,7 +370,7 @@ Tokens being printed sequentially as they become available.
 Back to the story, the reason why a lot of `@` are printed in the example below is that the input is broken up into many tokens.
 
 ```bash
-$ echo ABC100EFG200 | teip -r '\d'
+$ echo ABC100EFG200 | teip -og '\d'
 ABC[1][0][0]EFG[2][0][0]
 ```
 
@@ -443,7 +446,7 @@ In the simplest example, the `cat` command always succeeds.
 Because the `cat` prints the same number of lines against the input.
 
 ```bash
-$ echo ABCDEF | teip -r . -- cat
+$ echo ABCDEF | teip -og . -- cat
 ABCDEF
 ```
 
@@ -452,10 +455,10 @@ For example, `grep` may fail.
 Here is an example.
 
 ```bash
-$ echo ABCDEF | teip -r .
+$ echo ABCDEF | teip -og .
 [A][B][C][D][E][F]
 
-$ echo ABCDEF | teip -r . -- grep '[ABC]'
+$ echo ABCDEF | teip -og . -- grep '[ABC]'
 ABC
 teip: Output of given command is exhausted
 
@@ -478,7 +481,7 @@ If you want to use a command that does not satisfy the condition, **"A targeted 
 Solid mode spawns the targeted command for each matched token and executes it each time.
 
 ```bash
-$ echo ABCDEF | teip -s -r . -- grep '[ABC]'
+$ echo ABCDEF | teip -s -og . -- grep '[ABC]'
 ```
 
 In the above example, understand the following commands are executed in `teip`'s procedure.
@@ -496,7 +499,7 @@ The empty result is replaced with an empty string.
 Therefore, D, E, and F tokens are replaced with empty as expected.
 
 ```bash
-$ echo ABCDEF | teip -s -r . -- grep '[ABC]'
+$ echo ABCDEF | teip -s -og . -- grep '[ABC]'
 ABC
 
 $ echo $?
@@ -510,13 +513,13 @@ However, this option is not suitable for processing a large file because it may 
 Any command can be used with `teip`, surprisingly, even if it is **`teip` itself**.
 
 ```bash
-$ echo "AAA@@@@@AAA@@@@@AAA" | teip -r '@.*@'
+$ echo "AAA@@@@@AAA@@@@@AAA" | teip -og '@.*@'
 AAA[@@@@@AAA@@@@@]AAA
 
-$ echo "AAA@@@@@AAA@@@@@AAA" | teip -r '@.*@' -- teip -r 'A+'
+$ echo "AAA@@@@@AAA@@@@@AAA" | teip -og '@.*@' -- teip -og 'A+'
 AAA@@@@@[AAA]@@@@@AAA
 
-$ echo "AAA@@@@@AAA@@@@@AAA" | teip -r '@.*@' -- teip -r 'A+' -- tr A _
+$ echo "AAA@@@@@AAA@@@@@AAA" | teip -og '@.*@' -- teip -og 'A+' -- tr A _
 AAA@@@@@___@@@@@AAA
 ```
 
@@ -552,7 +555,7 @@ $ echo 1 2 3 4 5 | teip -v -f 1,3,5 -- sed 's/./_/'
 1 _ 3 _ 5
 ```
 
-Of course, it can also be used for the `-r` option.
+Of course, it can also be used for the `-og` option.
 
 ```bash
 $ printf 'AAA\n123\nBBB\n' | teip -vr '\d+' -- sed 's/./@/g'
@@ -599,7 +602,7 @@ $ printf '111,\n222,33\n3\0\n444,55\n5,666\n' | teip -z -f3 -d, -- sed 's/.*/@@@
 Specifying from one line to another is a typical use case for this option.
 
 ```bash
-$ cat test.html | teip -z -r '<body>.*</body>'
+$ cat test.html | teip -z -og '<body>.*</body>'
 <html>
 <head>
   <title>AAA</title>
@@ -611,7 +614,7 @@ $ cat test.html | teip -z -r '<body>.*</body>'
 </body>]
 </html>
 
-$ cat test.html | teip -z -r '<body>.*</body>' -- grep -a BBB
+$ cat test.html | teip -z -og '<body>.*</body>' -- grep -a BBB
 <html>
 <head>
   <title>AAA</title>
@@ -635,11 +638,11 @@ It must include at least one `{}` as a placeholder.
 Example:
 ```
 $ export TEIP_HIGHLIGHT="<<<{}>>>"
-$ echo ABAB | teip -r A
+$ echo ABAB | teip -og A
 <<<A>>>B<<<A>>>B
 
 $ export TEIP_HIGHLIGHT=$'\x1b[01;31m{}\x1b[0m'
-$ echo ABAB | teip -r A
+$ echo ABAB | teip -og A
 ABAB  ### Same color as grep
 ```
 

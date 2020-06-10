@@ -322,8 +322,8 @@ Usage:
 Options:
   --help          Display this help and exit
   --version       Show version and exit
-  -g <pattern>    Select lines matched to the regular expression <pattern>
-  -o              -g selects only matched parts.
+  -g <pattern>    Select lines that match the regular expression <pattern>
+  -o              -g selects only matched parts
   -G              -g adopts Oniguruma regular expressions
   -f <list>       Select only these white-space separated fields
   -d <delimiter>  Use <delimiter> for field delimiter of -f
