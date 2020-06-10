@@ -98,13 +98,13 @@ $ sudo yum install https://git.io/teip-1.1.2.x86_64.rpm
 Pre-built binary is not prepared for now.
 Install with `cargo`. Make sure `libclang` shared library is on your environment.
 
-```
+```bash
 ### Example for Ubuntu
 $ sudo apt install cargo clang
 $ cargo install teip
 ```
 
-```
+```bash
 ### Example for RHEL
 $ sudo dnf install cargo clang
 $ cargo install teip
