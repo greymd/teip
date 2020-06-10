@@ -293,7 +293,27 @@ Regarding available notations of the regular expression, refer to [regular expre
 
 ## Matching with Regular Expression
 
-You can also specify the range by a regular expression with `-og`.
+You can also select particular lines that match a regular expression with `-g`.
+
+```
+$ echo -e "ABC1\nEFG2\nHIJ3" | teip -g '[GJ]\d'
+ABC1
+[EFG2]
+[HIJ3]
+```
+
+By default, whole the line including the given pattern is selected like the `grep` command.
+With `-o` option, only matched parts are selected.
+
+```
+$ echo -e "ABC1\nEFG2\nHIJ3" | teip -og '[GJ]\d'
+ABC1
+EF[G2]
+HI[J3]
+```
+
+Note that `-og` is one of the useful idiom and freuquently used in this manual.
+
 Here is an example of using `\d` which matches numbers.
 
 ```bash

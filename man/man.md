@@ -196,8 +196,10 @@ cut(1)
 ### Regular expression
 https://docs.rs/regex/
 
+### Regular expression (Oniguruma)
+https://github.com/kkos/oniguruma/blob/master/doc/RE
+
 AUTHOR AND COPYRIGHT
 ------
 
 Copyright (c) 2020 Yamada, Yasuhiro <yamadagrep@gmail.com> Released under the MIT License.
-https://github.com/greymd/teip
