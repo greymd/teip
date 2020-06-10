@@ -47,7 +47,8 @@ See detail on <a href="https://github.com/greymd/teip/wiki/Benchmark">wiki > Ben
 # Features
 
 * Allows any command to "ignore unwanted input" which most commands cannot do
-  - Pass the partially masked standard input to the targeted command and execute it
+  - The targeted command just handles selected parts of the standard input
+  - Unselected parts are bypassed by `teip`
   - Flexible methods for selecting a range (Select like AWK, `cut` command, or a regular expression)
 
 * High performer

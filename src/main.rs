@@ -310,7 +310,7 @@ impl Drop for PipeIntercepter {
 lazy_static! {
     static ref USAGE: String = format!(
         "
-Only a selected part of standard input is passed to any command for execution.
+Allow the command handle selected parts of the standard input, and bypass other parts.
 
 Usage:
   {cmd} -g <pattern> [-oGsvz] [--] [<command>...]
