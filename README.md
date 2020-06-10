@@ -96,7 +96,7 @@ $ sudo yum install https://git.io/teip-1.1.2.x86_64.rpm
 ### On other UNIX or other architectures (i686, ARM, etc..)
 
 Pre-built binary is not prepared for now.
-Install with `cargo`. Make sure `libclang` shared library is on your environment.
+Build with `cargo`, then make sure `libclang` shared library is on your environment.
 
 ```bash
 ### Example for Ubuntu
@@ -296,7 +296,7 @@ Regarding available notations of the regular expression, refer to [regular expre
 
 You can also select particular lines that match a regular expression with `-g`.
 
-```
+```bash
 $ echo -e "ABC1\nEFG2\nHIJ3" | teip -g '[GJ]\d'
 ABC1
 [EFG2]
@@ -306,7 +306,7 @@ ABC1
 By default, whole the line including the given pattern is selected like the `grep` command.
 With `-o` option, only matched parts are selected.
 
-```
+```bash
 $ echo -e "ABC1\nEFG2\nHIJ3" | teip -og '[GJ]\d'
 ABC1
 EF[G2]
@@ -547,6 +547,20 @@ AAA@@@@@___@@@@@AAA
 In other words, you can connect the multiple features of `teip` with AND conditions for more complex range selection.
 Furthermore, it works asynchronously and in multi-processes, similar to the shell pipeline.
 It will hardly degrade performance unless the machine faces the limits of parallelism.
+
+### Oniguruma regular expression
+
+If `-G` option is given together with `-g`, the regular expressin is interpreted as [Oniguruma regular expression](https://github.com/kkos/oniguruma/blob/master/doc/RE). For example, "keep" and "look-ahead" syntax can be used.
+
+```bash
+$ echo 'ABC123DEF456' | teip -G -og 'DEF\K\d+'
+ABC123DEF[456]
+
+$ echo 'ABC123DEF456' | teip -G -og '\d+(?=D)'
+ABC[123]DEF456
+```
+
+Those techniques are helpful to reduce the number of "Overlay".
 
 ### Empty token
 
