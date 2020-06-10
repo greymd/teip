@@ -456,28 +456,12 @@ fn main() {
             line_line_proc(&mut ch, &line_list, line_end)
                 .unwrap_or_else(|e| error_exit(&e.to_string()));
         } else if flag_regex {
-            let stdin = io::stdin();
-            loop {
-                let mut buf = Vec::with_capacity(DEFAULT_CAP);
-                match stdin.lock().read_until(line_end, &mut buf) {
-                    Ok(n) => {
-                        if n == 0 {
-                            ch.send_eof().unwrap_or_else(|e| msg_error(&e.to_string()));
-                            break;
-                        }
-                        let eol = trim_eol(&mut buf);
-                        if flag_onig {
-                            regex_onig_line_proc(&mut ch, &buf, &regex_onig, flag_invert)
-                                .unwrap_or_else(|e| error_exit(&e.to_string()));
-                        } else {
-                            regex_line_proc(&mut ch, &buf, &regex, flag_invert)
-                                .unwrap_or_else(|e| error_exit(&e.to_string()));
-                        }
-                        ch.send_msg(eol)
-                            .unwrap_or_else(|e| msg_error(&e.to_string()));
-                        }
-                    Err(e) => msg_error(&e.to_string()),
-                }
+            if flag_onig {
+                regex_onig_line_proc(&mut ch, &regex_onig, flag_invert, line_end)
+                    .unwrap_or_else(|e| error_exit(&e.to_string()));
+            } else {
+                regex_line_proc(&mut ch, &regex, flag_invert, line_end)
+                    .unwrap_or_else(|e| error_exit(&e.to_string()));
             }
         }
     } else {
@@ -555,48 +539,78 @@ fn line_line_proc(
 
 fn regex_onig_line_proc(
     ch: &mut PipeIntercepter,
-    line: &Vec<u8>,
     re: &onig::Regex,
     invert: bool,
+    line_end: u8,
 ) -> Result<(), errors::TokenSendError> {
-    let line = String::from_utf8_lossy(&line).to_string();
-    match re.find(&line) {
-        Some(_) => {
-            if invert {
-                ch.send_msg(line.to_string())?;
-            } else {
-                ch.send_pipe(line.to_string())?;
+    let stdin = io::stdin();
+    loop {
+        let mut buf = Vec::with_capacity(DEFAULT_CAP);
+        match stdin.lock().read_until(line_end, &mut buf) {
+            Ok(n) => {
+                let eol = trim_eol(&mut buf);
+                if n == 0 {
+                    ch.send_eof()?;
+                    break;
+                }
+                let line = String::from_utf8_lossy(&buf).to_string();
+                match re.find(&line) {
+                    Some(_) => {
+                        if invert {
+                            ch.send_msg(line.to_string())?;
+                        } else {
+                            ch.send_pipe(line.to_string())?;
+                        }
+                    },
+                    None => {
+                        if invert {
+                            ch.send_pipe(line.to_string())?;
+                        } else {
+                            ch.send_msg(line.to_string())?;
+                        }
+                    }
+                };
+                ch.send_msg(eol)?;
             }
-        },
-        None => {
-            if invert {
-                ch.send_pipe(line.to_string())?;
-            } else {
-                ch.send_msg(line.to_string())?;
-            }
+            Err(e) => msg_error(&e.to_string()),
         }
-    };
+    }
     Ok(())
 }
 
 fn regex_line_proc(
     ch: &mut PipeIntercepter,
-    line: &Vec<u8>,
     re: &Regex,
     invert: bool,
+    line_end: u8,
 ) -> Result<(), errors::TokenSendError> {
-    let line = String::from_utf8_lossy(&line).to_string();
-    if re.is_match(&line) {
-        if invert {
-            ch.send_msg(line.to_string())?;
-        } else {
-            ch.send_pipe(line.to_string())?;
-        }
-    } else {
-        if invert {
-            ch.send_pipe(line.to_string())?;
-        } else {
-            ch.send_msg(line.to_string())?;
+    let stdin = io::stdin();
+    loop {
+        let mut buf = Vec::with_capacity(DEFAULT_CAP);
+        match stdin.lock().read_until(line_end, &mut buf) {
+            Ok(n) => {
+                let eol = trim_eol(&mut buf);
+                if n == 0 {
+                    ch.send_eof()?;
+                    break;
+                }
+                let line = String::from_utf8_lossy(&buf).to_string();
+                if re.is_match(&line) {
+                    if invert {
+                        ch.send_msg(line.to_string())?;
+                    } else {
+                        ch.send_pipe(line.to_string())?;
+                    }
+                } else {
+                    if invert {
+                        ch.send_pipe(line.to_string())?;
+                    } else {
+                        ch.send_msg(line.to_string())?;
+                    }
+                }
+                ch.send_msg(eol)?;
+            }
+            Err(e) => msg_error(&e.to_string()),
         }
     }
     Ok(())
