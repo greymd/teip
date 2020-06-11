@@ -689,8 +689,10 @@ ABAB  ### Same color as grep
 See this [post](https://dev.to/greymd/teip-masking-tape-for-shell-is-what-we-needed-5e05).
 
 ## Why "teip"?
-* Came from Irish verb "teip" which means "fail" and it can also mean "blank out", "cut off".
-* Sounds similar to Masking-"tape".
+
+* [tee](https://en.wikipedia.org/wiki/Tee_%28command%29) + in-place.
+* Came from Irish verb "teip" which means "fail" and it can also mean "cut off".
+* And it sounds similar to Masking-"tape".
 
 # License
 
