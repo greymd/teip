@@ -33,9 +33,9 @@ jobs:
       matrix:
         include:
           - name: regex_match
-            cmd: teip -r '.*sshd' < test_secure
+            cmd: teip -og '.*sshd' < test_secure
           - name: onig_match
-            cmd: teip -R '.*sshd' < test_secure
+            cmd: teip -Gog '.*sshd' < test_secure
           - name: convert_date
             cmd: teip -c1-15 -- date -f- +%s < test_secure
     steps:

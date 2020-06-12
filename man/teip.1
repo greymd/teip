@@ -4,7 +4,7 @@
 teip \- Highly efficient "Masking tape" for standard input
 .SH SYNOPSIS
 .PP
-\fB\fCteip\fR (\-r <\fIpattern\fP> | \-R <\fIpattern\fP>) [\-svz] [\-\-] [<\fIcommand\fP>...]
+\fB\fCteip\fR \-g <\fIpattern\fP> [\-oGsvz] [\-\-] [<\fIcommand\fP>...]
 .PP
 \fB\fCteip\fR \-f <\fIlist\fP> [\-d <\fIdelimiter\fP> | \-D <\fIpattern\fP>] [\-svz] [\-\-] [<\fIcommand\fP>...]
 .PP
@@ -22,12 +22,14 @@ Display this help and exit
 \fB\fC\-\-version\fR
 Show version and exit
 .TP
-\fB\fC\-r\fR <\fIpattern\fP>
-Select strings matched by a regular expression <\fIpattern\fP>
+\fB\fC\-g\fR <\fIpattern\fP>
+Select lines that match the regular expression <\fIpattern\fP>
 .TP
-\fB\fC\-R\fR <\fIpattern\fP>
-Same as \-r but use Oniguruma regular expressions
-\fBThis feature might be abolished in the future because it is experimental\fP
+\fB\fC\-o\fR
+\-g selects only matched parts
+.TP
+\fB\fC\-G\fR
+\-g adopts Oniguruma regular expressions
 .TP
 \fB\fC\-f\fR <\fIlist\fP>
 Select only these white\-space separated fields
@@ -60,7 +62,7 @@ Because the cat prints the same number of lines against the input.
 .PP
 .RS
 .nf
-$ echo ABCDEF | teip \-r . \-\- cat
+$ echo ABCDEF | teip \-og . \-\- cat
 ABCDEF
 .fi
 .RE
@@ -70,7 +72,7 @@ works with the typical pattern.
 .PP
 .RS
 .nf
-$ echo ABCDEF | teip \-r . \-\- sed 's/[ADF]/@/'
+$ echo ABCDEF | teip \-og . \-\- sed 's/[ADF]/@/'
 @BC@E@
 .fi
 .RE
@@ -82,7 +84,7 @@ may fail. Here is an example.
 .PP
 .RS
 .nf
-$ echo ABCDEF | teip \-r . \-\- grep '[ABC]'
+$ echo ABCDEF | teip \-og . \-\- grep '[ABC]'
 ABC
 teip: Output of given command is exhausted
 .fi
@@ -102,7 +104,7 @@ If \fIcommand\fP is not given, \fB\fCteip\fR prints how standard input is tokeni
 .PP
 .RS
 .nf
-$ echo ABCDEF | teip \-r .
+$ echo ABCDEF | teip \-og .
 [A][B][C][D][E][F]
 .fi
 .RE
@@ -198,7 +200,7 @@ Percent\-encode bare\-minimum range of the file (\fB\fCphp\-cli\fR is required)
 .PP
 .RS
 .nf
-$ teip \-r '[^\-a\-zA\-Z0\-9@:%._\\+~#=/]+' \-\- php \-R 'echo urlencode($argn)."\\n";'
+$ teip \-og '[^\-a\-zA\-Z0\-9@:%._\\+~#=/]+' \-\- php \-R 'echo urlencode($argn)."\\n";'
 .fi
 .RE
 .SH SEE ALSO

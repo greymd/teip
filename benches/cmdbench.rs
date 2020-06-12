@@ -28,7 +28,7 @@ fn standard_regex_double(lap: usize) {
     let mut child = Command::new(CMD)
         .stdin(Stdio::piped())
         .stdout(Stdio::null()) // comment out to check output.
-        .args(&["-r", "\\d+", "sed", "s/./@/"])
+        .args(&["-og", "\\d+", "sed", "s/./@/"])
         .spawn()
         .expect("Failed to swapn process");
     {
@@ -48,7 +48,7 @@ fn onig_double(lap: usize) {
     let mut child = Command::new(CMD)
         .stdin(Stdio::piped())
         .stdout(Stdio::null()) // comment out to check output.
-        .args(&["-R", "\\d+", "sed", "s/./@/"])
+        .args(&["-Gog", "\\d+", "sed", "s/./@/"])
         .spawn()
         .expect("Failed to swapn process");
     {
@@ -130,7 +130,7 @@ fn solid_standard_regex_double(lap: usize) {
     let mut child = Command::new(CMD)
         .stdin(Stdio::piped())
         .stdout(Stdio::null()) // comment out to check output.
-        .args(&["-s", "-r", "\\d+", "sed", "s/./@/"])
+        .args(&["-s", "-og", "\\d+", "sed", "s/./@/"])
         .spawn()
         .expect("Failed to swapn process");
     {
