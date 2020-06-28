@@ -93,6 +93,13 @@ $ sudo yum install https://git.io/teip-1.2.0.x86_64.rpm
 <!-- rpm_x86_64_end -->
 <!-- rpm_x86_64_sha256 -->SHA256: b8eab16589ff49d6db3b9377e122516217fa0e03ac192a76b4c64a860c096540
 
+### With Docker
+
+```bash
+$ docker build -t teip .
+$ echo "100 200 300 400" | docker run --rm -i teip -f 3 -- sed 's/./@/g'
+```
+
 ### On other UNIX or other architectures (i686, ARM, etc..)
 
 Pre-built binary is not prepared for now.
