@@ -7,11 +7,15 @@ pub type Syntax = onig::Syntax;
 
 use super::super::{errors, PipeIntercepter, DEFAULT_CAP, trim_eol, msg_error};
 
+pub fn new_regex() -> Regex {
+    Regex::new("").unwrap()
+}
+
 /// Handles regex onig ( -g -G )
 pub fn regex_onig_proc(
     ch: &mut PipeIntercepter,
     line: &Vec<u8>,
-    re: &onig::Regex,
+    re: &Regex,
     invert: bool,
 ) -> Result<(), errors::TokenSendError> {
     let line = String::from_utf8_lossy(&line).to_string();
@@ -51,7 +55,7 @@ pub fn regex_onig_proc(
 
 pub fn regex_onig_line_proc(
     ch: &mut PipeIntercepter,
-    re: &onig::Regex,
+    re: &Regex,
     invert: bool,
     line_end: u8,
 ) -> Result<(), errors::TokenSendError> {

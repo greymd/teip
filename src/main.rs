@@ -379,7 +379,7 @@ fn main() {
 
     let mut regex_mode = String::new();
     let mut regex = Regex::new("").unwrap();
-    let mut regex_onig = impure::onig::Regex::new("").unwrap();
+    let mut regex_onig = impure::onig::new_regex();
     let mut line_end = b'\n';
     let mut single_token_per_line = false;
     let mut ch: PipeIntercepter;
