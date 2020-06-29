@@ -43,13 +43,13 @@ jobs:
         if: contains(matrix.target, 'musl')
         run: |
           rustup target add ${{ matrix.target }}
-          CFLAGS="-fPIE" CC="musl-gcc -static" cargo build --verbose --release --target ${{ matrix.target }}
+          CFLAGS="-fPIE" CC="musl-gcc -static" cargo build --verbose --features oniguruma --release --target ${{ matrix.target }}
 
       - name: Compile
         if: "! contains(matrix.target, 'musl')"
         run: |
           rustup target add ${{ matrix.target }}
-          cargo build --verbose --release --target ${{ matrix.target }}
+          cargo build --verbose --features oniguruma --release --target ${{ matrix.target }}
 
       - name: Build packages
         run: |
