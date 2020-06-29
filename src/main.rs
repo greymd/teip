@@ -423,8 +423,7 @@ fn main() {
                 impure::onig::new_option_multiline_regex(&args.get_str("-g"));
         } else {
             regex_onig =
-                impure::onig::Regex::with_options(&args.get_str("-g"), impure::onig::RegexOptions::REGEX_OPTION_NONE, impure::onig::Syntax::default())
-                    .unwrap_or_else(|e| error_exit(&e.to_string()));
+                impure::onig::new_option_none_regex(&args.get_str("-g"));
         }
     }
 

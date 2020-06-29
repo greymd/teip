@@ -16,6 +16,11 @@ pub fn new_option_multiline_regex(s: &str) -> Regex {
         .unwrap_or_else(|e| error_exit(&e.to_string()))
 }
 
+pub fn new_option_none_regex(s: &str) -> Regex {
+    Regex::with_options(s, RegexOptions::REGEX_OPTION_NONE, Syntax::default())
+        .unwrap_or_else(|e| error_exit(&e.to_string()))
+}
+
 /// Handles regex onig ( -g -G )
 pub fn regex_onig_proc(
     ch: &mut PipeIntercepter,
