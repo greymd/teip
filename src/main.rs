@@ -3,6 +3,11 @@ mod list {
     pub mod ranges;
 }
 mod impure {
+    #[cfg(feature = "oniguruma")]
+    pub mod onig;
+}
+mod pure {
+    #[cfg(not(feature = "oniguruma"))]
     pub mod onig;
 }
 mod errors;
@@ -22,6 +27,12 @@ use std::process::{Command, Stdio};
 use std::sync::mpsc::{self, Sender};
 use std::thread::{self, JoinHandle};
 use token::Token;
+
+#[cfg(feature = "oniguruma")]
+use impure::onig;
+
+#[cfg(not(feature = "oniguruma"))]
+use pure::onig;
 
 const CMD: &'static str = env!("CARGO_PKG_NAME"); // "teip"
 pub const DEFAULT_CAP: usize = 1024;
@@ -378,7 +389,7 @@ fn main() {
 
     let mut regex_mode = String::new();
     let mut regex = Regex::new("").unwrap();
-    let mut regex_onig = impure::onig::new_regex();
+    let mut regex_onig = onig::new_regex();
     let mut line_end = b'\n';
     let mut single_token_per_line = false;
     let mut ch: PipeIntercepter;
@@ -419,10 +430,10 @@ fn main() {
     } else {
         if flag_zero {
             regex_onig =
-                impure::onig::new_option_multiline_regex(&args.get_str("-g"));
+                onig::new_option_multiline_regex(&args.get_str("-g"));
         } else {
             regex_onig =
-                impure::onig::new_option_none_regex(&args.get_str("-g"));
+                onig::new_option_none_regex(&args.get_str("-g"));
         }
     }
 
@@ -457,7 +468,7 @@ fn main() {
                 .unwrap_or_else(|e| error_exit(&e.to_string()));
         } else if flag_regex {
             if flag_onig {
-                impure::onig::regex_onig_line_proc(&mut ch, &regex_onig, flag_invert, line_end)
+                onig::regex_onig_line_proc(&mut ch, &regex_onig, flag_invert, line_end)
                     .unwrap_or_else(|e| error_exit(&e.to_string()));
             } else {
                 regex_line_proc(&mut ch, &regex, flag_invert, line_end)
@@ -477,7 +488,7 @@ fn main() {
                     let eol = trim_eol(&mut buf);
                     if flag_regex {
                         if flag_onig {
-                            impure::onig::regex_onig_proc(&mut ch, &buf, &regex_onig, flag_invert)
+                            onig::regex_onig_proc(&mut ch, &buf, &regex_onig, flag_invert)
                                 .unwrap_or_else(|e| error_exit(&e.to_string()));
                         } else {
                             regex_proc(&mut ch, &buf, &regex, flag_invert)
