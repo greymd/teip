@@ -1,5 +1,6 @@
-use super::super::errors;
-use super::super::PipeIntercepter;
+use std::io::{self, BufRead};
+
+use super::super::{errors, PipeIntercepter, DEFAULT_CAP, trim_eol, msg_error};
 
 /// Handles regex onig ( -g -G )
 pub fn regex_onig_proc(
@@ -38,6 +39,47 @@ pub fn regex_onig_proc(
             ch.send_msg(unmatched.to_string())?;
         } else {
             ch.send_pipe(unmatched.to_string())?;
+        }
+    }
+    Ok(())
+}
+
+pub fn regex_onig_line_proc(
+    ch: &mut PipeIntercepter,
+    re: &onig::Regex,
+    invert: bool,
+    line_end: u8,
+) -> Result<(), errors::TokenSendError> {
+    let stdin = io::stdin();
+    loop {
+        let mut buf = Vec::with_capacity(DEFAULT_CAP);
+        match stdin.lock().read_until(line_end, &mut buf) {
+            Ok(n) => {
+                let eol = trim_eol(&mut buf);
+                if n == 0 {
+                    ch.send_eof()?;
+                    break;
+                }
+                let line = String::from_utf8_lossy(&buf).to_string();
+                match re.find(&line) {
+                    Some(_) => {
+                        if invert {
+                            ch.send_msg(line.to_string())?;
+                        } else {
+                            ch.send_pipe(line.to_string())?;
+                        }
+                    },
+                    None => {
+                        if invert {
+                            ch.send_pipe(line.to_string())?;
+                        } else {
+                            ch.send_msg(line.to_string())?;
+                        }
+                    }
+                };
+                ch.send_msg(eol)?;
+            }
+            Err(e) => msg_error(&e.to_string()),
         }
     }
     Ok(())
