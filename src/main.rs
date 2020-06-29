@@ -3,7 +3,6 @@ mod list {
     pub mod ranges;
 }
 mod impure {
-    #[cfg(feature = "oniguruma")]
     pub mod onig;
 }
 mod errors;

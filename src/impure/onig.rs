@@ -1,26 +1,56 @@
 use std::io::{self, BufRead};
 
+#[cfg(feature = "oniguruma")]
 use onig::{self};
+#[cfg(feature = "oniguruma")]
 pub type Regex = onig::Regex;
+#[cfg(feature = "oniguruma")]
 pub type RegexOptions = onig::RegexOptions;
+#[cfg(feature = "oniguruma")]
 pub type Syntax = onig::Syntax;
+
+#[cfg(not(feature = "oniguruma"))]
+pub type Regex = i64;
+#[cfg(not(feature = "oniguruma"))]
+pub type RegexOptions = i64;
+#[cfg(not(feature = "oniguruma"))]
+pub type Syntax = i64;
 
 use super::super::{errors, PipeIntercepter, DEFAULT_CAP, trim_eol, msg_error, error_exit};
 
+#[cfg(feature = "oniguruma")]
 pub fn new_regex() -> Regex {
     Regex::new("").unwrap()
 }
 
+#[cfg(not(feature = "oniguruma"))]
+pub fn new_regex() -> Regex {
+    1
+}
+
+#[cfg(feature = "oniguruma")]
 pub fn new_option_multiline_regex(s: &str) -> Regex {
     Regex::with_options(s, RegexOptions::REGEX_OPTION_MULTILINE, Syntax::default())
         .unwrap_or_else(|e| error_exit(&e.to_string()))
 }
 
+#[cfg(not(feature = "oniguruma"))]
+pub fn new_option_multiline_regex(s: &str) -> Regex {
+    1
+}
+
+#[cfg(feature = "oniguruma")]
 pub fn new_option_none_regex(s: &str) -> Regex {
     Regex::with_options(s, RegexOptions::REGEX_OPTION_NONE, Syntax::default())
         .unwrap_or_else(|e| error_exit(&e.to_string()))
 }
 
+#[cfg(not(feature = "oniguruma"))]
+pub fn new_option_none_regex(s: &str) -> Regex {
+    1
+}
+
+#[cfg(feature = "oniguruma")]
 /// Handles regex onig ( -g -G )
 pub fn regex_onig_proc(
     ch: &mut PipeIntercepter,
@@ -63,6 +93,18 @@ pub fn regex_onig_proc(
     Ok(())
 }
 
+#[cfg(not(feature = "oniguruma"))]
+/// Handles regex onig ( -g -G )
+pub fn regex_onig_proc(
+    ch: &mut PipeIntercepter,
+    line: &Vec<u8>,
+    re: &Regex,
+    invert: bool,
+) -> Result<(), errors::TokenSendError> {
+    Ok(())
+}
+
+#[cfg(feature = "oniguruma")]
 pub fn regex_onig_line_proc(
     ch: &mut PipeIntercepter,
     re: &Regex,
@@ -104,3 +146,12 @@ pub fn regex_onig_line_proc(
     Ok(())
 }
 
+#[cfg(not(feature = "oniguruma"))]
+pub fn regex_onig_line_proc(
+    ch: &mut PipeIntercepter,
+    re: &Regex,
+    invert: bool,
+    line_end: u8,
+) -> Result<(), errors::TokenSendError> {
+    Ok(())
+}
