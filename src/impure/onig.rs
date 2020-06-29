@@ -5,10 +5,15 @@ pub type Regex = onig::Regex;
 pub type RegexOptions = onig::RegexOptions;
 pub type Syntax = onig::Syntax;
 
-use super::super::{errors, PipeIntercepter, DEFAULT_CAP, trim_eol, msg_error};
+use super::super::{errors, PipeIntercepter, DEFAULT_CAP, trim_eol, msg_error, error_exit};
 
 pub fn new_regex() -> Regex {
     Regex::new("").unwrap()
+}
+
+pub fn new_option_multiline_regex(s: &str) -> Regex {
+    Regex::with_options(s, RegexOptions::REGEX_OPTION_MULTILINE, Syntax::default())
+        .unwrap_or_else(|e| error_exit(&e.to_string()))
 }
 
 /// Handles regex onig ( -g -G )
