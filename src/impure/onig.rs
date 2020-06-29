@@ -1,3 +1,4 @@
+#[cfg(feature = "oniguruma")]
 use std::io::{self, BufRead};
 
 #[cfg(feature = "oniguruma")]
@@ -11,12 +12,12 @@ pub type Syntax = onig::Syntax;
 
 #[cfg(not(feature = "oniguruma"))]
 pub type Regex = i64;
-#[cfg(not(feature = "oniguruma"))]
-pub type RegexOptions = i64;
-#[cfg(not(feature = "oniguruma"))]
-pub type Syntax = i64;
 
+#[cfg(feature = "oniguruma")]
 use super::super::{errors, PipeIntercepter, DEFAULT_CAP, trim_eol, msg_error, error_exit};
+
+#[cfg(not(feature = "oniguruma"))]
+use super::super::{errors, PipeIntercepter};
 
 #[cfg(feature = "oniguruma")]
 pub fn new_regex() -> Regex {
@@ -35,7 +36,7 @@ pub fn new_option_multiline_regex(s: &str) -> Regex {
 }
 
 #[cfg(not(feature = "oniguruma"))]
-pub fn new_option_multiline_regex(s: &str) -> Regex {
+pub fn new_option_multiline_regex(_s: &str) -> Regex {
     1
 }
 
@@ -46,7 +47,7 @@ pub fn new_option_none_regex(s: &str) -> Regex {
 }
 
 #[cfg(not(feature = "oniguruma"))]
-pub fn new_option_none_regex(s: &str) -> Regex {
+pub fn new_option_none_regex(_s: &str) -> Regex {
     1
 }
 
@@ -96,10 +97,10 @@ pub fn regex_onig_proc(
 #[cfg(not(feature = "oniguruma"))]
 /// Handles regex onig ( -g -G )
 pub fn regex_onig_proc(
-    ch: &mut PipeIntercepter,
-    line: &Vec<u8>,
-    re: &Regex,
-    invert: bool,
+    _ch: &mut PipeIntercepter,
+    _line: &Vec<u8>,
+    _re: &Regex,
+    _invert: bool,
 ) -> Result<(), errors::TokenSendError> {
     Ok(())
 }
@@ -148,10 +149,10 @@ pub fn regex_onig_line_proc(
 
 #[cfg(not(feature = "oniguruma"))]
 pub fn regex_onig_line_proc(
-    ch: &mut PipeIntercepter,
-    re: &Regex,
-    invert: bool,
-    line_end: u8,
+    _ch: &mut PipeIntercepter,
+    _re: &Regex,
+    _invert: bool,
+    _line_end: u8,
 ) -> Result<(), errors::TokenSendError> {
     Ok(())
 }
