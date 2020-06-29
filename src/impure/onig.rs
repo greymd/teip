@@ -1,5 +1,10 @@
 use std::io::{self, BufRead};
 
+use onig::{self};
+pub type Regex = onig::Regex;
+pub type RegexOptions = onig::RegexOptions;
+pub type Syntax = onig::Syntax;
+
 use super::super::{errors, PipeIntercepter, DEFAULT_CAP, trim_eol, msg_error};
 
 /// Handles regex onig ( -g -G )

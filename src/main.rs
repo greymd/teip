@@ -3,6 +3,7 @@ mod list {
     pub mod ranges;
 }
 mod impure {
+    #[cfg(feature = "oniguruma")]
     pub mod onig;
 }
 mod errors;
@@ -21,7 +22,6 @@ use std::os::unix::io::{AsRawFd, FromRawFd};
 use std::process::{Command, Stdio};
 use std::sync::mpsc::{self, Sender};
 use std::thread::{self, JoinHandle};
-use onig::{self};
 use token::Token;
 
 const CMD: &'static str = env!("CARGO_PKG_NAME"); // "teip"
@@ -379,7 +379,7 @@ fn main() {
 
     let mut regex_mode = String::new();
     let mut regex = Regex::new("").unwrap();
-    let mut regex_onig = onig::Regex::new("").unwrap();
+    let mut regex_onig = impure::onig::Regex::new("").unwrap();
     let mut line_end = b'\n';
     let mut single_token_per_line = false;
     let mut ch: PipeIntercepter;
@@ -420,11 +420,11 @@ fn main() {
     } else {
         if flag_zero {
             regex_onig =
-                onig::Regex::with_options(&args.get_str("-g"), onig::RegexOptions::REGEX_OPTION_MULTILINE, onig::Syntax::default())
+                impure::onig::Regex::with_options(&args.get_str("-g"), impure::onig::RegexOptions::REGEX_OPTION_MULTILINE, impure::onig::Syntax::default())
                 .unwrap_or_else(|e| error_exit(&e.to_string()));
         } else {
             regex_onig =
-                onig::Regex::with_options(&args.get_str("-g"), onig::RegexOptions::REGEX_OPTION_NONE, onig::Syntax::default())
+                impure::onig::Regex::with_options(&args.get_str("-g"), impure::onig::RegexOptions::REGEX_OPTION_NONE, impure::onig::Syntax::default())
                     .unwrap_or_else(|e| error_exit(&e.to_string()));
         }
     }
