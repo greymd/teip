@@ -2,6 +2,9 @@ mod list {
     pub mod converter;
     pub mod ranges;
 }
+mod impure {
+    pub mod onig;
+}
 mod errors;
 mod token;
 
@@ -39,7 +42,7 @@ pub fn exit_silently(msg: &str) -> ! {
     std::process::exit(1);
 }
 
-struct PipeIntercepter {
+pub struct PipeIntercepter {
     tx: Sender<Token>,
     pipe_writer: BufWriter<File>,    // Not used when -s
     handler: Option<JoinHandle<()>>, // "option dance"
@@ -477,7 +480,7 @@ fn main() {
                     let eol = trim_eol(&mut buf);
                     if flag_regex {
                         if flag_onig {
-                            regex_onig_proc(&mut ch, &buf, &regex_onig, flag_invert)
+                            impure::onig::regex_onig_proc(&mut ch, &buf, &regex_onig, flag_invert)
                                 .unwrap_or_else(|e| error_exit(&e.to_string()));
                         } else {
                             regex_proc(&mut ch, &buf, &regex, flag_invert)
@@ -611,48 +614,6 @@ fn regex_line_proc(
                 ch.send_msg(eol)?;
             }
             Err(e) => msg_error(&e.to_string()),
-        }
-    }
-    Ok(())
-}
-
-/// Handles regex onig ( -g -G )
-fn regex_onig_proc(
-    ch: &mut PipeIntercepter,
-    line: &Vec<u8>,
-    re: &onig::Regex,
-    invert: bool,
-) -> Result<(), errors::TokenSendError> {
-    let line = String::from_utf8_lossy(&line).to_string();
-    let mut left_index = 0;
-    let mut right_index;
-    for cap in re.find_iter(&line) {
-        right_index = cap.0;
-        let unmatched = &line[left_index..right_index];
-        let matched = &line[cap.0..cap.1];
-        // Ignore empty string.
-        // Regex "*" matches empty, but , in most situations,
-        // handling empty string is not helpful for users.
-        if !unmatched.is_empty() {
-            if !invert {
-                ch.send_msg(unmatched.to_string())?;
-            } else {
-                ch.send_pipe(unmatched.to_string())?;
-            }
-        }
-        if !invert {
-            ch.send_pipe(matched.to_string())?;
-        } else {
-            ch.send_msg(matched.to_string())?;
-        }
-        left_index = cap.1;
-    }
-    if left_index < line.len() {
-        let unmatched = &line[left_index..line.len()];
-        if !invert {
-            ch.send_msg(unmatched.to_string())?;
-        } else {
-            ch.send_pipe(unmatched.to_string())?;
         }
     }
     Ok(())
