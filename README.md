@@ -122,6 +122,12 @@ $ cargo install teip
 
 Unfortunately, `teip` does not work on non-UNIX environment due to technical reason.
 
+### From source
+
+With Rust's package manager cargo, you can install `teip` via:
+
+cargo install teip
+
 # Usage
 
 ```
