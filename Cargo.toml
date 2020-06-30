@@ -12,6 +12,7 @@ license = "MIT"
 edition = "2018"
 
 [dependencies]
+cfg-if = "0.1"
 docopt = "1"
 serde = { version = "1", features = ["derive"] }
 regex = "1"

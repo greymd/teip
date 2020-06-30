@@ -14,7 +14,6 @@ use regex::Regex;
 use std::env;
 use std::fs::File;
 use std::io::{self, BufRead, BufReader, BufWriter, Write};
-use std::os::unix::io::{AsRawFd, FromRawFd};
 use std::process::{Command, Stdio};
 use std::sync::mpsc::{self, Sender};
 use std::thread::{self, JoinHandle};
@@ -199,23 +198,47 @@ impl PipeIntercepter {
             }
         };
         let first = &cmds[0];
-        let fd_in_num = child
-            .stdin
-            .as_mut()
-            .ok_or(errors::SpawnError::StdinOpenFailed)?
-            .as_raw_fd();
-        let fd_out_num = child
-            .stdout
-            .as_mut()
-            .ok_or(errors::SpawnError::StdoutOpenFailed)?
-            .as_raw_fd();
-        let fd_in = unsafe { File::from_raw_fd(fd_in_num) };
-        let fd_out = unsafe { File::from_raw_fd(fd_out_num) };
-        Ok((
-            fd_in.try_clone().map_err(|e| errors::SpawnError::Io(e))?,
-            fd_out.try_clone().map_err(|e| errors::SpawnError::Io(e))?,
-            first.to_string(),
-        ))
+        cfg_if::cfg_if! {
+            if #[cfg(windows)] {
+                use std::os::windows::io::{AsRawHandle, FromRawHandle};
+                let handle_in_raw = child
+                    .stdin
+                    .as_mut()
+                    .ok_or(errors::SpawnError::StdinOpenFailed)?
+                    .as_raw_handle();
+                let handle_out_raw = child
+                    .stdout
+                    .as_mut()
+                    .ok_or(errors::SpawnError::StdoutOpenFailed)?
+                    .as_raw_handle();
+                let handle_in = unsafe { File::from_raw_handle(handle_in_raw) };
+                let handle_out = unsafe { File::from_raw_handle(handle_out_raw) };
+                Ok((
+                    handle_in.try_clone().map_err(|e| errors::SpawnError::Io(e))?,
+                    handle_out.try_clone().map_err(|e| errors::SpawnError::Io(e))?,
+                    first.to_string(),
+                ))
+            } else {
+                use std::os::unix::io::{AsRawFd, FromRawFd};
+                let fd_in_num = child
+                    .stdin
+                    .as_mut()
+                    .ok_or(errors::SpawnError::StdinOpenFailed)?
+                    .as_raw_fd();
+                let fd_out_num = child
+                    .stdout
+                    .as_mut()
+                    .ok_or(errors::SpawnError::StdoutOpenFailed)?
+                    .as_raw_fd();
+                let fd_in = unsafe { File::from_raw_fd(fd_in_num) };
+                let fd_out = unsafe { File::from_raw_fd(fd_out_num) };
+                Ok((
+                    fd_in.try_clone().map_err(|e| errors::SpawnError::Io(e))?,
+                    fd_out.try_clone().map_err(|e| errors::SpawnError::Io(e))?,
+                    first.to_string(),
+                ))
+            }
+        }
     }
 
     fn exec_cmd_sync(input: String, cmds: &Vec<String>, line_end: u8) -> String {
