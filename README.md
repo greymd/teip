@@ -5,6 +5,7 @@
 </h1>
 <p align="center">
   <a href="https://github.com/greymd/teip/releases/latest"><img src="https://img.shields.io/github/release/greymd/teip.svg" alt="Latest version" /></a>
+  <a href="https://crates.io/crates/teip" alt="crate.io"><img src="https://img.shields.io/crates/v/teip.svg"/></a>
   <a href="https://github.com/greymd/teip/actions?query=workflow%3ATest"><img src="https://github.com/greymd/teip/workflows/Test/badge.svg?branch=master" alt="Test Status" /></a>
   <a href="LICENSE" alt="MIT License"><img src="http://img.shields.io/badge/license-MIT-blue.svg?style=flat" /></a>
 </p>
@@ -100,10 +101,24 @@ $ docker build -t teip .
 $ echo "100 200 300 400" | docker run --rm -i teip -f 3 -- sed 's/./@/g'
 ```
 
+### For Windows
+
+Unfortunately, `teip` does not work on non-UNIX environment due to technical reason.
+
 ### On other UNIX or other architectures (i686, ARM, etc..)
 
-Pre-built binary is not prepared for now.
-Build with `cargo`, then make sure `libclang` shared library is on your environment.
+Pre-built binary for other architectures (i686, ARM, etc..) is not prepared for now.
+Please build from source.
+
+### From source
+
+With Rust's package manager cargo, you can install `teip` via:
+
+```
+$ cargo install teip
+```
+
+Please make sure `libclang` shared library is on your environment to enable Oniguruma regular expression.
 
 ```bash
 ### Example for Ubuntu
@@ -116,10 +131,6 @@ $ cargo install teip
 $ sudo dnf install cargo clang
 $ cargo install teip
 ```
-
-### For Windows
-
-Unfortunately, `teip` does not work on non-UNIX environment due to technical reason.
 
 # Usage
 
