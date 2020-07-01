@@ -101,10 +101,24 @@ $ docker build -t teip .
 $ echo "100 200 300 400" | docker run --rm -i teip -f 3 -- sed 's/./@/g'
 ```
 
+### For Windows
+
+Unfortunately, `teip` does not work on non-UNIX environment due to technical reason.
+
 ### On other UNIX or other architectures (i686, ARM, etc..)
 
-Pre-built binary is not prepared for now.
-Build with `cargo`, then make sure `libclang` shared library is on your environment.
+Pre-built binary for other architectures (i686, ARM, etc..) is not prepared for now.
+Please build from source.
+
+### From source
+
+With Rust's package manager cargo, you can install `teip` via:
+
+```
+$ cargo install teip
+```
+
+Please make sure `libclang` shared library is on your environment to enable Oniguruma regular expression.
 
 ```bash
 ### Example for Ubuntu
@@ -117,16 +131,6 @@ $ cargo install teip
 $ sudo dnf install cargo clang
 $ cargo install teip
 ```
-
-### For Windows
-
-Unfortunately, `teip` does not work on non-UNIX environment due to technical reason.
-
-### From source
-
-With Rust's package manager cargo, you can install `teip` via:
-
-cargo install teip
 
 # Usage
 
