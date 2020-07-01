@@ -38,11 +38,11 @@ jobs:
         run: |
           rustup target add ${{ matrix.target }}
           if [[ ${{ matrix.target }} =~ "musl" ]] ;then
-            CFLAGS="-fPIE" CC="musl-gcc -static" cargo build --release --verbose --target x86_64-unknown-linux-musl
+            CFLAGS="-fPIE" CC="musl-gcc -static" cargo build --features oniguruma --release --verbose --target x86_64-unknown-linux-musl
           else
-            cargo build --verbose --release --target ${{ matrix.target }}
+            cargo build --verbose --features oniguruma --release --target ${{ matrix.target }}
           fi
           mv target/${{matrix.target}}/release/teip target/release
       - name: Run tests
         timeout-minutes: 10
-        run: cargo test --verbose
+        run: cargo test --verbose --features oniguruma

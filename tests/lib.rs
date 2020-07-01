@@ -172,6 +172,7 @@ mod cmdtest {
     }
 
     #[test]
+    #[cfg(feature = "oniguruma")]
     fn test_onig() {
         let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
         cmd.args(&["-Gog", "\\d+(?=D)", "sed", "s/./@/g"])
@@ -181,6 +182,7 @@ mod cmdtest {
     }
 
     #[test]
+    #[cfg(feature = "oniguruma")]
     fn test_onig_invert() {
         let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
         cmd.args(&["-v","-Gog","\\d+(?=D)", "sed", "s/./@/g"])
@@ -190,6 +192,7 @@ mod cmdtest {
     }
 
     #[test]
+    #[cfg(feature = "oniguruma")]
     fn test_onig_null() {
         let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
         // Use perl -0 instead of sed -z because BSD does not support it.
@@ -209,6 +212,7 @@ mod cmdtest {
     }
 
     #[test]
+    #[cfg(feature = "oniguruma")]
     fn test_onig_null_invert() {
         let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
         // Use perl -0 instead of sed -z because BSD does not support it.
@@ -219,6 +223,7 @@ mod cmdtest {
     }
 
     #[test]
+    #[cfg(feature = "oniguruma")]
     fn test_onig_multiple() {
         let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
         cmd.args(&["-Gog", "C\\K\\d+(?=D)", "sed", "s/./@/g"])
@@ -228,6 +233,7 @@ mod cmdtest {
     }
 
     #[test]
+    #[cfg(feature = "oniguruma")]
     fn test_solid_onig() {
         let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
         cmd.args(&["-s", "-Gog", "2", "sed", "s/./A/"])
@@ -237,6 +243,7 @@ mod cmdtest {
     }
 
     #[test]
+    #[cfg(feature = "oniguruma")]
     fn test_solid_onig_invert() {
         let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
         cmd.args(&["-s", "-Gog", "\\d+", "-v", "tr", "[:upper:]", "[:lower:]"])
@@ -246,6 +253,7 @@ mod cmdtest {
     }
 
     #[test]
+    #[cfg(feature = "oniguruma")]
     fn test_solid_onig_null_invert() {
         let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
         cmd.args(&["-sv","-Gog", "\\d+", "tr", "[:upper:]", "[:lower:]"])
@@ -255,6 +263,7 @@ mod cmdtest {
     }
 
     #[test]
+    #[cfg(feature = "oniguruma")]
     fn test_solid_onig_null() {
         let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
         cmd.args(&[
@@ -272,6 +281,7 @@ mod cmdtest {
     }
 
     #[test]
+    #[cfg(feature = "oniguruma")]
     fn test_solid_onig_null2() {
         let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
         cmd.args(&["-sz", "-Gog", "(..\\n..|F.G)", "--", "tr", "-dc", "."])

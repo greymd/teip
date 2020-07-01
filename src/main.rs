@@ -2,6 +2,14 @@ mod list {
     pub mod converter;
     pub mod ranges;
 }
+mod impure {
+    #[cfg(feature = "oniguruma")]
+    pub mod onig;
+}
+mod pure {
+    #[cfg(not(feature = "oniguruma"))]
+    pub mod onig;
+}
 mod errors;
 mod token;
 
@@ -18,11 +26,16 @@ use std::os::unix::io::{AsRawFd, FromRawFd};
 use std::process::{Command, Stdio};
 use std::sync::mpsc::{self, Sender};
 use std::thread::{self, JoinHandle};
-use onig::{self};
 use token::Token;
 
+#[cfg(feature = "oniguruma")]
+use impure::onig;
+
+#[cfg(not(feature = "oniguruma"))]
+use pure::onig;
+
 const CMD: &'static str = env!("CARGO_PKG_NAME"); // "teip"
-const DEFAULT_CAP: usize = 1024;
+pub const DEFAULT_CAP: usize = 1024;
 
 pub fn msg_error(msg: &str) {
     eprintln!("{}: {}", CMD, msg);
@@ -39,7 +52,7 @@ pub fn exit_silently(msg: &str) -> ! {
     std::process::exit(1);
 }
 
-struct PipeIntercepter {
+pub struct PipeIntercepter {
     tx: Sender<Token>,
     pipe_writer: BufWriter<File>,    // Not used when -s
     handler: Option<JoinHandle<()>>, // "option dance"
@@ -376,7 +389,7 @@ fn main() {
 
     let mut regex_mode = String::new();
     let mut regex = Regex::new("").unwrap();
-    let mut regex_onig = onig::Regex::new("").unwrap();
+    let mut regex_onig = onig::new_regex();
     let mut line_end = b'\n';
     let mut single_token_per_line = false;
     let mut ch: PipeIntercepter;
@@ -417,12 +430,10 @@ fn main() {
     } else {
         if flag_zero {
             regex_onig =
-                onig::Regex::with_options(&args.get_str("-g"), onig::RegexOptions::REGEX_OPTION_MULTILINE, onig::Syntax::default())
-                .unwrap_or_else(|e| error_exit(&e.to_string()));
+                onig::new_option_multiline_regex(&args.get_str("-g"));
         } else {
             regex_onig =
-                onig::Regex::with_options(&args.get_str("-g"), onig::RegexOptions::REGEX_OPTION_NONE, onig::Syntax::default())
-                    .unwrap_or_else(|e| error_exit(&e.to_string()));
+                onig::new_option_none_regex(&args.get_str("-g"));
         }
     }
 
@@ -457,7 +468,7 @@ fn main() {
                 .unwrap_or_else(|e| error_exit(&e.to_string()));
         } else if flag_regex {
             if flag_onig {
-                regex_onig_line_proc(&mut ch, &regex_onig, flag_invert, line_end)
+                onig::regex_onig_line_proc(&mut ch, &regex_onig, flag_invert, line_end)
                     .unwrap_or_else(|e| error_exit(&e.to_string()));
             } else {
                 regex_line_proc(&mut ch, &regex, flag_invert, line_end)
@@ -477,7 +488,7 @@ fn main() {
                     let eol = trim_eol(&mut buf);
                     if flag_regex {
                         if flag_onig {
-                            regex_onig_proc(&mut ch, &buf, &regex_onig, flag_invert)
+                            onig::regex_onig_proc(&mut ch, &buf, &regex_onig, flag_invert)
                                 .unwrap_or_else(|e| error_exit(&e.to_string()));
                         } else {
                             regex_proc(&mut ch, &buf, &regex, flag_invert)
@@ -537,47 +548,6 @@ fn line_line_proc(
     Ok(())
 }
 
-fn regex_onig_line_proc(
-    ch: &mut PipeIntercepter,
-    re: &onig::Regex,
-    invert: bool,
-    line_end: u8,
-) -> Result<(), errors::TokenSendError> {
-    let stdin = io::stdin();
-    loop {
-        let mut buf = Vec::with_capacity(DEFAULT_CAP);
-        match stdin.lock().read_until(line_end, &mut buf) {
-            Ok(n) => {
-                let eol = trim_eol(&mut buf);
-                if n == 0 {
-                    ch.send_eof()?;
-                    break;
-                }
-                let line = String::from_utf8_lossy(&buf).to_string();
-                match re.find(&line) {
-                    Some(_) => {
-                        if invert {
-                            ch.send_msg(line.to_string())?;
-                        } else {
-                            ch.send_pipe(line.to_string())?;
-                        }
-                    },
-                    None => {
-                        if invert {
-                            ch.send_pipe(line.to_string())?;
-                        } else {
-                            ch.send_msg(line.to_string())?;
-                        }
-                    }
-                };
-                ch.send_msg(eol)?;
-            }
-            Err(e) => msg_error(&e.to_string()),
-        }
-    }
-    Ok(())
-}
-
 fn regex_line_proc(
     ch: &mut PipeIntercepter,
     re: &Regex,
@@ -611,48 +581,6 @@ fn regex_line_proc(
                 ch.send_msg(eol)?;
             }
             Err(e) => msg_error(&e.to_string()),
-        }
-    }
-    Ok(())
-}
-
-/// Handles regex onig ( -g -G )
-fn regex_onig_proc(
-    ch: &mut PipeIntercepter,
-    line: &Vec<u8>,
-    re: &onig::Regex,
-    invert: bool,
-) -> Result<(), errors::TokenSendError> {
-    let line = String::from_utf8_lossy(&line).to_string();
-    let mut left_index = 0;
-    let mut right_index;
-    for cap in re.find_iter(&line) {
-        right_index = cap.0;
-        let unmatched = &line[left_index..right_index];
-        let matched = &line[cap.0..cap.1];
-        // Ignore empty string.
-        // Regex "*" matches empty, but , in most situations,
-        // handling empty string is not helpful for users.
-        if !unmatched.is_empty() {
-            if !invert {
-                ch.send_msg(unmatched.to_string())?;
-            } else {
-                ch.send_pipe(unmatched.to_string())?;
-            }
-        }
-        if !invert {
-            ch.send_pipe(matched.to_string())?;
-        } else {
-            ch.send_msg(matched.to_string())?;
-        }
-        left_index = cap.1;
-    }
-    if left_index < line.len() {
-        let unmatched = &line[left_index..line.len()];
-        if !invert {
-            ch.send_msg(unmatched.to_string())?;
-        } else {
-            ch.send_pipe(unmatched.to_string())?;
         }
     }
     Ok(())
@@ -821,7 +749,7 @@ fn field_proc(
     Ok(())
 }
 
-fn trim_eol(buf: &mut Vec<u8>) -> String {
+pub fn trim_eol(buf: &mut Vec<u8>) -> String {
     if buf.ends_with(&[b'\r', b'\n']) {
         buf.pop();
         buf.pop();
