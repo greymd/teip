@@ -20,9 +20,7 @@ use docopt::Docopt;
 use log::debug;
 use regex::Regex;
 use std::env;
-use std::fs::File;
-use std::io::{self, BufRead, BufReader, BufWriter, Write};
-use std::os::unix::io::{AsRawFd, FromRawFd};
+use std::io::{self, BufRead, BufReader, BufWriter, Read, Write};
 use std::process::{Command, Stdio};
 use std::sync::mpsc::{self, Sender};
 use std::thread::{self, JoinHandle};
@@ -54,8 +52,8 @@ pub fn exit_silently(msg: &str) -> ! {
 
 pub struct PipeIntercepter {
     tx: Sender<Token>,
-    pipe_writer: BufWriter<File>,    // Not used when -s
-    handler: Option<JoinHandle<()>>, // "option dance"
+    pipe_writer: BufWriter<Box<dyn Write + Send + 'static>>, // Not used when -s
+    handler: Option<JoinHandle<()>>,                         // "option dance"
     line_end: u8,
     solid: bool,
     dryrun: bool,
@@ -69,11 +67,11 @@ impl PipeIntercepter {
         dryrun: bool,
     ) -> Result<PipeIntercepter, errors::SpawnError> {
         let (tx, rx) = mpsc::channel();
-        let (fd_in, fd_out, _) = PipeIntercepter::exec_cmd(&cmds)?;
-        let pipe_writer = BufWriter::new(fd_in);
+        let (child_stdin, child_stdout, _) = PipeIntercepter::exec_cmd(&cmds)?;
+        let pipe_writer = BufWriter::new(child_stdin);
         let handler = thread::spawn(move || {
             debug!("thread: spawn");
-            let mut reader = BufReader::new(fd_out);
+            let mut reader = BufReader::new(child_stdout);
             let mut writer = BufWriter::new(io::stdout());
             loop {
                 match rx.recv() {
@@ -165,7 +163,7 @@ impl PipeIntercepter {
                 }
             }
         });
-        let dummy = File::open("/dev/null").map_err(|e| errors::SpawnError::Io(e))?;
+        let dummy = Box::new(io::sink());
         Ok(PipeIntercepter {
             tx: tx,
             pipe_writer: BufWriter::new(dummy),
@@ -176,8 +174,8 @@ impl PipeIntercepter {
         })
     }
 
-    fn read_pipe(
-        reader: &mut BufReader<File>,
+    fn read_pipe<R: BufRead + ?Sized>(
+        reader: &mut R,
         line_end: u8,
     ) -> Result<String, errors::PipeReceiveError> {
         debug!("thread: read_pipe");
@@ -193,40 +191,33 @@ impl PipeIntercepter {
         Ok(String::from_utf8_lossy(&buf).to_string())
     }
 
-    fn exec_cmd(cmds: &Vec<String>) -> Result<(File, File, String), errors::SpawnError> {
-        debug!("thread: Start to fetch file descriptors with unsafe operations.");
-        let mut child = match cmds.len() {
-            n if n > 0 => Command::new(&cmds[0])
-                .args(&cmds[1..])
-                .stdin(Stdio::piped())
-                .stdout(Stdio::piped())
-                .spawn()
-                .map_err(|e| errors::SpawnError::Io(e))?,
-            _ => {
-                // In case of dryrun, set dummy files since pipes do not work.
-                return Ok((
-                    File::open("/dev/null").map_err(|e| errors::SpawnError::Io(e))?,
-                    File::open("/dev/null").map_err(|e| errors::SpawnError::Io(e))?,
-                    "".to_string(),
-                ));
-            }
-        };
+    fn exec_cmd(
+        cmds: &Vec<String>,
+    ) -> Result<
+        (
+            Box<dyn Write + Send + 'static>,
+            Box<dyn Read + Send + 'static>,
+            String,
+        ),
+        errors::SpawnError,
+    > {
+        debug!("thread: exec_cmd: {:?}", cmds);
+        if cmds.len() == 0 {
+            // In the case of dryrun, return dummy objects.
+            return Ok((Box::new(io::sink()), Box::new(io::empty()), "".to_string()));
+        }
+        let child = Command::new(&cmds[0])
+            .args(&cmds[1..])
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .spawn()
+            .map_err(|e| errors::SpawnError::Io(e))?;
         let first = &cmds[0];
-        let fd_in_num = child
-            .stdin
-            .as_mut()
-            .ok_or(errors::SpawnError::StdinOpenFailed)?
-            .as_raw_fd();
-        let fd_out_num = child
-            .stdout
-            .as_mut()
-            .ok_or(errors::SpawnError::StdoutOpenFailed)?
-            .as_raw_fd();
-        let fd_in = unsafe { File::from_raw_fd(fd_in_num) };
-        let fd_out = unsafe { File::from_raw_fd(fd_out_num) };
+        let child_stdin = child.stdin.ok_or(errors::SpawnError::StdinOpenFailed)?;
+        let child_stdout = child.stdout.ok_or(errors::SpawnError::StdoutOpenFailed)?;
         Ok((
-            fd_in.try_clone().map_err(|e| errors::SpawnError::Io(e))?,
-            fd_out.try_clone().map_err(|e| errors::SpawnError::Io(e))?,
+            Box::new(child_stdin),
+            Box::new(child_stdout),
             first.to_string(),
         ))
     }
@@ -310,12 +301,8 @@ impl PipeIntercepter {
 impl Drop for PipeIntercepter {
     fn drop(&mut self) {
         debug!("close pipe");
-        // Replace file descriptor with dummy file to close the pipe.
-        let fd = std::mem::replace(
-            &mut self.pipe_writer,
-            BufWriter::new(File::open("/dev/null").expect("Failed to close pipe")),
-        );
-        drop(fd); // Then, pipe is closed
+        // Replace the writer with a dummy object to close the pipe.
+        self.pipe_writer = BufWriter::new(Box::new(io::sink()));
         self.handler.take().unwrap().join().unwrap();
     }
 }
