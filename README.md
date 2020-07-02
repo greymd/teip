@@ -173,6 +173,10 @@ Because `-f 3` selects the 3rd field of space-separated input.
 100 200 [300] 400
 ```
 
+Understand that the area enclosed in `[...]` is like a hole on the masking-tape.
+
+<img src="https://raw.githubusercontent.com/wiki/greymd/teip/img/teip_hole.png" width="300" />
+
 Next, put the `sed` and its arguments at the end.
 
 ```bash
@@ -186,7 +190,8 @@ Highlight and `[...]` is gone then.
 100 200 @@@ 400
 ```
 
-As you can see, `teip` passes only highlighted part to the `sed` and replaces it with the result of the `sed`.
+As you can see, the `sed` only processed the input in the "hole" and ignores masked parts.
+Technically, `teip` passes only highlighted part to the `sed` and replaces it with the result of the `sed`.
 
 Off-course, any command whatever you like can be specified.
 It is called the **targeted command** in this article.
