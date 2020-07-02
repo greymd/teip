@@ -117,18 +117,19 @@ With Rust's package manager cargo, you can install `teip` via:
 $ cargo install teip
 ```
 
-Please make sure `libclang` shared library is on your environment to enable Oniguruma regular expression.
+To enable Oniguruma regular expression (`-G` option), build with `--features oniguruma` option.
+Please make sure `libclang` shared library is on your environment in advance.
 
 ```bash
 ### Example for Ubuntu
 $ sudo apt install cargo clang
-$ cargo install teip
+$ cargo install teip --features oniguruma
 ```
 
 ```bash
 ### Example for RHEL
 $ sudo dnf install cargo clang
-$ cargo install teip
+$ cargo install teip --features oniguruma
 ```
 
 # Usage
