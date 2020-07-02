@@ -97,8 +97,7 @@ $ sudo yum install https://git.io/teip-1.2.0.x86_64.rpm
 ### With Docker
 
 ```bash
-$ docker build -t teip .
-$ echo "100 200 300 400" | docker run --rm -i teip -f 3 -- sed 's/./@/g'
+$ echo "100 200 300 400" | docker run --rm -i greymd/teip -f 3 -- sed 's/./@/g'
 ```
 
 ### For Windows
