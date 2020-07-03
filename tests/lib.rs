@@ -67,7 +67,7 @@ mod cmdtest {
     fn test_regex_only_null_invert() {
         let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
         // Use perl -0 instead of sed -z because BSD does not support it.
-        cmd.args(&["-zv","-og", "^...", "tr", "[:alnum:]", "@"])
+        cmd.args(&["-zv", "-og", "^...", "tr", "[:alnum:]", "@"])
             .write_stdin("ABC123EFG\0HIJKLM456")
             .assert()
             .stdout("ABC@@@@@@\0HIJ@@@@@@");
@@ -121,7 +121,7 @@ mod cmdtest {
     #[test]
     fn test_solid_regex_only_null_invert() {
         let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
-        cmd.args(&["-sv","-og", "\\d+", "tr", "[:upper:]", "[:lower:]"])
+        cmd.args(&["-sv", "-og", "\\d+", "tr", "[:upper:]", "[:lower:]"])
             .write_stdin("ABC123EFG\0\nHIJKLM456")
             .assert()
             .stdout("abc123efg\0\nhijklm456");
@@ -185,7 +185,7 @@ mod cmdtest {
     #[cfg(feature = "oniguruma")]
     fn test_onig_invert() {
         let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
-        cmd.args(&["-v","-Gog","\\d+(?=D)", "sed", "s/./@/g"])
+        cmd.args(&["-v", "-Gog", "\\d+(?=D)", "sed", "s/./@/g"])
             .write_stdin("ABC123DEF456\n")
             .assert()
             .stdout("@@@123@@@@@@\n");
@@ -216,7 +216,7 @@ mod cmdtest {
     fn test_onig_null_invert() {
         let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
         // Use perl -0 instead of sed -z because BSD does not support it.
-        cmd.args(&["-zv","-Gog", "^...", "tr", "[:alnum:]", "@"])
+        cmd.args(&["-zv", "-Gog", "^...", "tr", "[:alnum:]", "@"])
             .write_stdin("ABC123EFG\0HIJKLM456")
             .assert()
             .stdout("ABC@@@@@@\0HIJ@@@@@@");
@@ -256,7 +256,7 @@ mod cmdtest {
     #[cfg(feature = "oniguruma")]
     fn test_solid_onig_null_invert() {
         let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
-        cmd.args(&["-sv","-Gog", "\\d+", "tr", "[:upper:]", "[:lower:]"])
+        cmd.args(&["-sv", "-Gog", "\\d+", "tr", "[:upper:]", "[:lower:]"])
             .write_stdin("ABC123EFG\0\nHIJKLM456")
             .assert()
             .stdout("abc123efg\0\nhijklm456");

@@ -16,7 +16,6 @@ mod token;
 #[macro_use]
 extern crate lazy_static;
 
-use docopt::Docopt;
 use log::debug;
 use regex::Regex;
 use std::env;
@@ -24,6 +23,7 @@ use std::io::{self, BufRead, BufReader, BufWriter, Read, Write};
 use std::process::{Command, Stdio};
 use std::sync::mpsc::{self, Sender};
 use std::thread::{self, JoinHandle};
+use structopt::StructOpt;
 use token::Token;
 
 #[cfg(feature = "oniguruma")]
@@ -31,7 +31,6 @@ use impure::onig;
 
 #[cfg(not(feature = "oniguruma"))]
 use pure::onig;
-use clap::{App};
 
 const CMD: &'static str = env!("CARGO_PKG_NAME"); // "teip"
 pub const DEFAULT_CAP: usize = 1024;
@@ -95,7 +94,7 @@ impl PipeIntercepter {
                                     // pipe may be exhausted
                                     writer.flush().unwrap();
                                     error_exit(&e.to_string())
-                                },
+                                }
                             }
                         }
                         Token::EOF => {
@@ -260,7 +259,7 @@ impl PipeIntercepter {
 
     fn send_pipe(&mut self, msg: String) -> Result<(), errors::TokenSendError> {
         if self.dryrun {
-            let msg_annotated :String;
+            let msg_annotated: String;
             msg_annotated = HL[0].to_string() + &msg + HL[1];
             debug!("tx.send => Channle({})", msg_annotated);
             self.tx
@@ -340,52 +339,55 @@ Options:
     static ref REGEX_WS: Regex = Regex::new("\\s+").unwrap();
     static ref DEFAULT_HIGHLIGHT: String = match env::var("TEIP_HIGHLIGHT") {
         Ok(v) => v,
-        Err(_) => "\x1b[36m[\x1b[0m\x1b[01;31m{}\x1b[0m\x1b[36m]\x1b[0m".to_string()
+        Err(_) => "\x1b[36m[\x1b[0m\x1b[01;31m{}\x1b[0m\x1b[36m]\x1b[0m".to_string(),
     };
     static ref HL: Vec<&'static str> = DEFAULT_HIGHLIGHT.split("{}").collect();
 }
 
-use structopt::StructOpt;
-
-const PKG_NAME: &str = env!("CARGO_PKG_NAME");
-const PKG_VERSION: &str = env!("CARGO_PKG_VERSION");
-const PKG_AUTHORS: &str = env!("CARGO_PKG_AUTHORS");
-
 #[derive(StructOpt, Debug)]
 #[structopt(
-    name = PKG_NAME,
-    version = PKG_VERSION,
-    author = PKG_AUTHORS,
-    about = "Allow the command handle selected parts of the standard input, and bypass other parts.",
+    author,
+    about = "Allow the command handle selected parts of the standard input, and bypass other parts."
 )]
 struct Args {
-    #[structopt(short = "g")]
+    #[structopt(
+        short = "g",
+        name = "pattern",
+        help = "Select lines that match the regular expression <pattern>"
+    )]
     regex: Option<String>,
-    #[structopt(short = "o")]
+    #[structopt(short = "o", help = "-g selects only matched parts")]
     only_matched: bool,
-    #[structopt(short = "G")]
+    #[structopt(short = "G", help = "-g adopts Oniguruma regular expressions")]
     onig_enabled: bool,
-    #[structopt(short = "f")]
+    #[structopt(
+        short = "f",
+        name = "list",
+        help = "Select only these white-space separated fields"
+    )]
     list: Option<String>,
-    #[structopt(short = "d")]
+    #[structopt(short = "d", help = "Use <delimiter> for field delimiter of -f")]
     delimiter: Option<String>,
-    #[structopt(short = "D")]
+    #[structopt(
+        short = "D",
+        name = "delimiter pattern",
+        help = "Use regular expression <pattern> for field delimiter of -f"
+    )]
     regexp_delimiter: Option<String>,
-    #[structopt(short = "c")]
+    #[structopt(short = "c", name = "char list", help = "Select only these characters")]
     char: Option<String>,
-    #[structopt(short = "l")]
+    #[structopt(short = "l", name = "line list", help = "Select only these lines")]
     line: Option<String>,
-    #[structopt(short = "s")]
+    #[structopt(short = "s", help = "Execute command for each selected part")]
     solid: bool,
-    #[structopt(short = "v")]
+    #[structopt(short = "v", help = "Invert the sense of selecting")]
     invert: bool,
-    #[structopt(short = "z")]
+    #[structopt(short = "z", help = "Line delimiter is NUL instead of newline")]
     zero: bool,
 
     #[structopt(name = "command")]
     commands: Vec<String>,
 }
-
 
 fn main() {
     env_logger::init();
@@ -421,55 +423,58 @@ fn main() {
     let mut ch: PipeIntercepter;
     let mut flag_dryrun = true;
     let regex_delimiter;
-    let char_list =
-        args.char.as_ref().and_then(|s| {
+    let char_list = args
+        .char
+        .as_ref()
+        .and_then(|s| {
             list::converter::to_ranges(s.as_str(), flag_invert)
                 .map_err(|e| error_exit(&e.to_string()))
                 .ok()
+        })
+        .unwrap_or_else(|| list::converter::to_ranges("1", true).unwrap());
 
-        }).unwrap_or_else(|| {
-            list::converter::to_ranges("1", true).unwrap()
-        });
-
-    let field_list =
-        args.list.as_ref().and_then(|s| {
+    let field_list = args
+        .list
+        .as_ref()
+        .and_then(|s| {
             list::converter::to_ranges(s.as_str(), flag_invert)
                 .map_err(|e| error_exit(&e.to_string()))
                 .ok()
-        }).unwrap_or_else(|| {
-            list::converter::to_ranges("1", true).unwrap()
-        });
+        })
+        .unwrap_or_else(|| list::converter::to_ranges("1", true).unwrap());
 
-    let line_list =
-        args.line.as_ref().and_then(|s| {
+    let line_list = args
+        .line
+        .as_ref()
+        .and_then(|s| {
             list::converter::to_ranges(s.as_str(), flag_invert)
                 .map_err(|e| error_exit(&e.to_string()))
                 .ok()
-        }).unwrap_or_else(|| {
-            list::converter::to_ranges("1", true).unwrap()
-        });
+        })
+        .unwrap_or_else(|| list::converter::to_ranges("1", true).unwrap());
 
     if flag_zero {
         regex_mode = "(?ms)".to_string();
         line_end = b'\0';
     }
 
-    if ! flag_onig {
-        regex = Regex::new(&(regex_mode.to_owned() + args.regex.as_ref().unwrap_or(&"".to_owned())))
+    if !flag_onig {
+        regex =
+            Regex::new(&(regex_mode.to_owned() + args.regex.as_ref().unwrap_or(&"".to_owned())))
                 .unwrap_or_else(|e| error_exit(&e.to_string()));
     } else {
         if flag_zero {
             regex_onig =
                 onig::new_option_multiline_regex(args.regex.as_ref().unwrap_or(&"".to_owned()));
         } else {
-            regex_onig =
-                onig::new_option_none_regex(args.regex.as_ref().unwrap_or(&"".to_owned()));
+            regex_onig = onig::new_option_none_regex(args.regex.as_ref().unwrap_or(&"".to_owned()));
         }
     }
 
     if flag_regex_delimiter {
-        regex_delimiter = Regex::new(&(regex_mode.to_string() + args.regexp_delimiter.as_ref().unwrap()))
-            .unwrap_or_else(|e| error_exit(&e.to_string()));
+        regex_delimiter =
+            Regex::new(&(regex_mode.to_string() + args.regexp_delimiter.as_ref().unwrap()))
+                .unwrap_or_else(|e| error_exit(&e.to_string()));
     } else {
         regex_delimiter = REGEX_WS.clone();
     }
