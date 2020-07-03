@@ -347,7 +347,17 @@ Options:
 
 use structopt::StructOpt;
 
+const PKG_NAME: &str = env!("CARGO_PKG_NAME");
+const PKG_VERSION: &str = env!("CARGO_PKG_VERSION");
+const PKG_AUTHORS: &str = env!("CARGO_PKG_AUTHORS");
+
 #[derive(StructOpt, Debug)]
+#[structopt(
+    name = PKG_NAME,
+    version = PKG_VERSION,
+    author = PKG_AUTHORS,
+    about = "Allow the command handle selected parts of the standard input, and bypass other parts.",
+)]
 struct Args {
     #[structopt(short = "g")]
     regex: Option<String>,
@@ -381,13 +391,7 @@ fn main() {
     env_logger::init();
 
     // ***** Parse options and prepare configures *****
-    let matches = App::new(env!("CARGO_PKG_NAME"))
-        .version(env!("CARGO_PKG_VERSION"))
-        .author(env!("CARGO_PKG_AUTHORS"))
-        .about("Allow the command handle selected parts of the standard input, and bypass other parts.");
-
     let args: Args = Args::from_args();
-
 
     debug!("{:?}", args);
 
