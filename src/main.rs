@@ -31,6 +31,7 @@ use impure::onig;
 
 #[cfg(not(feature = "oniguruma"))]
 use pure::onig;
+use clap::{App};
 
 const CMD: &'static str = env!("CARGO_PKG_NAME"); // "teip"
 pub const DEFAULT_CAP: usize = 1024;
@@ -344,35 +345,69 @@ Options:
     static ref HL: Vec<&'static str> = DEFAULT_HIGHLIGHT.split("{}").collect();
 }
 
+use structopt::StructOpt;
+
+#[derive(StructOpt, Debug)]
+struct Args {
+    #[structopt(short = "g")]
+    regex: Option<String>,
+    #[structopt(short = "o")]
+    only_matched: bool,
+    #[structopt(short = "G")]
+    onig_enabled: bool,
+    #[structopt(short = "f")]
+    list: Option<String>,
+    #[structopt(short = "d")]
+    delimiter: Option<String>,
+    #[structopt(short = "D")]
+    regexp_delimiter: Option<String>,
+    #[structopt(short = "c")]
+    char: Option<String>,
+    #[structopt(short = "l")]
+    line: Option<String>,
+    #[structopt(short = "s")]
+    solid: bool,
+    #[structopt(short = "v")]
+    invert: bool,
+    #[structopt(short = "z")]
+    zero: bool,
+
+    #[structopt(name = "command")]
+    commands: Vec<String>,
+}
+
+
 fn main() {
     env_logger::init();
 
     // ***** Parse options and prepare configures *****
-    let args = Docopt::new(USAGE.to_owned())
-        .and_then(|d| {
-            d.version(Some(env!("CARGO_PKG_VERSION").to_owned()))
-                .parse()
-        })
-        .unwrap_or_else(|e| error_exit(&e.to_string()));
+    let matches = App::new(env!("CARGO_PKG_NAME"))
+        .version(env!("CARGO_PKG_VERSION"))
+        .author(env!("CARGO_PKG_AUTHORS"))
+        .about("Allow the command handle selected parts of the standard input, and bypass other parts.");
+
+    let args: Args = Args::from_args();
+
+
     debug!("{:?}", args);
 
     if HL.len() < 2 {
         error_exit("Invalid format in TEIP_HIGHLIGHT variable")
     }
 
-    let flag_zero = args.get_bool("-z");
-    let cmds = args.get_vec("<command>");
-    let flag_only = args.get_bool("-o");
-    let flag_regex = args.get_bool("-g");
-    let flag_onig = args.get_bool("-G");
-    let flag_solid = args.get_bool("-s");
-    let flag_invert = args.get_bool("-v");
-    let flag_char = args.get_bool("-c");
-    let flag_lines = args.get_bool("-l");
-    let flag_field = args.get_bool("-f");
-    let flag_delimiter = args.get_bool("-d");
-    let delimiter = args.get_str("-d");
-    let flag_regex_delimiter = args.get_bool("-D");
+    let flag_zero = args.zero;
+    let cmds: Vec<&str> = args.commands.iter().map(|s| s.as_str()).collect();
+    let flag_only = args.only_matched;
+    let flag_regex = args.regex.is_some();
+    let flag_onig = args.onig_enabled;
+    let flag_solid = args.solid;
+    let flag_invert = args.invert;
+    let flag_char = args.char.is_some();
+    let flag_lines = args.line.is_some();
+    let flag_field = args.list.is_some();
+    let flag_delimiter = args.delimiter.is_some();
+    let delimiter = args.delimiter.as_ref().map(|s| s.as_str()).unwrap_or("");
+    let flag_regex_delimiter = args.regexp_delimiter.is_some();
 
     let mut regex_mode = String::new();
     let mut regex = Regex::new("").unwrap();
@@ -383,26 +418,30 @@ fn main() {
     let mut flag_dryrun = true;
     let regex_delimiter;
     let char_list =
-        list::converter::to_ranges(args.get_str("-c"), flag_invert).unwrap_or_else(|e| {
-            if flag_char {
-                error_exit(&e.to_string());
-            }
+        args.char.as_ref().and_then(|s| {
+            list::converter::to_ranges(s.as_str(), flag_invert)
+                .map_err(|e| error_exit(&e.to_string()))
+                .ok()
+
+        }).unwrap_or_else(|| {
             list::converter::to_ranges("1", true).unwrap()
         });
 
     let field_list =
-        list::converter::to_ranges(args.get_str("-f"), flag_invert).unwrap_or_else(|e| {
-            if flag_field {
-                error_exit(&e.to_string());
-            }
+        args.list.as_ref().and_then(|s| {
+            list::converter::to_ranges(s.as_str(), flag_invert)
+                .map_err(|e| error_exit(&e.to_string()))
+                .ok()
+        }).unwrap_or_else(|| {
             list::converter::to_ranges("1", true).unwrap()
         });
 
     let line_list =
-        list::converter::to_ranges(args.get_str("-l"), flag_invert).unwrap_or_else(|e| {
-            if flag_lines {
-                error_exit(&e.to_string());
-            }
+        args.line.as_ref().and_then(|s| {
+            list::converter::to_ranges(s.as_str(), flag_invert)
+                .map_err(|e| error_exit(&e.to_string()))
+                .ok()
+        }).unwrap_or_else(|| {
             list::converter::to_ranges("1", true).unwrap()
         });
 
@@ -412,20 +451,20 @@ fn main() {
     }
 
     if ! flag_onig {
-        regex = Regex::new(&(regex_mode.to_owned() + args.get_str("-g")))
+        regex = Regex::new(&(regex_mode.to_owned() + args.regex.as_ref().unwrap_or(&"".to_owned())))
                 .unwrap_or_else(|e| error_exit(&e.to_string()));
     } else {
         if flag_zero {
             regex_onig =
-                onig::new_option_multiline_regex(&args.get_str("-g"));
+                onig::new_option_multiline_regex(args.regex.as_ref().unwrap_or(&"".to_owned()));
         } else {
             regex_onig =
-                onig::new_option_none_regex(&args.get_str("-g"));
+                onig::new_option_none_regex(args.regex.as_ref().unwrap_or(&"".to_owned()));
         }
     }
 
     if flag_regex_delimiter {
-        regex_delimiter = Regex::new(&(regex_mode.to_string() + args.get_str("-D")))
+        regex_delimiter = Regex::new(&(regex_mode.to_string() + args.regexp_delimiter.as_ref().unwrap()))
             .unwrap_or_else(|e| error_exit(&e.to_string()));
     } else {
         regex_delimiter = REGEX_WS.clone();
