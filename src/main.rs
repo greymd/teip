@@ -16,7 +16,6 @@ mod token;
 #[macro_use]
 extern crate lazy_static;
 
-use docopt::Docopt;
 use log::debug;
 use regex::Regex;
 use std::env;
@@ -24,6 +23,7 @@ use std::io::{self, BufRead, BufReader, BufWriter, Read, Write};
 use std::process::{Command, Stdio};
 use std::sync::mpsc::{self, Sender};
 use std::thread::{self, JoinHandle};
+use structopt::StructOpt;
 use token::Token;
 
 #[cfg(feature = "oniguruma")]
@@ -94,7 +94,7 @@ impl PipeIntercepter {
                                     // pipe may be exhausted
                                     writer.flush().unwrap();
                                     error_exit(&e.to_string())
-                                },
+                                }
                             }
                         }
                         Token::EOF => {
@@ -259,7 +259,7 @@ impl PipeIntercepter {
 
     fn send_pipe(&mut self, msg: String) -> Result<(), errors::TokenSendError> {
         if self.dryrun {
-            let msg_annotated :String;
+            let msg_annotated: String;
             msg_annotated = HL[0].to_string() + &msg + HL[1];
             debug!("tx.send => Channle({})", msg_annotated);
             self.tx
@@ -308,71 +308,83 @@ impl Drop for PipeIntercepter {
 }
 
 lazy_static! {
-    static ref USAGE: String = format!(
-        "
-Allow the command handle selected parts of the standard input, and bypass other parts.
-
-Usage:
-  {cmd} -g <pattern> [-oGsvz] [--] [<command>...]
-  {cmd} -f <list> [-d <delimiter> | -D <pattern>] [-svz] [--] [<command>...]
-  {cmd} -c <list> [-svz] [--] [<command>...]
-  {cmd} -l <list> [-svz] [--] [<command>...]
-  {cmd} --help | --version
-
-Options:
-  --help          Display this help and exit
-  --version       Show version and exit
-  -g <pattern>    Select lines that match the regular expression <pattern>
-  -o              -g selects only matched parts
-  -G              -g adopts Oniguruma regular expressions
-  -f <list>       Select only these white-space separated fields
-  -d <delimiter>  Use <delimiter> for field delimiter of -f
-  -D <pattern>    Use regular expression <pattern> for field delimiter of -f
-  -c <list>       Select only these characters
-  -l <list>       Select only these lines
-  -s              Execute command for each selected part
-  -v              Invert the sense of selecting
-  -z              Line delimiter is NUL instead of newline
-",
-        cmd = CMD
-    );
     static ref REGEX_WS: Regex = Regex::new("\\s+").unwrap();
     static ref DEFAULT_HIGHLIGHT: String = match env::var("TEIP_HIGHLIGHT") {
         Ok(v) => v,
-        Err(_) => "\x1b[36m[\x1b[0m\x1b[01;31m{}\x1b[0m\x1b[36m]\x1b[0m".to_string()
+        Err(_) => "\x1b[36m[\x1b[0m\x1b[01;31m{}\x1b[0m\x1b[36m]\x1b[0m".to_string(),
     };
     static ref HL: Vec<&'static str> = DEFAULT_HIGHLIGHT.split("{}").collect();
+}
+
+#[derive(StructOpt, Debug)]
+#[structopt(
+    about = "Allow the command handle selected parts of the standard input, and bypass other parts."
+)]
+struct Args {
+    #[structopt(
+        short = "g",
+        name = "pattern",
+        help = "Select lines that match the regular expression <pattern>"
+    )]
+    regex: Option<String>,
+    #[structopt(short = "o", help = "-g selects only matched parts")]
+    only_matched: bool,
+    #[structopt(short = "G", help = "-g adopts Oniguruma regular expressions")]
+    onig_enabled: bool,
+    #[structopt(
+        short = "f",
+        name = "list",
+        help = "Select only these white-space separated fields"
+    )]
+    list: Option<String>,
+    #[structopt(short = "d", help = "Use <delimiter> for field delimiter of -f")]
+    delimiter: Option<String>,
+    #[structopt(
+        short = "D",
+        name = "delimiter pattern",
+        help = "Use regular expression <pattern> for field delimiter of -f"
+    )]
+    regexp_delimiter: Option<String>,
+    #[structopt(short = "c", name = "char list", help = "Select only these characters")]
+    char: Option<String>,
+    #[structopt(short = "l", name = "line list", help = "Select only these lines")]
+    line: Option<String>,
+    #[structopt(short = "s", help = "Execute command for each selected part")]
+    solid: bool,
+    #[structopt(short = "v", help = "Invert the sense of selecting")]
+    invert: bool,
+    #[structopt(short = "z", help = "Line delimiter is NUL instead of newline")]
+    zero: bool,
+
+    #[structopt(name = "command")]
+    commands: Vec<String>,
 }
 
 fn main() {
     env_logger::init();
 
     // ***** Parse options and prepare configures *****
-    let args = Docopt::new(USAGE.to_owned())
-        .and_then(|d| {
-            d.version(Some(env!("CARGO_PKG_VERSION").to_owned()))
-                .parse()
-        })
-        .unwrap_or_else(|e| error_exit(&e.to_string()));
+    let args: Args = Args::from_args();
+
     debug!("{:?}", args);
 
     if HL.len() < 2 {
         error_exit("Invalid format in TEIP_HIGHLIGHT variable")
     }
 
-    let flag_zero = args.get_bool("-z");
-    let cmds = args.get_vec("<command>");
-    let flag_only = args.get_bool("-o");
-    let flag_regex = args.get_bool("-g");
-    let flag_onig = args.get_bool("-G");
-    let flag_solid = args.get_bool("-s");
-    let flag_invert = args.get_bool("-v");
-    let flag_char = args.get_bool("-c");
-    let flag_lines = args.get_bool("-l");
-    let flag_field = args.get_bool("-f");
-    let flag_delimiter = args.get_bool("-d");
-    let delimiter = args.get_str("-d");
-    let flag_regex_delimiter = args.get_bool("-D");
+    let flag_zero = args.zero;
+    let cmds: Vec<&str> = args.commands.iter().map(|s| s.as_str()).collect();
+    let flag_only = args.only_matched;
+    let flag_regex = args.regex.is_some();
+    let flag_onig = args.onig_enabled;
+    let flag_solid = args.solid;
+    let flag_invert = args.invert;
+    let flag_char = args.char.is_some();
+    let flag_lines = args.line.is_some();
+    let flag_field = args.list.is_some();
+    let flag_delimiter = args.delimiter.is_some();
+    let delimiter = args.delimiter.as_ref().map(|s| s.as_str()).unwrap_or("");
+    let flag_regex_delimiter = args.regexp_delimiter.is_some();
 
     let mut regex_mode = String::new();
     let mut regex = Regex::new("").unwrap();
@@ -382,51 +394,58 @@ fn main() {
     let mut ch: PipeIntercepter;
     let mut flag_dryrun = true;
     let regex_delimiter;
-    let char_list =
-        list::converter::to_ranges(args.get_str("-c"), flag_invert).unwrap_or_else(|e| {
-            if flag_char {
-                error_exit(&e.to_string());
-            }
-            list::converter::to_ranges("1", true).unwrap()
-        });
+    let char_list = args
+        .char
+        .as_ref()
+        .and_then(|s| {
+            list::converter::to_ranges(s.as_str(), flag_invert)
+                .map_err(|e| error_exit(&e.to_string()))
+                .ok()
+        })
+        .unwrap_or_else(|| list::converter::to_ranges("1", true).unwrap());
 
-    let field_list =
-        list::converter::to_ranges(args.get_str("-f"), flag_invert).unwrap_or_else(|e| {
-            if flag_field {
-                error_exit(&e.to_string());
-            }
-            list::converter::to_ranges("1", true).unwrap()
-        });
+    let field_list = args
+        .list
+        .as_ref()
+        .and_then(|s| {
+            list::converter::to_ranges(s.as_str(), flag_invert)
+                .map_err(|e| error_exit(&e.to_string()))
+                .ok()
+        })
+        .unwrap_or_else(|| list::converter::to_ranges("1", true).unwrap());
 
-    let line_list =
-        list::converter::to_ranges(args.get_str("-l"), flag_invert).unwrap_or_else(|e| {
-            if flag_lines {
-                error_exit(&e.to_string());
-            }
-            list::converter::to_ranges("1", true).unwrap()
-        });
+    let line_list = args
+        .line
+        .as_ref()
+        .and_then(|s| {
+            list::converter::to_ranges(s.as_str(), flag_invert)
+                .map_err(|e| error_exit(&e.to_string()))
+                .ok()
+        })
+        .unwrap_or_else(|| list::converter::to_ranges("1", true).unwrap());
 
     if flag_zero {
         regex_mode = "(?ms)".to_string();
         line_end = b'\0';
     }
 
-    if ! flag_onig {
-        regex = Regex::new(&(regex_mode.to_owned() + args.get_str("-g")))
+    if !flag_onig {
+        regex =
+            Regex::new(&(regex_mode.to_owned() + args.regex.as_ref().unwrap_or(&"".to_owned())))
                 .unwrap_or_else(|e| error_exit(&e.to_string()));
     } else {
         if flag_zero {
             regex_onig =
-                onig::new_option_multiline_regex(&args.get_str("-g"));
+                onig::new_option_multiline_regex(args.regex.as_ref().unwrap_or(&"".to_owned()));
         } else {
-            regex_onig =
-                onig::new_option_none_regex(&args.get_str("-g"));
+            regex_onig = onig::new_option_none_regex(args.regex.as_ref().unwrap_or(&"".to_owned()));
         }
     }
 
     if flag_regex_delimiter {
-        regex_delimiter = Regex::new(&(regex_mode.to_string() + args.get_str("-D")))
-            .unwrap_or_else(|e| error_exit(&e.to_string()));
+        regex_delimiter =
+            Regex::new(&(regex_mode.to_string() + args.regexp_delimiter.as_ref().unwrap()))
+                .unwrap_or_else(|e| error_exit(&e.to_string()));
     } else {
         regex_delimiter = REGEX_WS.clone();
     }

@@ -5,7 +5,7 @@ pub type Regex = onig::Regex;
 pub type RegexOptions = onig::RegexOptions;
 pub type Syntax = onig::Syntax;
 
-use super::super::{errors, PipeIntercepter, DEFAULT_CAP, trim_eol, msg_error, error_exit};
+use super::super::{error_exit, errors, msg_error, trim_eol, PipeIntercepter, DEFAULT_CAP};
 
 pub fn new_regex() -> Regex {
     Regex::new("").unwrap()
@@ -87,7 +87,7 @@ pub fn regex_onig_line_proc(
                         } else {
                             ch.send_pipe(line.to_string())?;
                         }
-                    },
+                    }
                     None => {
                         if invert {
                             ch.send_pipe(line.to_string())?;

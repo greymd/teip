@@ -64,8 +64,6 @@ fn onig_double(lap: usize) {
     let _ = child.wait_with_output();
 }
 
-
-
 fn field_double(lap: usize) {
     let mut child = Command::new(CMD)
         .stdin(Stdio::piped())
