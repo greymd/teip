@@ -318,7 +318,6 @@ lazy_static! {
 
 #[derive(StructOpt, Debug)]
 #[structopt(
-    author,
     about = "Allow the command handle selected parts of the standard input, and bypass other parts."
 )]
 struct Args {
