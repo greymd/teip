@@ -336,7 +336,7 @@ EF[G2]
 HI[J3]
 ```
 
-Note that `-og` is one of the useful idiom and freuquently used in this manual.
+Note that `-og` is one of the useful idiom and frequently used in this manual.
 
 Here is an example of using `\d` which matches numbers.
 
