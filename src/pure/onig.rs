@@ -1,5 +1,6 @@
 pub type Regex = i64;
-use super::super::{errors, PipeIntercepter, CMD};
+use super::super::{errors, PipeIntercepter};
+use super::super::CMD;
 
 pub fn new_regex() -> Regex {
     1
