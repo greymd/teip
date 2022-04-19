@@ -39,7 +39,7 @@ jobs:
           # => target\x86_64-pc-windows-msvc\release\teip.exe will be created
           mkdir windows\exe
           move target\x86_64-pc-windows-msvc\release\teip.exe windows\exe
-          "%programfiles(x86)%\Inno Setup 6\iscc.exe" "installer.iss"
+          "%programfiles(x86)%\Inno Setup 6\iscc.exe" "windows\installer.iss"
           move windows\Output\teip_installer.exe .
           rename teip_installer.exe teip_installer-${{ steps.vars.outputs.ver }}-${{ matrix.target }}.exe
 
