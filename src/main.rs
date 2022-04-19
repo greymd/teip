@@ -19,7 +19,7 @@ extern crate lazy_static;
 use log::debug;
 use regex::Regex;
 use std::env;
-use std::io::{self, BufRead, BufReader, BufWriter, Read, Write};
+use std::io::{self, BufRead, BufReader, BufWriter, Write, Read};
 use std::process::{Command, Stdio};
 use std::sync::mpsc::{self, Sender};
 use std::thread::{self, JoinHandle};
@@ -213,13 +213,25 @@ impl PipeIntercepter {
             .spawn()
             .map_err(|e| errors::SpawnError::Io(e))?;
         let first = &cmds[0];
-        let child_stdin = child.stdin.ok_or(errors::SpawnError::StdinOpenFailed)?;
-        let child_stdout = child.stdout.ok_or(errors::SpawnError::StdoutOpenFailed)?;
-        Ok((
-            Box::new(child_stdin),
-            Box::new(child_stdout),
-            first.to_string(),
-        ))
+        cfg_if::cfg_if! {
+            if #[cfg(windows)] {
+                let child_stdin = child.stdin.ok_or(errors::SpawnError::StdinOpenFailed)?;
+                let child_stdout = child.stdout.ok_or(errors::SpawnError::StdoutOpenFailed)?;
+                Ok((
+                    Box::new(child_stdin),
+                    Box::new(child_stdout),
+                    first.to_string(),
+                ))
+            } else {
+                let child_stdin = child.stdin.ok_or(errors::SpawnError::StdinOpenFailed)?;
+                let child_stdout = child.stdout.ok_or(errors::SpawnError::StdoutOpenFailed)?;
+                Ok((
+                    Box::new(child_stdin),
+                    Box::new(child_stdout),
+                    first.to_string(),
+                ))
+            }
+        }
     }
 
     fn exec_cmd_sync(input: String, cmds: &Vec<String>, line_end: u8) -> String {
