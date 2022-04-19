@@ -213,25 +213,13 @@ impl PipeIntercepter {
             .spawn()
             .map_err(|e| errors::SpawnError::Io(e))?;
         let first = &cmds[0];
-        cfg_if::cfg_if! {
-            if #[cfg(windows)] {
-                let child_stdin = child.stdin.ok_or(errors::SpawnError::StdinOpenFailed)?;
-                let child_stdout = child.stdout.ok_or(errors::SpawnError::StdoutOpenFailed)?;
-                Ok((
-                    Box::new(child_stdin),
-                    Box::new(child_stdout),
-                    first.to_string(),
-                ))
-            } else {
-                let child_stdin = child.stdin.ok_or(errors::SpawnError::StdinOpenFailed)?;
-                let child_stdout = child.stdout.ok_or(errors::SpawnError::StdoutOpenFailed)?;
-                Ok((
-                    Box::new(child_stdin),
-                    Box::new(child_stdout),
-                    first.to_string(),
-                ))
-            }
-        }
+        let child_stdin = child.stdin.ok_or(errors::SpawnError::StdinOpenFailed)?;
+        let child_stdout = child.stdout.ok_or(errors::SpawnError::StdoutOpenFailed)?;
+        Ok((
+            Box::new(child_stdin),
+            Box::new(child_stdout),
+            first.to_string(),
+        ))
     }
 
     fn exec_cmd_sync(input: String, cmds: &Vec<String>, line_end: u8) -> String {

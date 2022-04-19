@@ -1,4 +1,5 @@
 mod cmdtest {
+
     #[test]
     fn test_character_range_error_c() {
         let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
@@ -9,6 +10,7 @@ mod cmdtest {
     }
 
     #[test]
+    #[cfg_attr(target_os = "windows", ignore)]
     fn test_line() {
         let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
         cmd.args(&["-l", "2,4-5", "sed", "s/./@/"])
@@ -18,6 +20,7 @@ mod cmdtest {
     }
 
     #[test]
+    #[cfg_attr(target_os = "windows", ignore)]
     fn test_regex_line() {
         let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
         cmd.args(&["-g", "[AB]", "sed", "s/./@/"])
@@ -27,6 +30,7 @@ mod cmdtest {
     }
 
     #[test]
+    #[cfg_attr(target_os = "windows", ignore)]
     fn test_regex_only() {
         let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
         cmd.args(&["-og", "2", "sed", "s/./A/"])
@@ -36,6 +40,7 @@ mod cmdtest {
     }
 
     #[test]
+    #[cfg_attr(target_os = "windows", ignore)]
     fn test_regex_only_invert() {
         let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
         cmd.args(&["-og", "\\d+", "-v", "tr", "[:upper:]", "[:lower:]"])
@@ -45,6 +50,7 @@ mod cmdtest {
     }
 
     #[test]
+    #[cfg_attr(target_os = "windows", ignore)]
     fn test_regex_only_null() {
         let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
         // Use perl -0 instead of sed -z because BSD does not support it.
@@ -64,6 +70,7 @@ mod cmdtest {
     }
 
     #[test]
+    #[cfg_attr(target_os = "windows", ignore)]
     fn test_regex_only_null_invert() {
         let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
         // Use perl -0 instead of sed -z because BSD does not support it.
@@ -74,6 +81,7 @@ mod cmdtest {
     }
 
     #[test]
+    #[cfg_attr(target_os = "windows", ignore)]
     fn test_regex_only_multiple() {
         let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
         cmd.args(&["-og", "\\d", "sed", "s/./AA/g"])
@@ -83,6 +91,7 @@ mod cmdtest {
     }
 
     #[test]
+    #[cfg_attr(target_os = "windows", ignore)]
     fn test_solid_line() {
         let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
         cmd.args(&["-l", "2,4-5", "sed", "s/./@/"])
@@ -92,6 +101,7 @@ mod cmdtest {
     }
 
     #[test]
+    #[cfg_attr(target_os = "windows", ignore)]
     fn test_solid_regex_line() {
         let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
         cmd.args(&["-s", "-g", "[AB]", "sed", "s/./@/"])
@@ -101,6 +111,7 @@ mod cmdtest {
     }
 
     #[test]
+    #[cfg_attr(target_os = "windows", ignore)]
     fn test_solid_regex_only() {
         let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
         cmd.args(&["-s", "-og", "2", "sed", "s/./A/"])
@@ -110,6 +121,7 @@ mod cmdtest {
     }
 
     #[test]
+    #[cfg_attr(target_os = "windows", ignore)]
     fn test_solid_regex_only_invert() {
         let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
         cmd.args(&["-s", "-og", "\\d+", "-v", "tr", "[:upper:]", "[:lower:]"])
@@ -119,6 +131,7 @@ mod cmdtest {
     }
 
     #[test]
+    #[cfg_attr(target_os = "windows", ignore)]
     fn test_solid_regex_only_null_invert() {
         let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
         cmd.args(&["-sv", "-og", "\\d+", "tr", "[:upper:]", "[:lower:]"])
@@ -128,6 +141,7 @@ mod cmdtest {
     }
 
     #[test]
+    #[cfg_attr(target_os = "windows", ignore)]
     fn test_solid_regex_only_null() {
         let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
         cmd.args(&[
@@ -145,6 +159,7 @@ mod cmdtest {
     }
 
     #[test]
+    #[cfg_attr(target_os = "windows", ignore)]
     fn test_solid_regex_only_null2() {
         let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
         cmd.args(&["-sz", "-og", "(..\\n..|F.G)", "--", "tr", "-dc", "."])
@@ -154,6 +169,7 @@ mod cmdtest {
     }
 
     #[test]
+    #[cfg_attr(target_os = "windows", ignore)]
     fn test_character_null_invert() {
         let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
         cmd.args(&["-zvc", "1", "--", "tr", "[:alnum:]", "@"])
@@ -163,6 +179,7 @@ mod cmdtest {
     }
 
     #[test]
+    #[cfg_attr(target_os = "windows", ignore)]
     fn test_solid_regex_only_multiple() {
         let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
         cmd.args(&["-s", "-og", "\\d", "sed", "s/./AA/g"])
@@ -172,6 +189,7 @@ mod cmdtest {
     }
 
     #[test]
+    #[cfg_attr(target_os = "windows", ignore)]
     #[cfg(feature = "oniguruma")]
     fn test_onig() {
         let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
@@ -182,6 +200,7 @@ mod cmdtest {
     }
 
     #[test]
+    #[cfg_attr(target_os = "windows", ignore)]
     #[cfg(feature = "oniguruma")]
     fn test_onig_invert() {
         let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
@@ -192,6 +211,7 @@ mod cmdtest {
     }
 
     #[test]
+    #[cfg_attr(target_os = "windows", ignore)]
     #[cfg(feature = "oniguruma")]
     fn test_onig_null() {
         let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
@@ -212,6 +232,7 @@ mod cmdtest {
     }
 
     #[test]
+    #[cfg_attr(target_os = "windows", ignore)]
     #[cfg(feature = "oniguruma")]
     fn test_onig_null_invert() {
         let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
@@ -223,6 +244,7 @@ mod cmdtest {
     }
 
     #[test]
+    #[cfg_attr(target_os = "windows", ignore)]
     #[cfg(feature = "oniguruma")]
     fn test_onig_multiple() {
         let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
@@ -233,6 +255,7 @@ mod cmdtest {
     }
 
     #[test]
+    #[cfg_attr(target_os = "windows", ignore)]
     #[cfg(feature = "oniguruma")]
     fn test_solid_onig() {
         let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
@@ -243,6 +266,7 @@ mod cmdtest {
     }
 
     #[test]
+    #[cfg_attr(target_os = "windows", ignore)]
     #[cfg(feature = "oniguruma")]
     fn test_solid_onig_invert() {
         let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
@@ -253,6 +277,7 @@ mod cmdtest {
     }
 
     #[test]
+    #[cfg_attr(target_os = "windows", ignore)]
     #[cfg(feature = "oniguruma")]
     fn test_solid_onig_null_invert() {
         let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
@@ -263,6 +288,7 @@ mod cmdtest {
     }
 
     #[test]
+    #[cfg_attr(target_os = "windows", ignore)]
     #[cfg(feature = "oniguruma")]
     fn test_solid_onig_null() {
         let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
@@ -281,6 +307,7 @@ mod cmdtest {
     }
 
     #[test]
+    #[cfg_attr(target_os = "windows", ignore)]
     #[cfg(feature = "oniguruma")]
     fn test_solid_onig_null2() {
         let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
@@ -291,6 +318,7 @@ mod cmdtest {
     }
 
     #[test]
+    #[cfg_attr(target_os = "windows", ignore)]
     fn test_character_range() {
         let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
         cmd.args(&["-c", "1-3,6-8", "sed", "s/./A/"])
@@ -300,6 +328,7 @@ mod cmdtest {
     }
 
     #[test]
+    #[cfg_attr(target_os = "windows", ignore)]
     fn test_character_range_invert() {
         let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
         cmd.args(&["-c", "1,4-6", "-v", "tr", "[:upper:]", "[:lower:]"])
@@ -309,6 +338,7 @@ mod cmdtest {
     }
 
     #[test]
+    #[cfg_attr(target_os = "windows", ignore)]
     fn test_character_separate() {
         let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
         cmd.args(&["-c", "1,2,4", "sed", "s/./A/"])
@@ -318,6 +348,7 @@ mod cmdtest {
     }
 
     #[test]
+    #[cfg_attr(target_os = "windows", ignore)]
     fn test_character_be_empty() {
         let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
         cmd.args(&["-c", "1,2,4", "grep", "2"])
@@ -328,6 +359,7 @@ mod cmdtest {
     }
 
     #[test]
+    #[cfg_attr(target_os = "windows", ignore)]
     fn test_solid_character_range() {
         let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
         cmd.args(&["-s", "-c", "1-3,6-8", "sed", "s/./A/"])
@@ -337,6 +369,7 @@ mod cmdtest {
     }
 
     #[test]
+    #[cfg_attr(target_os = "windows", ignore)]
     fn test_solid_character_range_invert() {
         let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
         cmd.args(&["-s", "-c", "1,4-6", "-v", "tr", "[:upper:]", "[:lower:]"])
@@ -346,6 +379,7 @@ mod cmdtest {
     }
 
     #[test]
+    #[cfg_attr(target_os = "windows", ignore)]
     fn test_solid_character_null() {
         let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
         cmd.args(&["-sz", "-c", "1", "--", "tr", "[:alnum:]", "@"])
@@ -355,6 +389,7 @@ mod cmdtest {
     }
 
     #[test]
+    #[cfg_attr(target_os = "windows", ignore)]
     fn test_solid_character_null_invert() {
         let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
         cmd.args(&["-sz", "-v", "-c", "1", "--", "tr", "[:alnum:]", "@"])
@@ -364,6 +399,7 @@ mod cmdtest {
     }
 
     #[test]
+    #[cfg_attr(target_os = "windows", ignore)]
     fn test_solid_character_separate() {
         let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
         cmd.args(&["-s", "-c", "1,2,4", "sed", "s/./A/"])
@@ -373,6 +409,7 @@ mod cmdtest {
     }
 
     #[test]
+    #[cfg_attr(target_os = "windows", ignore)]
     fn test_solid_character_be_empty() {
         let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
         cmd.args(&["-s", "-c", "1,2,4", "grep", "2"])
@@ -382,6 +419,7 @@ mod cmdtest {
     }
 
     #[test]
+    #[cfg_attr(target_os = "windows", ignore)]
     fn test_field() {
         let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
         cmd.args(&["-d", ",", "-f", "1,2,4", "sed", "s/./_/"])
@@ -391,6 +429,7 @@ mod cmdtest {
     }
 
     #[test]
+    #[cfg_attr(target_os = "windows", ignore)]
     fn test_field_range() {
         let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
         cmd.args(&["-d", ",", "-f", "2-4", "sed", "s/./_/"])
@@ -400,6 +439,7 @@ mod cmdtest {
     }
 
     #[test]
+    #[cfg_attr(target_os = "windows", ignore)]
     fn test_field_range_invert() {
         let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
         cmd.args(&["-v", "-d", ",", "-f", "2-4", "sed", "s/./_/"])
@@ -409,6 +449,7 @@ mod cmdtest {
     }
 
     #[test]
+    #[cfg_attr(target_os = "windows", ignore)]
     fn test_field_range_to_last() {
         let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
         cmd.args(&["-d", ",", "-f", "3-", "sed", "s/./_/"])
@@ -418,6 +459,7 @@ mod cmdtest {
     }
 
     #[test]
+    #[cfg_attr(target_os = "windows", ignore)]
     fn test_field_be_empty() {
         let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
         cmd.args(&["-d", ",", "-f", "3-", "grep", "G"])
@@ -429,6 +471,7 @@ mod cmdtest {
 
     // This case may be failed in case of debug version somehow. Try release version.
     #[test]
+    #[cfg_attr(target_os = "windows", ignore)]
     fn test_field_empty() {
         let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
         cmd.args(&["-d", ",", "-f", "3-", "seq", "5"])
@@ -438,6 +481,7 @@ mod cmdtest {
     }
 
     #[test]
+    #[cfg_attr(target_os = "windows", ignore)]
     fn test_field_null_invert() {
         let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
         cmd.args(&["-vz", "-f", "2", "-d", ",", "tr", "#", "@"])
@@ -447,6 +491,7 @@ mod cmdtest {
     }
 
     #[test]
+    #[cfg_attr(target_os = "windows", ignore)]
     fn test_field_ws() {
         let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
         cmd.args(&["-f", "1-2,4,5", "--", "awk", "{s+=$0; print s}"])
@@ -456,6 +501,7 @@ mod cmdtest {
     }
 
     #[test]
+    #[cfg_attr(target_os = "windows", ignore)]
     fn test_field_ws_empty() {
         let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
         cmd.args(&["-f", "3-5", "--", "sed", "s/.*/@@@/g"])
@@ -465,6 +511,7 @@ mod cmdtest {
     }
 
     #[test]
+    #[cfg_attr(target_os = "windows", ignore)]
     fn test_field_regex_empty() {
         let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
         cmd.args(&["-f", "3-5", "-D", "[ \\t]+", "--", "awk", "{print \"@@@\"}"])
@@ -474,6 +521,7 @@ mod cmdtest {
     }
 
     #[test]
+    #[cfg_attr(target_os = "windows", ignore)]
     fn test_field_ws_invert() {
         let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
         cmd.args(&["-f", "1-3,6", "--", "awk", "{print $0*2}"])
@@ -483,6 +531,7 @@ mod cmdtest {
     }
 
     #[test]
+    #[cfg_attr(target_os = "windows", ignore)]
     fn test_solid_field() {
         let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
         cmd.args(&["-s", "-d", ",", "-f", "1,2,4", "sed", "s/./_/"])
@@ -492,6 +541,7 @@ mod cmdtest {
     }
 
     #[test]
+    #[cfg_attr(target_os = "windows", ignore)]
     fn test_solid_field_range() {
         let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
         cmd.args(&["-s", "-d", ",", "-f", "2-4", "sed", "s/./_/"])
@@ -501,6 +551,7 @@ mod cmdtest {
     }
 
     #[test]
+    #[cfg_attr(target_os = "windows", ignore)]
     fn test_solid_field_range_invert() {
         let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
         cmd.args(&["-s", "-v", "-d", ",", "-f", "2-4", "sed", "s/./_/"])
@@ -510,6 +561,7 @@ mod cmdtest {
     }
 
     #[test]
+    #[cfg_attr(target_os = "windows", ignore)]
     fn test_solid_field_null() {
         let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
         cmd.args(&["-sz", "-f", "2", "-d", ",", "tr", "#", "@"])
@@ -519,6 +571,7 @@ mod cmdtest {
     }
 
     #[test]
+    #[cfg_attr(target_os = "windows", ignore)]
     fn test_solid_field_null_invert() {
         let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
         cmd.args(&["-vsz", "-f", "2", "-d", ",", "tr", "#", "@"])
@@ -528,6 +581,7 @@ mod cmdtest {
     }
 
     #[test]
+    #[cfg_attr(target_os = "windows", ignore)]
     fn test_solid_field_range_to_last() {
         let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
         cmd.args(&["-s", "-d", ",", "-f", "3-", "sed", "s/./_/"])
@@ -537,6 +591,7 @@ mod cmdtest {
     }
 
     #[test]
+    #[cfg_attr(target_os = "windows", ignore)]
     fn test_solid_field_be_empty() {
         let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
         cmd.args(&["-s", "-d", ",", "-f", "3-", "grep", "G"])
@@ -546,6 +601,7 @@ mod cmdtest {
     }
 
     #[test]
+    #[cfg_attr(target_os = "windows", ignore)]
     fn test_solid_field_empty() {
         let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
         cmd.args(&["-s", "-d", ",", "-f", "3-", "grep", "."])
@@ -555,6 +611,7 @@ mod cmdtest {
     }
 
     #[test]
+    #[cfg_attr(target_os = "windows", ignore)]
     fn test_solid_field_ws() {
         let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
         cmd.args(&["-s", "-f", "1-2,4,5", "--", "awk", "{s+=$0; print s}"])
@@ -564,6 +621,7 @@ mod cmdtest {
     }
 
     #[test]
+    #[cfg_attr(target_os = "windows", ignore)]
     fn test_solid_field_ws_invert() {
         let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
         cmd.args(&["-s", "-f", "1-3,6", "--", "awk", "{print $0*2}"])
@@ -573,6 +631,7 @@ mod cmdtest {
     }
 
     #[test]
+    #[cfg_attr(target_os = "windows", ignore)]
     fn test_solid_field_ws_empty() {
         let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
         cmd.args(&["-s", "-f", "3-5", "--", "awk", "{print \"@@@\"}"])
@@ -582,6 +641,7 @@ mod cmdtest {
     }
 
     #[test]
+    #[cfg_attr(target_os = "windows", ignore)]
     fn test_solid_field_regex_empty() {
         let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
         cmd.args(&[
