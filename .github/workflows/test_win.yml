@@ -26,14 +26,13 @@ jobs:
             ext: exe
 
     steps:
-      # - uses: actions/checkout@v2
+      - uses: actions/checkout@v2
       # - name: Build the release target
       #   run: |
       #     rustup target add ${{ matrix.target }}
       #     choco install llvm
       #     cargo build --features oniguruma --release --verbose --target x86_64-pc-windows-msvc
       #     # => target\x86_64-pc-windows-msvc\release\teip.exe will be created
-
       - name: Run tests
         timeout-minutes: 10
         run: cargo test --verbose # --features oniguruma
