@@ -1,0 +1,53 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - master
+      - 'develop-**'
+      - 'bugfix/**'
+      - 'feature/**'
+
+jobs:
+  build:
+    name: Upload Release Assets
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - target: x86_64-pc-windows-msvc
+            os: windows-latest
+            ext: exe
+
+    steps:
+      - name: Set envs
+        id: vars
+        shell: bash
+        run: |
+          echo ::set-output name=ver::1.2.1
+          # echo ::set-output name=ver::${GITHUB_REF/refs\/tags\/v/}
+
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Build package
+        shell: pwsh
+        run: |
+          rustup target add ${{ matrix.target }}
+          choco install llvm
+          cargo build --features oniguruma --release --verbose --target x86_64-pc-windows-msvc
+          # => target\x86_64-pc-windows-msvc\release\teip.exe will be created
+          mkdir windows\exe
+          move target\x86_64-pc-windows-msvc\release\teip.exe windows\exe
+          "%programfiles(x86)%\Inno Setup 6\iscc.exe" "installer.iss"
+          move windows\Output\teip_installer.exe .
+          rename teip_installer.exe teip_installer-${{ steps.vars.outputs.ver }}-${{ matrix.target }}.exe
+
+      - name: Upload binaries to release for Windows
+        uses: svenstaro/upload-release-action@v1-release
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: teip_installer-${{ steps.vars.outputs.ver }}-${{ matrix.target }}.${{ matrix.ext }}
+          asset_name: teip_installer-${{ steps.vars.outputs.ver }}-${{ matrix.target }}.${{ matrix.ext }}
+          tag: ${{ github.ref }}
+          overwrite: true
