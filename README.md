@@ -94,15 +94,19 @@ $ sudo yum install https://git.io/teip-1.2.1.x86_64.rpm
 <!-- rpm_x86_64_end -->
 <!-- rpm_x86_64_sha256 -->SHA256: 84de165b1972ea3f230c71cb3fe29365e4ec01bc904d214a2494fcf1dc652bc9
 
-### With Docker
+### On Windows (x86_64)
 
-```bash
-$ echo "100 200 300 400" | docker run --rm -i greymd/teip -f 3 -- sed 's/./@/g'
-```
+`teip` command will be available on PowerShell after installing with the installer distributed from below URL.
 
-### For Windows
+<!-- ins.x86_64_start -->
+https://github.com/greymd/teip/releases/download/v1.2.1/teip_installer-1.2.1-x86_64-pc-windows-msvc.exe
+<!-- ins.x86_64_end -->
+<!-- ins.x86_64_sha256 -->SHA256: DUMMY
 
-Unfortunately, `teip` does not work on non-UNIX environment due to technical reason.
+However, you may get a warning because this installer is not signed.
+Please verify the hash value with `Get-FileHash <FileName> -Algorithm SHA256` for secure installation.
+
+Also, using `teip` on Windows requires some technical knowledge. See [Wiki > Use on Windows](https://github.com/greymd/teip/wiki/Use-on-Windows).
 
 ### On other UNIX or other architectures (i686, ARM, etc..)
 
@@ -130,6 +134,12 @@ $ cargo install teip --features oniguruma
 ### Example for RHEL
 $ sudo dnf install cargo clang
 $ cargo install teip --features oniguruma
+```
+
+```powershell
+### Example for Windows (PowerShell) and choco (chocolatey.org)
+PS C:\> choco install llvm
+PS C:\> cargo install teip --features oniguruma
 ```
 
 # Usage

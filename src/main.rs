@@ -19,7 +19,7 @@ extern crate lazy_static;
 use log::debug;
 use regex::Regex;
 use std::env;
-use std::io::{self, BufRead, BufReader, BufWriter, Read, Write};
+use std::io::{self, BufRead, BufReader, BufWriter, Write, Read};
 use std::process::{Command, Stdio};
 use std::sync::mpsc::{self, Sender};
 use std::thread::{self, JoinHandle};

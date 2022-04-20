@@ -7,7 +7,7 @@ on:
 
 jobs:
   build:
-    name: Upload Release Assets
+    name: Release for UNIX-like OS
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -116,10 +116,71 @@ jobs:
           name: deb.x86_64
           path: digest.txt
 
+  build-win:
+    name: Release for Windows
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - target: x86_64-pc-windows-msvc
+            os: windows-latest
+            ext: exe
+    steps:
+      - name: Set envs
+        id: vars
+        shell: bash
+        run: |
+          # echo ::set-output name=ver::1.2.1
+          echo ::set-output name=ver::${GITHUB_REF/refs\/tags\/v/}
+
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Build installer for Windows
+        id: exe
+        shell: pwsh
+        run: |
+          rustup target add ${{ matrix.target }}
+          choco install llvm
+          cargo build --features oniguruma --release --verbose --target x86_64-pc-windows-msvc
+          # => target\x86_64-pc-windows-msvc\release\teip.exe will be created
+          Invoke-WebRequest -OutFile windows\wizard.bmp -Uri https://raw.githubusercontent.com/wiki/greymd/teip/img/wizard.bmp
+          Invoke-WebRequest -OutFile windows\wizard_long.bmp -Uri https://raw.githubusercontent.com/wiki/greymd/teip/img/wizard_long.bmp
+          md windows\exe
+          Move-Item target\x86_64-pc-windows-msvc\release\teip.exe windows\exe
+          & "C:\\Program Files\\Git\\usr\\bin\\sed.exe" -i 's/#define MyAppVersion \"0.0.0\"/#define MyAppVersion \"${{ steps.vars.outputs.ver }}\"/' .\windows\installer.iss
+          & "${Env:ProgramFiles(x86)}\Inno Setup 6\iscc.exe" windows\installer.iss
+          Move-Item windows\Output\teip_installer.exe .
+          echo "::set-output name=sha256::$(Get-FileHash .\\teip_installer.exe -Algorithm SHA256 | Select-Object -ExpandProperty Hash)"
+          Rename-Item teip_installer.exe teip_installer-${{ steps.vars.outputs.ver }}-${{ matrix.target }}.${{ matrix.ext }}
+
+      - name: Upload binaries to release for Windows
+        uses: svenstaro/upload-release-action@v1-release
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: teip_installer-${{ steps.vars.outputs.ver }}-${{ matrix.target }}.${{ matrix.ext }}
+          asset_name: teip_installer-${{ steps.vars.outputs.ver }}-${{ matrix.target }}.${{ matrix.ext }}
+          # tag: v1.2.1
+          tag: ${{ github.ref }}
+          overwrite: true
+
+      - name: README for exe
+        shell: bash
+        run: |
+          _BIN=teip_installer-${{ steps.vars.outputs.ver }}-${{ matrix.target }}.${{ matrix.ext }}
+          echo "$_BIN" > ./digest.txt
+          echo "${{ steps.exe.outputs.sha256 }}" >> ./digest.txt
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v1
+        with:
+          name: ins.x86_64
+          path: digest.txt
+
   readme:
     name: Update README.md
     runs-on: ubuntu-latest
-    needs: build
+    needs: [build, build-win]
     steps:
       - name: Set envs
         id: vars
@@ -159,13 +220,28 @@ jobs:
           sed -i "/deb_x86_64_sha256/s/SHA256:.*/SHA256: $_sha/" ./README.md
           cat ./README.md
 
+      - name: Apply artifacts ins
+        uses: actions/download-artifact@v1
+        with:
+          name: ins.x86_64
+      - shell: bash
+        run: |
+          _shorter=./.github/gitio_shorter.sh
+          _ver=${{ steps.vars.outputs.ver }}
+          _url="https://github.com/greymd/teip/releases/download/v${_ver}/$(head -n 1 ins.x86_64/digest.txt)"
+          _sha=$(tail -n 1 ins.x86_64/digest.txt)
+          _short_url=$($_shorter "${_url}" "teip_installer-${_ver}.x86_64.exe" || $_shorter "${_url}" "teip_installer-${_ver}-${_sha:1:5}.x86_64.exe" || echo "${_url}")
+          sed -i "/ins.x86_64_start/,/ins.x86_64_end/s|https://.*exe|$_short_url|g" ./README.md
+          sed -i "/ins.x86_64_sha256/s/SHA256:.*/SHA256: $_sha/" ./README.md
+          cat ./README.md
+
       - name: Release README
         if: "! contains (steps.vars.outputs.ver, 'beta')"
         uses: EndBug/add-and-commit@v4
         with:
           add: README.md
           author_name: GitHub Action
-          author_email: yamadagrep@gmail.com
+          author_email: yamada@gr3.ie
           message: '[skip ci] Update README.md'
           ref: 'master'
         env:
