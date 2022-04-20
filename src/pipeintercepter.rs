@@ -1,5 +1,5 @@
 use super::token::Token;
-use super::utils::trim_eol;
+use super::stringutils::trim_eol;
 use super::{errors,errors::*};
 use super::{HL,DEFAULT_CAP};
 

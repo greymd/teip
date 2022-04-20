@@ -1,11 +1,11 @@
 use std::io::{self, BufRead};
 
-use onig::{self};
+use onig;
 pub type Regex = onig::Regex;
 pub type RegexOptions = onig::RegexOptions;
 pub type Syntax = onig::Syntax;
 
-use super::super::{error_exit, errors, msg_error, trim_eol, PipeIntercepter, DEFAULT_CAP};
+use super::super::{error_exit, errors, msg_error, stringutils, PipeIntercepter, DEFAULT_CAP};
 
 pub fn new_regex() -> Regex {
     Regex::new("").unwrap()
@@ -74,7 +74,7 @@ pub fn regex_onig_line_proc(
         let mut buf = Vec::with_capacity(DEFAULT_CAP);
         match stdin.lock().read_until(line_end, &mut buf) {
             Ok(n) => {
-                let eol = trim_eol(&mut buf);
+                let eol = stringutils::trim_eol(&mut buf);
                 if n == 0 {
                     ch.send_eof()?;
                     break;

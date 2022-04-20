@@ -15,7 +15,7 @@ mod errors;
 use errors::*;
 mod pipeintercepter;
 use pipeintercepter::PipeIntercepter;
-mod utils;
+mod stringutils;
 
 #[macro_use]
 extern crate lazy_static;
@@ -188,10 +188,10 @@ fn main() {
 
     if flag_solid {
         ch =
-            PipeIntercepter::start_solid_output(utils::vecstr_rm_references(&cmds), line_end, flag_dryrun)
+            PipeIntercepter::start_solid_output(stringutils::vecstr_rm_references(&cmds), line_end, flag_dryrun)
                 .unwrap_or_else(|e| error_exit(&e.to_string()));
     } else {
-        ch = PipeIntercepter::start_output(utils::vecstr_rm_references(&cmds), line_end, flag_dryrun)
+        ch = PipeIntercepter::start_output(stringutils::vecstr_rm_references(&cmds), line_end, flag_dryrun)
             .unwrap_or_else(|e| error_exit(&e.to_string()));
     }
 
@@ -224,7 +224,7 @@ fn main() {
                         ch.send_eof().unwrap_or_else(|e| msg_error(&e.to_string()));
                         break;
                     }
-                    let eol = utils::trim_eol(&mut buf);
+                    let eol = stringutils::trim_eol(&mut buf);
                     if flag_regex {
                         if flag_onig {
                             onig::regex_onig_proc(&mut ch, &buf, &regex_onig, flag_invert)
@@ -264,7 +264,7 @@ fn line_line_proc(
         let mut buf = Vec::with_capacity(DEFAULT_CAP);
         match stdin.lock().read_until(line_end, &mut buf) {
             Ok(n) => {
-                let eol = utils::trim_eol(&mut buf);
+                let eol = stringutils::trim_eol(&mut buf);
                 let line = String::from_utf8_lossy(&buf).to_string();
                 if n == 0 {
                     ch.send_eof()?;
@@ -298,7 +298,7 @@ fn regex_line_proc(
         let mut buf = Vec::with_capacity(DEFAULT_CAP);
         match stdin.lock().read_until(line_end, &mut buf) {
             Ok(n) => {
-                let eol = utils::trim_eol(&mut buf);
+                let eol = stringutils::trim_eol(&mut buf);
                 if n == 0 {
                     ch.send_eof()?;
                     break;
