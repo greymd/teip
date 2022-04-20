@@ -70,38 +70,38 @@ $ brew install greymd/tools/teip
 
 <!-- deb_x86_64_start -->
 ```bash
-$ wget https://git.io/teip-1.2.1.x86_64.deb
+$ wget https://github.com/greymd/teip/releases/download/v1.2.2/teip-1.2.2.x86_64-unknown-linux-musl.deb
 $ sudo dpkg -i ./teip*.deb
 ```
 <!-- deb_x86_64_end -->
-<!-- deb_x86_64_sha256 -->SHA256: 043cf643e4757d3e41a9a85377c80e46af81baa95a32b3f1aa08ad3e69ad21ae
+<!-- deb_x86_64_sha256 -->SHA256: c04a23fdd89d15cbb320fcb07782e6499303cb03f5f9f4b90c5c473f12b7444d
 
 ### With `dnf` on Fedora, CentOS, RHEL, etc (x86_64)
 
 <!-- rpm_x86_64_start -->
 ```bash
-$ sudo dnf install https://git.io/teip-1.2.1.x86_64.rpm
+$ sudo dnf install https://github.com/greymd/teip/releases/download/v1.2.2/teip-1.2.2.x86_64-unknown-linux-musl.rpm
 ```
 <!-- rpm_x86_64_end -->
-<!-- rpm_x86_64_sha256 -->SHA256: 84de165b1972ea3f230c71cb3fe29365e4ec01bc904d214a2494fcf1dc652bc9
+<!-- rpm_x86_64_sha256 -->SHA256: caf4cbf7071f9b4dd594b6245b3250d0972f8b4743065cc76d82d92cdd4b2ba5
 
 ### With `yum` on CentOS7, RHEL7, etc (x86_64)
 
 <!-- rpm_x86_64_start -->
 ```bash
-$ sudo yum install https://git.io/teip-1.2.1.x86_64.rpm
+$ sudo yum install https://github.com/greymd/teip/releases/download/v1.2.2/teip-1.2.2.x86_64-unknown-linux-musl.rpm
 ```
 <!-- rpm_x86_64_end -->
-<!-- rpm_x86_64_sha256 -->SHA256: 84de165b1972ea3f230c71cb3fe29365e4ec01bc904d214a2494fcf1dc652bc9
+<!-- rpm_x86_64_sha256 -->SHA256: caf4cbf7071f9b4dd594b6245b3250d0972f8b4743065cc76d82d92cdd4b2ba5
 
 ### On Windows (x86_64)
 
 `teip` command will be available on PowerShell after installing with the executable file distributed from below URL.
 
 <!-- ins.x86_64_start -->
-https://github.com/greymd/teip/releases/download/v1.2.1/teip_installer-1.2.1-x86_64-pc-windows-msvc.exe
+https://github.com/greymd/teip/releases/download/v1.2.2/teip_installer-1.2.2-x86_64-pc-windows-msvc.exe
 <!-- ins.x86_64_end -->
-<!-- ins.x86_64_sha256 -->SHA256: DUMMY
+<!-- ins.x86_64_sha256 -->SHA256: 0960CA51557560E0875393BCEE64B0A922EF9682F360027CCA31782A33192DB4
 
 **Attention:**
 You may get some warning messages during the installation because this installer is not signed.
