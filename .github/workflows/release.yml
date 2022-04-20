@@ -219,7 +219,7 @@ jobs:
           sed -i "/deb_x86_64_sha256/s/SHA256:.*/SHA256: $_sha/" ./README.md
           cat ./README.md
 
-      - name: Apply artifacts installer exe
+      - name: Apply artifacts ins
         uses: actions/download-artifact@v1
         with:
           name: ins.x86_64
@@ -228,7 +228,7 @@ jobs:
           _shorter=./.github/gitio_shorter.sh
           _ver=${{ steps.vars.outputs.ver }}
           _url="https://github.com/greymd/teip/releases/download/v${_ver}/$(head -n 1 ins.x86_64/digest.txt)"
-          _sha=$(tail -n 1 deb.x86_64/digest.txt)
+          _sha=$(tail -n 1 ins.x86_64/digest.txt)
           _short_url=$($_shorter "${_url}" "teip_installer-${_ver}.x86_64.exe" || $_shorter "${_url}" "teip_installer-${_ver}-${_sha:1:5}.x86_64.exe" || echo "${_url}")
           sed -i "/ins.x86_64_start/,/ins.x86_64_end/s|https://.*exe|$_short_url|g" ./README.md
           sed -i "/ins.x86_64_sha256/s/SHA256:.*/SHA256: $_sha/" ./README.md
