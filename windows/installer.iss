@@ -26,6 +26,7 @@ SolidCompression=yes
 WizardStyle=modern
 ChangesEnvironment=true
 WizardSmallImageFile=wizard.bmp
+WizardImageFile=wizard_long.bmp
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"

@@ -109,7 +109,7 @@ https://github.com/greymd/teip/releases/download/v1.2.1/teip_installer-1.2.1-x86
 <!-- ins.x86_64_end -->
 
 However, you may get a warning because this installer is not signed.
-Please verify the hash value with `Get-FileHash` for secure installation.
+Please verify the hash value with `Get-FileHash <FileName> -Algorithm SHA256` for secure installation.
 
 <!-- ins.x86_64_sha256 -->SHA256: DUMMY
 
