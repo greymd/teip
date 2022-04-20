@@ -147,9 +147,10 @@ jobs:
           Invoke-WebRequest -OutFile windows\wizard.bmp -Uri https://raw.githubusercontent.com/wiki/greymd/teip/img/wizard.bmp
           md windows\exe
           Move-Item target\x86_64-pc-windows-msvc\release\teip.exe windows\exe
+          & "C:\\Program Files\\Git\\usr\\bin\\sed.exe" 's/#define MyAppVersion "0.0.0"/#define MyAppVersion "${{ steps.vars.outputs.ver }}"/' .\windows\installer.iss
           & "${Env:ProgramFiles(x86)}\Inno Setup 6\iscc.exe" windows\installer.iss
           Move-Item windows\Output\teip_installer.exe .
-          echo "::set-output name=sha256::$(Get-FileHash ,\\teip_installer.exe -Algorithm SHA256 | Select-Object -ExpandProperty Hash)"
+          echo "::set-output name=sha256::$(Get-FileHash .\\teip_installer.exe -Algorithm SHA256 | Select-Object -ExpandProperty Hash)"
           Rename-Item teip_installer.exe teip_installer-${{ steps.vars.outputs.ver }}-${{ matrix.target }}.${{ matrix.ext }}
 
       - name: Upload binaries to release for Windows

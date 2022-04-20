@@ -1,6 +1,6 @@
 #include "installer_environment.iss"
 #define MyAppName "teip"
-#define MyAppVersion "1.2.1"
+#define MyAppVersion "0.0.0"
 #define MyAppPublisher "Yasuhiro Yamada"
 #define MyAppURL "https://github.com/greymd/teip"
 #define MyAppExeName "teip.exe"
