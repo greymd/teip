@@ -96,16 +96,16 @@ $ sudo yum install https://git.io/teip-1.2.1.x86_64.rpm
 
 ### On Windows (x86_64)
 
-`teip` command will be available on PowerShell after installing with the installer distributed from below URL.
+`teip` command will be available on PowerShell after installing with the executable file distributed from below URL.
 
 <!-- ins.x86_64_start -->
 https://github.com/greymd/teip/releases/download/v1.2.1/teip_installer-1.2.1-x86_64-pc-windows-msvc.exe
 <!-- ins.x86_64_end -->
 <!-- ins.x86_64_sha256 -->SHA256: DUMMY
 
-However, you may get a warning because this installer is not signed.
-Please verify the hash value with `Get-FileHash <FileName> -Algorithm SHA256` for secure installation.
-
+**Attention:**
+You may get some warning messages during the installation because this installer is not signed.
+Please verify manually by comparing the above hash value and one given by `Get-FileHash <FileName> -Algorithm SHA256` for secure installation.
 Also, using `teip` on Windows requires some technical knowledge. See [Wiki > Use on Windows](https://github.com/greymd/teip/wiki/Use-on-Windows).
 
 ### On other UNIX or other architectures (i686, ARM, etc..)
