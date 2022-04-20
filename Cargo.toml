@@ -1,7 +1,7 @@
 [package]
 name = "teip"
 version = "1.2.1"
-authors = ["Yasuhiro Yamada <yamadagrep@gmail.com>"]
+authors = ["Yasuhiro Yamada <yamada@gr3.ie>"]
 description = "Highly efficient \"Masking tape\" for standard input"
 keywords = ["sed", "awk", "util"]
 documentation = "https://github.com/greymd/teip"
@@ -13,7 +13,6 @@ edition = "2018"
 
 [dependencies]
 cfg-if = "0.1"
-docopt = "1"
 serde = { version = "1", features = ["derive"] }
 regex = "1"
 log = { version = "0.4", features = ["max_level_trace", "release_max_level_warn"] }
