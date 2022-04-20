@@ -202,4 +202,4 @@ https://github.com/kkos/oniguruma/blob/master/doc/RE
 AUTHOR AND COPYRIGHT
 ------
 
-Copyright (c) 2020 Yamada, Yasuhiro <yamadagrep@gmail.com> Released under the MIT License.
+Copyright (c) 2022 Yamada, Yasuhiro <yamada@gr3.ie> Released under the MIT License.
