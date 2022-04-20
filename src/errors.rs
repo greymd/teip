@@ -1,7 +1,25 @@
 use super::token::Token;
+use super::CMD;
 use std::error;
 use std::fmt;
 use std::sync::mpsc;
+use log::debug;
+
+pub fn msg_error(msg: &str) {
+    eprintln!("{}: {}", CMD, msg);
+}
+
+pub fn error_exit(msg: &str) -> ! {
+    msg_error(msg);
+    std::process::exit(1);
+}
+
+/// Exit silently because the error can be intentional.
+pub fn exit_silently(msg: &str) -> ! {
+    debug!("SIGPIPE?:{}", msg);
+    std::process::exit(1);
+}
+
 
 const PIPE_ERROR_MSG: &'static str = "Output of given command is exhausted";
 
