@@ -102,7 +102,16 @@ $ echo "100 200 300 400" | docker run --rm -i greymd/teip -f 3 -- sed 's/./@/g'
 
 ### For Windows
 
-Unfortunately, `teip` does not work on non-UNIX environment due to technical reason.
+`teip` command will be available on PowerShell after installing with the installer distributed from below URL.
+
+<!-- ins_exe.x86_64_start -->
+https://github.com/greymd/teip/releases/download/v1.2.1/teip_installer-1.2.1-x86_64-pc-windows-msvc.exe
+<!-- ins_exe.x86_64_end -->
+
+However, you may get a warning because this installer is not signed.
+Please verify the hash value with `Get-FileHash` before the installation.
+
+<!-- ins_exe.x86_64_sha256 -->SHA256: DUMMY
 
 ### On other UNIX or other architectures (i686, ARM, etc..)
 
