@@ -130,7 +130,6 @@ jobs:
         id: vars
         shell: bash
         run: |
-          # echo ::set-output name=ver::1.2.1
           echo ::set-output name=ver::${GITHUB_REF/refs\/tags\/v/}
 
       - name: Checkout code
@@ -160,7 +159,6 @@ jobs:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           file: teip_installer-${{ steps.vars.outputs.ver }}-${{ matrix.target }}.${{ matrix.ext }}
           asset_name: teip_installer-${{ steps.vars.outputs.ver }}-${{ matrix.target }}.${{ matrix.ext }}
-          # tag: v1.2.1
           tag: ${{ github.ref }}
           overwrite: true
 
