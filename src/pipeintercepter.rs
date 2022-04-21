@@ -1,10 +1,10 @@
 use super::token::Token;
+use super::procspawn;
 use super::stringutils::trim_eol;
 use super::{errors,errors::*};
 use super::{HL,DEFAULT_CAP};
 
-use std::io::{self, BufRead, BufReader, BufWriter, Read, Write};
-use std::process::{Command, Stdio};
+use std::io::{self, BufRead, BufReader, BufWriter, Write};
 use std::sync::mpsc::{self, Sender};
 use std::thread::{self, JoinHandle};
 use log::debug;
@@ -26,7 +26,7 @@ impl PipeIntercepter {
         dryrun: bool,
     ) -> Result<PipeIntercepter, errors::SpawnError> {
         let (tx, rx) = mpsc::channel();
-        let (child_stdin, child_stdout, _) = PipeIntercepter::exec_cmd(&cmds)?;
+        let (child_stdin, child_stdout, _) = procspawn::exec_cmd(&cmds)?;
         let pipe_writer = BufWriter::new(child_stdin);
         let handler = thread::spawn(move || {
             debug!("thread: spawn");
@@ -102,7 +102,7 @@ impl PipeIntercepter {
                         }
                         Token::Solid(msg) => {
                             debug!("thread: rx.recv <= Solid:[{}]", msg);
-                            let result = PipeIntercepter::exec_cmd_sync(msg, &cmds, line_end);
+                            let result = procspawn::exec_cmd_sync(msg, &cmds, line_end);
                             writer
                                 .write(result.as_bytes())
                                 .unwrap_or_else(|e| exit_silently(&e.to_string()));
@@ -148,64 +148,6 @@ impl PipeIntercepter {
         }
         trim_eol(&mut buf);
         Ok(String::from_utf8_lossy(&buf).to_string())
-    }
-
-    fn exec_cmd(
-        cmds: &Vec<String>,
-    ) -> Result<
-        (
-            Box<dyn Write + Send + 'static>,
-            Box<dyn Read + Send + 'static>,
-            String,
-        ),
-        errors::SpawnError,
-    > {
-        debug!("thread: exec_cmd: {:?}", cmds);
-        if cmds.len() == 0 {
-            // In the case of dryrun, return dummy objects.
-            return Ok((Box::new(io::sink()), Box::new(io::empty()), "".to_string()));
-        }
-        let child = Command::new(&cmds[0])
-            .args(&cmds[1..])
-            .stdin(Stdio::piped())
-            .stdout(Stdio::piped())
-            .spawn()
-            .map_err(|e| errors::SpawnError::Io(e))?;
-        let first = &cmds[0];
-        let child_stdin = child.stdin.ok_or(errors::SpawnError::StdinOpenFailed)?;
-        let child_stdout = child.stdout.ok_or(errors::SpawnError::StdoutOpenFailed)?;
-        Ok((
-            Box::new(child_stdin),
-            Box::new(child_stdout),
-            first.to_string(),
-        ))
-    }
-
-    fn exec_cmd_sync(input: String, cmds: &Vec<String>, line_end: u8) -> String {
-        debug!("thread: exec_cmd_sync: {:?}", &cmds);
-        let mut child = Command::new(&cmds[0])
-            .args(&cmds[1..])
-            .stdin(Stdio::piped())
-            .stdout(Stdio::piped())
-            .spawn()
-            .expect("Failed to spawn child process");
-        {
-            let stdin = child.stdin.as_mut().expect("Failed to open stdin");
-            let mut vec = Vec::new();
-            vec.extend_from_slice(input.as_bytes());
-            vec.extend_from_slice(&[line_end]);
-            stdin
-                .write_all(vec.as_slice())
-                .expect("Failed to write to stdin");
-        }
-        let mut output = child
-            .wait_with_output()
-            .expect("Failed to read stdout")
-            .stdout;
-        if output.ends_with(&[line_end]) {
-            output.pop();
-        }
-        String::from_utf8_lossy(&output).to_string()
     }
 
     pub fn send_msg(&self, msg: String) -> Result<(), errors::TokenSendError> {

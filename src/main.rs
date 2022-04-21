@@ -12,6 +12,7 @@ mod pure {
 }
 mod token;
 mod errors;
+mod procspawn;
 use errors::*;
 mod pipeintercepter;
 use pipeintercepter::PipeIntercepter;
