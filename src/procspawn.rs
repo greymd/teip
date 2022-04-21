@@ -1,11 +1,14 @@
-use super::errors;
-use std::io::{self, Read, Write};
+use super::DEFAULT_CAP;
+use super::{errors,errors::*};
+use std::io::{self, BufRead, BufWriter, BufReader, Read, Write};
+use std::thread;
 use std::process::{Command, Stdio};
 use log::debug;
+use filedescriptor::*;
 
 pub fn exec_cmd(
     cmds: &Vec<String>,
-) -> Result<
+) -> std::result::Result<
     (
         Box<dyn Write + Send + 'static>,
         Box<dyn Read + Send + 'static>,
@@ -59,4 +62,33 @@ pub fn exec_cmd_sync(input: String, cmds: &Vec<String>, line_end: u8) -> String 
         output.pop();
     }
     String::from_utf8_lossy(&output).to_string()
+}
+
+pub fn tee(line_end: u8) -> std::result::Result<(BufReader<FileDescriptor>, BufReader<FileDescriptor>), errors::SpawnError> {
+    let fd1 = Pipe::new().map_err(|e| errors::SpawnError::Fd(e))?;
+    let fd2 = Pipe::new().map_err(|e| errors::SpawnError::Fd(e))?;
+    let mut writer1 = BufWriter::new(fd1.write);
+    let mut writer2 = BufWriter::new(fd2.write);
+    let reader1 = BufReader::new(fd1.read);
+    let reader2 = BufReader::new(fd2.read);
+    let _handler = thread::spawn(move || {
+        let stdin = io::stdin();
+        loop {
+            let mut buf = Vec::with_capacity(DEFAULT_CAP);
+            match stdin.lock().read_until(line_end, &mut buf) {
+                Ok(n) => {
+                    let line = String::from_utf8_lossy(&buf).to_string();
+                    writer1.write(line.as_bytes()).unwrap();
+                    writer2.write(line.as_bytes()).unwrap();
+                    if n == 0 {
+                        break;
+                    }
+                },
+                Err(e) => {
+                    error_exit(&e.to_string())
+                }
+            }
+        }
+    });
+    Ok((reader1, reader2))
 }

@@ -94,6 +94,7 @@ pub enum SpawnError {
     StdinOpenFailed,
     StdoutOpenFailed,
     Io(std::io::Error),
+    Fd(filedescriptor::Error),
 }
 
 impl fmt::Display for SpawnError {
@@ -102,6 +103,7 @@ impl fmt::Display for SpawnError {
             SpawnError::StdinOpenFailed => write!(f, "{}", STDIN_ERROR_MSG),
             SpawnError::StdoutOpenFailed => write!(f, "{}", STDOUT_ERROR_MSG),
             SpawnError::Io(ref err) => write!(f, "IO error: {}", err),
+            SpawnError::Fd(ref err) => write!(f, "Failed to create file descriptor: {}", err),
         }
     }
 }
@@ -112,6 +114,7 @@ impl error::Error for SpawnError {
             SpawnError::StdinOpenFailed => STDIN_ERROR_MSG,
             SpawnError::StdoutOpenFailed => STDOUT_ERROR_MSG,
             SpawnError::Io(_) => "IO error",
+            SpawnError::Fd(_) => "FD error",
         }
     }
 }
@@ -122,6 +125,7 @@ impl fmt::Debug for SpawnError {
             SpawnError::StdinOpenFailed => write!(f, "{}", STDIN_ERROR_MSG),
             SpawnError::StdoutOpenFailed => write!(f, "{}", STDOUT_ERROR_MSG),
             SpawnError::Io(ref err) => write!(f, "IO error: {}", err),
+            SpawnError::Fd(ref err) => write!(f, "FD error: {}", err),
         }
     }
 }
