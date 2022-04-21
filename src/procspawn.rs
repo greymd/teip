@@ -1,8 +1,10 @@
 use super::DEFAULT_CAP;
 use super::{errors,errors::*};
+use super::stringutils;
 use std::io::{self, BufRead, BufWriter, BufReader, Read, Write};
 use std::thread;
 use std::process::{Command, Stdio};
+use std::sync::mpsc::{self,Receiver};
 use log::debug;
 use filedescriptor::*;
 
@@ -64,7 +66,11 @@ pub fn exec_cmd_sync(input: String, cmds: &Vec<String>, line_end: u8) -> String 
     String::from_utf8_lossy(&output).to_string()
 }
 
+// Generate two readers which prints identical standard input.
+// Even if either reader prints a line, another one does not lost the line.
+// The behavior is similar to `tee' command.
 pub fn tee(line_end: u8) -> std::result::Result<(BufReader<FileDescriptor>, BufReader<FileDescriptor>), errors::SpawnError> {
+    debug!("tee: start");
     let fd1 = Pipe::new().map_err(|e| errors::SpawnError::Fd(e))?;
     let fd2 = Pipe::new().map_err(|e| errors::SpawnError::Fd(e))?;
     let mut writer1 = BufWriter::new(fd1.write);
@@ -90,5 +96,66 @@ pub fn tee(line_end: u8) -> std::result::Result<(BufReader<FileDescriptor>, BufR
             }
         }
     });
+    // TODO: Handle handler
+    debug!("tee: end");
     Ok((reader1, reader2))
+}
+
+pub fn start_moffload_filter (command: &str, mut input: BufReader<FileDescriptor>, line_end: u8) -> BufReader<Box<dyn Read + Send>> {
+    debug!("start_moffload_filter: start");
+    // TODO: Consider how to handle on Windows
+    let cmds: Vec<String> = vec!["/bin/sh","-c", command].into_iter().map(|s| s.to_owned()).collect();
+    let (fd_in, fd_out, _) = self::exec_cmd(&cmds).unwrap(); // num command like grep -n ...
+    let mut n_writer = BufWriter::new(fd_in);
+    let n_reader = BufReader::new(fd_out);
+    let _handler = thread::spawn(move || {
+        debug!("start_moffload_filter: thread: start");
+        loop {
+            let mut buf = Vec::with_capacity(DEFAULT_CAP);
+            match input.read_until(line_end, &mut buf) {
+                Ok(n) => {
+                    let line = String::from_utf8_lossy(&buf).to_string();
+                    n_writer.write(line.as_bytes()).unwrap();
+                    if n == 0 {
+                        break;
+                    }
+                },
+                Err(_) => {
+                    break;
+                },
+            }
+        }
+    });
+    debug!("start_moffload_filter: end");
+    return n_reader
+}
+
+pub fn clean_numbers (mut input: BufReader<Box<dyn Read + Send>>, line_end: u8) -> Receiver<i64> {
+    debug!("clean_numbers: start");
+    let (tx, rx) = mpsc::channel();
+    let _handler = thread::spawn(move || {
+        debug!("clean_numbers: thread: start");
+        loop {
+            let mut buf = Vec::with_capacity(DEFAULT_CAP);
+            match input.read_until(line_end, &mut buf) {
+                Ok(n) => {
+                    let line = String::from_utf8_lossy(&buf).to_string();
+                    match stringutils::extract_number(line) {
+                        Some(i) => {
+                            debug!("clean_numbers: thread: tx <= {}", i);
+                            tx.send(i);
+                        },
+                        None => {},
+                    }
+                    if n == 0 {
+                        break;
+                    }
+                },
+                Err(_) => {
+                    break;
+                },
+            }
+        }
+    });
+    return rx
 }

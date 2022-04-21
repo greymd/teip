@@ -13,6 +13,8 @@ mod pure {
 mod token;
 mod errors;
 mod procspawn;
+use filedescriptor::FileDescriptor;
+use std::sync::mpsc::Receiver;
 use errors::*;
 mod pipeintercepter;
 use pipeintercepter::PipeIntercepter;
@@ -24,7 +26,7 @@ extern crate lazy_static;
 use log::debug;
 use regex::Regex;
 use std::env;
-use std::io::{self, BufRead};
+use std::io::{self, BufRead, BufReader};
 use structopt::StructOpt;
 
 #[cfg(feature = "oniguruma")]
@@ -84,6 +86,8 @@ struct Args {
     invert: bool,
     #[structopt(short = "z", help = "Line delimiter is NUL instead of newline")]
     zero: bool,
+    #[structopt(short = "M", name = "Matcher offloading", help = "Offload match rules to an external command which prints line numbers")]
+    moffload_command: Option<String>,
 
     #[structopt(name = "command")]
     commands: Vec<String>,
@@ -114,6 +118,8 @@ fn main() {
     let flag_delimiter = args.delimiter.is_some();
     let delimiter = args.delimiter.as_ref().map(|s| s.as_str()).unwrap_or("");
     let flag_regex_delimiter = args.regexp_delimiter.is_some();
+    let flag_moffload = args.moffload_command.is_some();
+    let moffload_command = args.moffload_command.as_ref().map(|s| s.as_str()).unwrap_or("");
 
     let mut regex_mode = String::new();
     let mut regex = Regex::new("").unwrap();
@@ -183,7 +189,7 @@ fn main() {
         flag_dryrun = false;
     }
 
-    if (!flag_only && flag_regex) || flag_lines {
+    if (!flag_only && flag_regex) || flag_lines || flag_moffload {
         single_token_per_line = true;
     }
 
@@ -195,11 +201,6 @@ fn main() {
         ch = PipeIntercepter::start_output(stringutils::vecstr_rm_references(&cmds), line_end, flag_dryrun)
             .unwrap_or_else(|e| error_exit(&e.to_string()));
     }
-
-    // import flag -M (Matcher Offload) option ,similar to line line.
-    // Spawn matcher process
-    //   - channelA (stdin -> matcher command -> extract result -> enqueue)
-    //   - channelB (stdin -> target command -> dequeue or wait -> send_pipe or send_msg)
 
     // ***** Start processing *****
     if single_token_per_line {
@@ -214,6 +215,12 @@ fn main() {
                 regex_line_proc(&mut ch, &regex, flag_invert, line_end)
                     .unwrap_or_else(|e| error_exit(&e.to_string()));
             }
+        } else if flag_moffload {
+            let (stdin1, mut stdin2) = procspawn::tee(line_end)
+                    .unwrap_or_else(|e| error_exit(&e.to_string()));
+            let noisy_numbers = procspawn::start_moffload_filter(moffload_command, stdin1, line_end);
+            let numbers = procspawn::clean_numbers(noisy_numbers, line_end);
+            moffload_proc(&mut ch, numbers, &mut stdin2, line_end);
         }
     } else {
         let stdin = io::stdin();
@@ -251,6 +258,48 @@ fn main() {
             }
         }
     }
+}
+
+fn moffload_proc(
+    ch: &mut PipeIntercepter,
+    rx: Receiver<i64>,
+    stdin: &mut BufReader<FileDescriptor>,
+    line_end: u8,
+) -> Result<(), errors::TokenSendError> {
+    let mut nr: i64 = 0; // number of read
+    let mut pos: i64 = -1;
+    loop {
+        let mut buf = Vec::with_capacity(DEFAULT_CAP);
+        match stdin.read_until(line_end, &mut buf) {
+            Ok(n) => {
+                let eol = stringutils::trim_eol(&mut buf);
+                let line = String::from_utf8_lossy(&buf).to_string();
+                if n == 0 {
+                    ch.send_eof()?;
+                    break;
+                }
+                nr += 1;
+                while pos < nr {
+                    match rx.recv() {
+                        Ok(i) => {
+                            pos = i;
+                        },
+                        Err(_) => {
+                            break;
+                        },
+                    }
+                }
+                if pos == nr {
+                    ch.send_pipe(line.to_string())?;
+                } else {
+                    ch.send_msg(line.to_string())?;
+                }
+                ch.send_msg(eol)?;
+            },
+            Err(e) => msg_error(&e.to_string()),
+        }
+    }
+    Ok(())
 }
 
 fn line_line_proc(
