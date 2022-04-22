@@ -66,18 +66,19 @@ pub fn exec_cmd_sync(input: String, cmds: &Vec<String>, line_end: u8) -> String 
     String::from_utf8_lossy(&output).to_string()
 }
 
+
 // Generate two readers which prints identical standard input.
-// Even if either reader prints a line, another one does not lost the line.
+// Even if either reader outputs a line, another one will keep the identical line.
 // The behavior is similar to `tee' command.
 pub fn tee(line_end: u8) -> std::result::Result<(BufReader<FileDescriptor>, BufReader<FileDescriptor>), errors::SpawnError> {
-    debug!("tee: start");
     let fd1 = Pipe::new().map_err(|e| errors::SpawnError::Fd(e))?;
     let fd2 = Pipe::new().map_err(|e| errors::SpawnError::Fd(e))?;
     let mut writer1 = BufWriter::new(fd1.write);
     let mut writer2 = BufWriter::new(fd2.write);
     let reader1 = BufReader::new(fd1.read);
     let reader2 = BufReader::new(fd2.read);
-    let _handler = thread::spawn(move || {
+    thread::spawn(move || {
+        debug!("tee: thread: start");
         let stdin = io::stdin();
         loop {
             let mut buf = Vec::with_capacity(DEFAULT_CAP);
@@ -95,21 +96,31 @@ pub fn tee(line_end: u8) -> std::result::Result<(BufReader<FileDescriptor>, BufR
                 }
             }
         }
+        debug!("tee: thread: end");
     });
-    // TODO: Handle handler
-    debug!("tee: end");
     Ok((reader1, reader2))
 }
 
-pub fn start_moffload_filter (command: &str, mut input: BufReader<FileDescriptor>, line_end: u8) -> BufReader<Box<dyn Read + Send>> {
+pub fn start_moffload_filter (
+    command: &str,
+    mut input: BufReader<FileDescriptor>,
+    line_end: u8
+    ) -> std::result::Result<
+            BufReader<Box<dyn Read + Send>>,
+            errors::SpawnError
+    > {
     debug!("start_moffload_filter: start");
-    // TODO: Consider how to handle on Windows
-    // TODO: Check exit status?
-    let cmds: Vec<String> = vec!["/bin/sh","-c", command].into_iter().map(|s| s.to_owned()).collect();
-    let (fd_in, fd_out, _) = self::exec_cmd(&cmds).unwrap(); // num command like grep -n ...
+    cfg_if::cfg_if! {
+        if #[cfg(windows)] {
+            let cmds: Vec<String> = vec!["cmd","/C", command].into_iter().map(|s| s.to_owned()).collect();
+        } else {
+            let cmds: Vec<String> = vec!["sh","-c", command].into_iter().map(|s| s.to_owned()).collect();
+        }
+    }
+    let (fd_in, fd_out, _) = self::exec_cmd(&cmds)?;
     let mut n_writer = BufWriter::new(fd_in);
     let n_reader = BufReader::new(fd_out);
-    let _handler = thread::spawn(move || {
+    thread::spawn(move || {
         debug!("start_moffload_filter: thread: start");
         loop {
             let mut buf = Vec::with_capacity(DEFAULT_CAP);
@@ -128,13 +139,12 @@ pub fn start_moffload_filter (command: &str, mut input: BufReader<FileDescriptor
         }
     });
     debug!("start_moffload_filter: end");
-    return n_reader
+    Ok(n_reader)
 }
 
 pub fn clean_numbers (mut input: BufReader<Box<dyn Read + Send>>, line_end: u8) -> Receiver<u64> {
-    debug!("clean_numbers: start");
     let (tx, rx) = mpsc::channel();
-    let _handler = thread::spawn(move || {
+    thread::spawn(move || {
         debug!("clean_numbers: thread: start");
         loop {
             let mut buf = Vec::with_capacity(DEFAULT_CAP);
@@ -143,8 +153,8 @@ pub fn clean_numbers (mut input: BufReader<Box<dyn Read + Send>>, line_end: u8) 
                     let line = String::from_utf8_lossy(&buf).to_string();
                     match stringutils::extract_number(line) {
                         Some(i) => {
-                            debug!("clean_numbers: thread: tx <= {}", i);
-                            tx.send(i);
+                            debug!("clean_numbers: thread: tx => {}", i);
+                            tx.send(i).unwrap();
                         },
                         None => {},
                     }
@@ -157,6 +167,8 @@ pub fn clean_numbers (mut input: BufReader<Box<dyn Read + Send>>, line_end: u8) 
                 },
             }
         }
+        drop(tx);
+        debug!("clean_numbers: thread: end");
     });
     return rx
 }

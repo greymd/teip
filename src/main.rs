@@ -13,8 +13,6 @@ mod pure {
 mod token;
 mod errors;
 mod procspawn;
-use filedescriptor::FileDescriptor;
-use std::sync::mpsc::Receiver;
 use errors::*;
 mod pipeintercepter;
 use pipeintercepter::PipeIntercepter;
@@ -26,7 +24,7 @@ extern crate lazy_static;
 use log::debug;
 use regex::Regex;
 use std::env;
-use std::io::{self, BufRead, BufReader};
+use std::io::{self, BufRead};
 use structopt::StructOpt;
 
 #[cfg(feature = "oniguruma")]
@@ -216,11 +214,8 @@ fn main() {
                     .unwrap_or_else(|e| error_exit(&e.to_string()));
             }
         } else if flag_moffload {
-            let (stdin1, mut stdin2) = procspawn::tee(line_end)
+            moffload_proc(&mut ch, moffload_command, line_end)
                     .unwrap_or_else(|e| error_exit(&e.to_string()));
-            let noisy_numbers = procspawn::start_moffload_filter(moffload_command, stdin1, line_end);
-            let numbers = procspawn::clean_numbers(noisy_numbers, line_end);
-            moffload_proc(&mut ch, numbers, &mut stdin2, line_end);
         }
     } else {
         let stdin = io::stdin();
@@ -262,15 +257,20 @@ fn main() {
 
 fn moffload_proc(
     ch: &mut PipeIntercepter,
-    rx: Receiver<u64>,
-    stdin: &mut BufReader<FileDescriptor>,
+    moffload_command: &str,
     line_end: u8,
 ) -> Result<(), errors::TokenSendError> {
-    let mut nr: u64 = 0;   // number of read
+    let (stdin1, mut stdin2) = procspawn::tee(line_end)
+            .unwrap_or_else(|e| error_exit(&e.to_string()));
+    let noisy_numbers = procspawn::start_moffload_filter(moffload_command, stdin1, line_end)
+            .unwrap_or_else(|e| error_exit(&e.to_string()));
+    let print_line_numbers = procspawn::clean_numbers(noisy_numbers, line_end);
+    let mut nr: u64 = 0;     // number of read
     let mut pos: u64 = 0;
+    let mut last_pos: u64 = pos;
     loop {
         let mut buf = Vec::with_capacity(DEFAULT_CAP);
-        match stdin.read_until(line_end, &mut buf) {
+        match stdin2.read_until(line_end, &mut buf) {
             Ok(n) => {
                 let eol = stringutils::trim_eol(&mut buf);
                 let line = String::from_utf8_lossy(&buf).to_string();
@@ -280,10 +280,15 @@ fn moffload_proc(
                 }
                 nr += 1;
                 while pos < nr {
-                    match rx.recv() {
+                    match print_line_numbers.recv() {
                         Ok(i) => {
                             pos = i;
-                            // TODO: Warning message if numbers are not sorted
+                            // debug!(format!("moffload_proc: pos = {}", i));
+                            if pos < last_pos {
+                                msg_error(format!("WARN: -M Command must print numbers in ascending order: order {} -> {} found", last_pos, pos).as_ref());
+                            }
+                            last_pos = pos;
+                            // debug!(format!("moffload_proc: last_pos = {}", pos));
                         },
                         Err(_) => {
                             break;
