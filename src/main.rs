@@ -47,45 +47,60 @@ lazy_static! {
 
 #[derive(StructOpt, Debug)]
 #[structopt(
-    about = "Allow the command handle selected parts of the standard input, and bypass other parts."
+    about = "Allow the command handle selected parts of the standard input, and bypass other parts.",
+    help = "USAGE:
+  teip -g <pattern> [-oGsvz] [--] [<command>...]
+  teip -f <list> [-d <delimiter> | -D <pattern>] [-svz] [--] [<command>...]
+  teip -c <list> [-svz] [--] [<command>...]
+  teip -l <list> [-svz] [--] [<command>...]
+  teip -M <pipeline> [--] [<command>...]
+
+OPTIONS:
+    -c <list>                     Select only these characters
+    -d <delimiter>                Use <delimiter> for field delimiter of -f
+    -D <delimiter pattern>        Use regular expression <pattern> for field delimiter of -f
+    -l <list>                     Select only these lines
+    -f <list>                     Select only these white-space separated fields
+    -g <pattern>                  Select lines that match the regular expression <pattern>
+    -M <pipeline>                 Offload match rules to an external command which prints line numbers
+
+FLAGS:
+    -h, --help       Prints help information
+    -v               Invert the sense of selecting
+    -G               -g adopts Oniguruma regular expressions
+    -o               -g selects only matched parts
+    -s               Execute command for each selected part
+    -V, --version    Prints version information
+    -z               Line delimiter is NUL instead of newline
+",
 )]
+
 struct Args {
-    #[structopt(
-        short = "g",
-        name = "pattern",
-        help = "Select lines that match the regular expression <pattern>"
-    )]
+    #[structopt(short = "g")]
     regex: Option<String>,
-    #[structopt(short = "o", help = "-g selects only matched parts")]
+    #[structopt(short = "o")]
     only_matched: bool,
-    #[structopt(short = "G", help = "-g adopts Oniguruma regular expressions")]
+    #[structopt(short = "G")]
     onig_enabled: bool,
-    #[structopt(
-        short = "f",
-        name = "list",
-        help = "Select only these white-space separated fields"
-    )]
+    #[structopt(short = "f")]
+    
     list: Option<String>,
-    #[structopt(short = "d", help = "Use <delimiter> for field delimiter of -f")]
+    #[structopt(short = "d")]
     delimiter: Option<String>,
-    #[structopt(
-        short = "D",
-        name = "delimiter pattern",
-        help = "Use regular expression <pattern> for field delimiter of -f"
-    )]
+    #[structopt(short = "D",)]
     regexp_delimiter: Option<String>,
-    #[structopt(short = "c", name = "char list", help = "Select only these characters")]
+    #[structopt(short = "c")]
     char: Option<String>,
-    #[structopt(short = "l", name = "line list", help = "Select only these lines")]
+    #[structopt(short = "l")]
     line: Option<String>,
-    #[structopt(short = "s", help = "Execute command for each selected part")]
+    #[structopt(short = "s")]
     solid: bool,
-    #[structopt(short = "v", help = "Invert the sense of selecting")]
+    #[structopt(short = "v")]
     invert: bool,
-    #[structopt(short = "z", help = "Line delimiter is NUL instead of newline")]
+    #[structopt(short = "z")]
     zero: bool,
-    #[structopt(short = "M", name = "Matcher offloading", help = "Offload match rules to an external command which prints line numbers")]
-    moffload_command: Option<String>,
+    #[structopt(short = "M")]
+    moffload_pipeline: Option<String>,
 
     #[structopt(name = "command")]
     commands: Vec<String>,
@@ -116,8 +131,8 @@ fn main() {
     let flag_delimiter = args.delimiter.is_some();
     let delimiter = args.delimiter.as_ref().map(|s| s.as_str()).unwrap_or("");
     let flag_regex_delimiter = args.regexp_delimiter.is_some();
-    let flag_moffload = args.moffload_command.is_some();
-    let moffload_command = args.moffload_command.as_ref().map(|s| s.as_str()).unwrap_or("");
+    let flag_moffload = args.moffload_pipeline.is_some();
+    let moffload_pipeline = args.moffload_pipeline.as_ref().map(|s| s.as_str()).unwrap_or("");
 
     let mut regex_mode = String::new();
     let mut regex = Regex::new("").unwrap();
@@ -127,6 +142,13 @@ fn main() {
     let mut ch: PipeIntercepter;
     let mut flag_dryrun = true;
     let regex_delimiter;
+
+    // If any necessary flags is not enabled, show help and exit.
+    if !( flag_moffload || flag_regex || flag_field || flag_char || flag_lines) {
+        Args::clap().print_help().unwrap();
+        std::process::exit(1);
+    }
+
     let char_list = args
         .char
         .as_ref()
@@ -214,7 +236,7 @@ fn main() {
                     .unwrap_or_else(|e| error_exit(&e.to_string()));
             }
         } else if flag_moffload {
-            moffload_proc(&mut ch, moffload_command, line_end)
+            moffload_proc(&mut ch, moffload_pipeline, line_end)
                     .unwrap_or_else(|e| error_exit(&e.to_string()));
         }
     } else {
@@ -257,12 +279,12 @@ fn main() {
 
 fn moffload_proc(
     ch: &mut PipeIntercepter,
-    moffload_command: &str,
+    moffload_pipeline: &str,
     line_end: u8,
 ) -> Result<(), errors::TokenSendError> {
     let (stdin1, mut stdin2) = procspawn::tee(line_end)
             .unwrap_or_else(|e| error_exit(&e.to_string()));
-    let noisy_numbers = procspawn::start_moffload_filter(moffload_command, stdin1, line_end)
+    let noisy_numbers = procspawn::start_moffload_filter(moffload_pipeline, stdin1, line_end)
             .unwrap_or_else(|e| error_exit(&e.to_string()));
     let print_line_numbers = procspawn::clean_numbers(noisy_numbers, line_end);
     let mut nr: u64 = 0;     // number of read
@@ -283,12 +305,10 @@ fn moffload_proc(
                     match print_line_numbers.recv() {
                         Ok(i) => {
                             pos = i;
-                            // debug!(format!("moffload_proc: pos = {}", i));
                             if pos < last_pos {
                                 msg_error(format!("WARN: -M Command must print numbers in ascending order: order {} -> {} found", last_pos, pos).as_ref());
                             }
                             last_pos = pos;
-                            // debug!(format!("moffload_proc: last_pos = {}", pos));
                         },
                         Err(_) => {
                             break;

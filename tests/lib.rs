@@ -28,6 +28,14 @@ mod cmdtest {
     }
 
     #[test]
+    fn test_no_argument() {
+        let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
+        cmd.write_stdin("test\n")
+            .assert()
+            .code(1);
+    }
+
+    #[test]
     fn test_moffload_grep() {
         let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
         let mcmd = format!("{} -n A", ESCAPE_GREP_CMD);
