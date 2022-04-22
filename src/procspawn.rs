@@ -131,7 +131,7 @@ pub fn start_moffload_filter (command: &str, mut input: BufReader<FileDescriptor
     return n_reader
 }
 
-pub fn clean_numbers (mut input: BufReader<Box<dyn Read + Send>>, line_end: u8) -> Receiver<i64> {
+pub fn clean_numbers (mut input: BufReader<Box<dyn Read + Send>>, line_end: u8) -> Receiver<u64> {
     debug!("clean_numbers: start");
     let (tx, rx) = mpsc::channel();
     let _handler = thread::spawn(move || {

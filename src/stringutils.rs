@@ -18,14 +18,14 @@ pub fn trim_eol(buf: &mut Vec<u8>) -> String {
 }
 
 // Extract number from string line
-pub fn extract_number(line: String) -> Option<i64> {
+pub fn extract_number(line: String) -> Option<u64> {
     lazy_static! {
         static ref RE: Regex = Regex::new(r"^\s*([0-9]+)").unwrap();
     }
     let iter = RE.captures_iter(&line);
     for cap in iter {
         let s = &cap[1];
-        let i: i64 = s.parse().unwrap();
+        let i: u64 = s.parse().unwrap();
         return Some(i)
     }
     None

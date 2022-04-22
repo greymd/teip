@@ -262,12 +262,12 @@ fn main() {
 
 fn moffload_proc(
     ch: &mut PipeIntercepter,
-    rx: Receiver<i64>,
+    rx: Receiver<u64>,
     stdin: &mut BufReader<FileDescriptor>,
     line_end: u8,
 ) -> Result<(), errors::TokenSendError> {
-    let mut nr: i64 = 0; // number of read
-    let mut pos: i64 = -1;
+    let mut nr: u64 = 0;   // number of read
+    let mut pos: u64 = 0;
     loop {
         let mut buf = Vec::with_capacity(DEFAULT_CAP);
         match stdin.read_until(line_end, &mut buf) {
