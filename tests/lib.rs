@@ -35,6 +35,7 @@ mod cmdtest {
             .code(1);
     }
 
+    // TODO: Add test mofffload + inverse match
     #[test]
     fn test_moffload_grep() {
         let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();

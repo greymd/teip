@@ -53,16 +53,16 @@ lazy_static! {
   teip -f <list> [-d <delimiter> | -D <pattern>] [-svz] [--] [<command>...]
   teip -c <list> [-svz] [--] [<command>...]
   teip -l <list> [-svz] [--] [<command>...]
-  teip -M <pipeline> [--] [<command>...]
+  teip -M <pipeline> [-svz] [--] [<command>...]
 
 OPTIONS:
-    -c <list>                     Select only these characters
-    -d <delimiter>                Use <delimiter> for field delimiter of -f
-    -D <delimiter pattern>        Use regular expression <pattern> for field delimiter of -f
-    -l <list>                     Select only these lines
-    -f <list>                     Select only these white-space separated fields
-    -g <pattern>                  Select lines that match the regular expression <pattern>
-    -M <pipeline>                 Offload match rules to an external command which prints line numbers
+    -c <list>        Select only these characters
+    -d <delimiter>   Use <delimiter> for field delimiter of -f
+    -D <pattern>     Use regular expression <pattern> for field delimiter of -f
+    -l <list>        Select only these lines
+    -f <list>        Select only these white-space separated fields
+    -g <pattern>     Select lines that match the regular expression <pattern>
+    -M <pipeline>    Offload match rules to an external command which prints line numbers
 
 FLAGS:
     -h, --help       Prints help information
@@ -236,7 +236,7 @@ fn main() {
                     .unwrap_or_else(|e| error_exit(&e.to_string()));
             }
         } else if flag_moffload {
-            moffload_proc(&mut ch, moffload_pipeline, line_end)
+            moffload_proc(&mut ch, moffload_pipeline, flag_invert, line_end)
                     .unwrap_or_else(|e| error_exit(&e.to_string()));
         }
     } else {
@@ -280,6 +280,7 @@ fn main() {
 fn moffload_proc(
     ch: &mut PipeIntercepter,
     moffload_pipeline: &str,
+    invert: bool,
     line_end: u8,
 ) -> Result<(), errors::TokenSendError> {
     let (stdin1, mut stdin2) = procspawn::tee(line_end)
@@ -316,9 +317,17 @@ fn moffload_proc(
                     }
                 }
                 if pos == nr {
-                    ch.send_pipe(line.to_string())?;
+                    if invert {
+                        ch.send_msg(line.to_string())?;
+                    } else {
+                        ch.send_pipe(line.to_string())?;
+                    }
                 } else {
-                    ch.send_msg(line.to_string())?;
+                    if invert {
+                        ch.send_pipe(line.to_string())?;
+                    } else {
+                        ch.send_msg(line.to_string())?;
+                    }
                 }
                 ch.send_msg(eol)?;
             },
