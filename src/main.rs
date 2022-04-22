@@ -283,6 +283,7 @@ fn moffload_proc(
                     match rx.recv() {
                         Ok(i) => {
                             pos = i;
+                            // TODO: Warning message if numbers are not sorted
                         },
                         Err(_) => {
                             break;

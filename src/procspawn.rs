@@ -104,6 +104,7 @@ pub fn tee(line_end: u8) -> std::result::Result<(BufReader<FileDescriptor>, BufR
 pub fn start_moffload_filter (command: &str, mut input: BufReader<FileDescriptor>, line_end: u8) -> BufReader<Box<dyn Read + Send>> {
     debug!("start_moffload_filter: start");
     // TODO: Consider how to handle on Windows
+    // TODO: Check exit status?
     let cmds: Vec<String> = vec!["/bin/sh","-c", command].into_iter().map(|s| s.to_owned()).collect();
     let (fd_in, fd_out, _) = self::exec_cmd(&cmds).unwrap(); // num command like grep -n ...
     let mut n_writer = BufWriter::new(fd_in);
