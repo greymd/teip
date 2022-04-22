@@ -7,8 +7,11 @@ mod cmdtest {
             static PERL_CMD: &str = "C:\\Program Files\\Git\\usr\\bin\\perl.exe";
             static SEQ_CMD: &str = "C:\\Program Files\\Git\\usr\\bin\\seq.exe";
             static GREP_CMD: &str = "C:\\Program Files\\Git\\usr\\bin\\grep.exe";
-            static NL_CMD: &str = "C:\\Program Files\\Git\\usr\\bin\\nl.exe";
-            static ECHO_CMD: &str = "C:\\Program Files\\Git\\usr\\bin\\echo.exe";
+            static _NL_CMD: &str = "C:\\Program Files\\Git\\usr\\bin\\nl.exe";
+            static _ECHO_CMD: &str = "C:\\Program Files\\Git\\usr\\bin\\echo.exe";
+            static ESCAPE_ECHO_CMD: &str = "C:\\\"Program Files\"\\Git\\usr\\bin\\echo.exe";
+            static ESCAPE_NL_CMD: &str = "C:\\\"Program Files\"\\Git\\usr\\bin\\nl.exe";
+            static ESCAPE_GREP_CMD: &str = "C:\\\"Program Files\"\\Git\\usr\\bin\\grep.exe";
         } else {
             static SED_CMD: &str = "sed";
             static TR_CMD: &str = "tr";
@@ -16,15 +19,18 @@ mod cmdtest {
             static PERL_CMD: &str = "perl";
             static SEQ_CMD: &str = "seq";
             static GREP_CMD: &str = "grep";
-            static NL_CMD: &str = "nl";
-            static ECHO_CMD: &str = "echo";
+            static _NL_CMD: &str = "nl";
+            static _ECHO_CMD: &str = "echo";
+            static ESCAPE_ECHO_CMD: &str = "echo";
+            static ESCAPE_NL_CMD: &str = "nl";
+            static ESCAPE_GREP_CMD: &str = "grep";
         }
     }
 
     #[test]
     fn test_moffload_grep() {
         let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
-        let mcmd = format!("{} -n A", GREP_CMD);
+        let mcmd = format!("{} -n A", ESCAPE_GREP_CMD);
         cmd.args(&["-M", &mcmd, SED_CMD, "s/./@/"])
             .write_stdin("ABC\nDFE\nBCC\nCCA\n")
             .assert()
@@ -34,7 +40,7 @@ mod cmdtest {
     #[test]
     fn test_moffload_nl() {
         let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
-        let mcmd = format!("{}", NL_CMD);
+        let mcmd = format!("{}", ESCAPE_NL_CMD);
         cmd.args(&["-M", &mcmd, SED_CMD, "s/./@/g"])
             .write_stdin("ABC\nDFE\nBCC\nCCA\n")
             .assert()
@@ -44,7 +50,7 @@ mod cmdtest {
     #[test]
     fn test_moffload_nl_solid() {
         let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
-        let mcmd = format!("{}", NL_CMD);
+        let mcmd = format!("{}", ESCAPE_NL_CMD);
         cmd.args(&["-M", &mcmd, "-s", SED_CMD, "s/./@/g"])
             .write_stdin("ABC\nDFE\nBCC\nCCA\n")
             .assert()
@@ -54,7 +60,7 @@ mod cmdtest {
     #[test]
     fn test_moffload_echo() {
         let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
-        let mcmd = format!("{} 3", ECHO_CMD);
+        let mcmd = format!("{} 3", ESCAPE_ECHO_CMD);
         cmd.args(&["-M", &mcmd, SED_CMD, "s/./@/g"])
             .write_stdin("ABC\nDFE\nBCC\nCCA\n")
             .assert()
@@ -64,7 +70,7 @@ mod cmdtest {
     #[test]
     fn test_moffload_echo_solid() {
         let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
-        let mcmd = format!("{} 3", ECHO_CMD);
+        let mcmd = format!("{} 3", ESCAPE_ECHO_CMD);
         cmd.args(&["-s", "-M", &mcmd, SED_CMD, "s/.//g"])
             .write_stdin("ABC\nDFE\nBCC\nCCA\n")
             .assert()
