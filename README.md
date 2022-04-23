@@ -144,27 +144,32 @@ PS C:\> cargo install teip --features oniguruma
 # Usage
 
 ```
-Usage:
+USAGE:
   teip -g <pattern> [-oGsvz] [--] [<command>...]
   teip -f <list> [-d <delimiter> | -D <pattern>] [-svz] [--] [<command>...]
   teip -c <list> [-svz] [--] [<command>...]
   teip -l <list> [-svz] [--] [<command>...]
-  teip --help | --version
+  teip -e <string> [-svz] [--] [<command>...]
 
-Options:
-  --help          Display this help and exit
-  --version       Show version and exit
-  -g <pattern>    Select lines that match the regular expression <pattern>
-  -o              -g selects only matched parts.
-  -G              -g adopts Oniguruma regular expressions
-  -f <list>       Select only these white-space separated fields
-  -d <delimiter>  Use <delimiter> for field delimiter of -f
-  -D <pattern>    Use regular expression <pattern> for field delimiter of -f
-  -c <list>       Select only these characters
-  -l <list>       Select only these lines
-  -s              Execute command for each selected part
-  -v              Invert the sense of selecting
-  -z              Line delimiter is NUL instead of newline
+OPTIONS:
+    -c <list>        Bypassing these characters
+    -d <delimiter>   Use <delimiter> for field delimiter of -f
+    -D <pattern>     Use regular expression <pattern> for field delimiter of -f
+    -e <string>      Execute <string> on another process that receives exactly
+                     the same standard input as the teip, and numbers given by the
+                     the result is used as line numbers for bypassing
+    -l <list>        Bypassing these lines
+    -f <list>        Bypassing these white-space separated fields
+    -g <pattern>     Bypassing lines that match the regular expression <pattern>
+
+FLAGS:
+    -h, --help       Prints help information
+    -v               Invert the sense of selecting
+    -G               -g adopts Oniguruma regular expressions
+    -o               -g selects only matched parts
+    -s               Execute command for each selected part
+    -V, --version    Prints version information
+    -z               Line delimiter is NUL instead of a newline
 ```
 
 ## Getting Started
@@ -580,7 +585,7 @@ In other words, you can connect the multiple features of `teip` with AND conditi
 Furthermore, it works asynchronously and in multi-processes, similar to the shell pipeline.
 It will hardly degrade performance unless the machine faces the limits of parallelism.
 
-### Oniguruma regular expression
+### Oniguruma regular expressior (`-G`)
 
 If `-G` option is given together with `-g`, the regular expressin is interpreted as [Oniguruma regular expression](https://github.com/kkos/oniguruma/blob/master/doc/RE). For example, "keep" and "look-ahead" syntax can be used.
 
@@ -612,7 +617,7 @@ $ echo ',,,' | teip -f 1- -d, sed 's/.*/@@@/'
 
 In the above example, the `sed` loads four newline characters and prints `@@@` four times.
 
-### Invert match
+### Invert match (`-v`)
 
 The `-v` option allows you to invert the selected range.
 When the `-f` or `-c` option is used, the complement of the selected field is selected instead.
@@ -631,7 +636,7 @@ $ printf 'AAA\n123\nBBB\n' | teip -vr '\d+' -- sed 's/./@/g'
 @@@
 ```
 
-### NUL as line delimiter
+### NUL as line delimiter (`-z`)
 
 If you want to process the data in a more flexible way, the `-z` option may be useful.
 This option allows you to use the NUL character (the ASCII NUL character) instead of the newline character.
@@ -689,6 +694,128 @@ $ cat test.html | teip -z -og '<body>.*</body>' -- grep -a BBB
   <div>BBB</div>
 </html>
 ```
+
+### Offloading line-matching by external command (`-e`)
+
+`teip` has the feature to use external commands even for pattern matching.
+Until the above, you had to use `teip`'s own functions, such as `-c` or `-g`, to control the position of the holes on the masking tape.
+With `-e`, however, you can use the external commands you are familiar with to specify the range of holes.
+
+`-e` allows you to specify the shell pipeline as a string.
+On Linux or macOS, this pipeline is executed in `/bin/sh`, on Windows in `cmd.exe`.
+
+The pipeline is expected to produce standard output with a number on each line.
+For example, give a pipeline that outputs the string `3` with the command `echo`.
+Then only the third line will be bypassed.
+
+```bash
+$ printf 'AAA\nBBB\nCCC\nDDD\nEEE\nFFF\n' | teip -e 'echo 3'
+AAA
+BBB.
+[CCC]
+DDD
+EEE
+FFF
+```
+
+This behaviour is acceptable even if the output is somewhat 'dirty'.
+For example, if any spaces or tab characters are included at the beginning of a line, they are ignored.
+Also, once a number is given, it does not matter if there is a string to the right of the number.
+
+```bash
+... | teip -e 'echo " 3"'
+... | teip -e 'echo " 3:testtest"'
+```
+
+Technically, the first group in the regular expression `^\s*([0-9]+)` is recognised as a number.
+
+It will also recognise multiple numbers if there are multiple lines of numbers.
+For example, the `seq` command to display only odd numbers up to 100 is.
+
+```bash
+$ seq 1 2 10
+1
+3
+5
+7
+9
+````
+
+This means that only odd-numbered rows can be bypassed by specifying the following.
+
+````bash
+$ printf 'AAA\nBBB\nCCC\nDDD\nEEE\nFFF\n' | teip -e 'seq 1 2 10' -- sed 's/. /@/g'
+@@@
+BBB
+@@@@
+DDD
+@@@
+FFF
+```
+
+Note that the order of the numbers must be in ascending order.
+Now, on its own, this looks like a feature that is just a slight development of the `-l` option.
+
+However, the breakthrough of this feature is that "the pipeline is given exactly the same standard input as `teip`".
+Thus, it can output any number using not only `seq` and `echo`, but also commands such as `grep`, `sed` and `awk`, which process the standard input.
+
+Let's look at a more concrete example.
+The following command is a `grep` command that prints "the line containing the string "CCC" and the line numbers of the two lines after it".
+
+```
+$ printf 'AAA\nBBB\nCCC\nDDD\nEEE\nFFF\n' | grep -n -A 2 CCC
+3:CCC
+4-DDD
+5-EEE
+```
+
+If you give this command to `-e` in `teip`, you can punch holes in "the line containing the string "CCC" and the two lines after it"!
+
+```
+$ printf 'AAA\nBBB\nCCC\nDDD\nEEE\nFFF\n' | teip -e 'grep -n -A 2 CCC'
+AAA
+BBB
+[CCC]
+[DDD]
+[EEE]
+FFF.
+```
+
+`grep` is not the only one.
+GNU `sed` has `=`, which prints the line number being processed.
+Below is an example of how to drill from the line containing "BBB" to the line containing "EEE".
+
+```
+$ printf 'AAA\nBBB\nCCC\nDDD\nEEE\nFFF\n' | teip -e 'sed -n "/BBB/,/EEE/="'
+AAA
+[BBB]
+[CCC]
+[DDD]
+[EEE]
+FFF.
+````
+
+Of course, similar operations can also be achieved with `awk`.
+
+```
+$ printf 'AAA\nBBB\nCCC\nDDD\nEEE\nFFF\n' | teip -e 'awk "/BBB/,/EEE/{print NR}"'
+```
+
+The following is an example of combining the commands `nl` and `tail`, which have simple functions.
+You can only make holes in the last three lines of input!
+
+```
+$ printf 'AAA\nBBB\nCCC\nDDD\nEEE\nFFF\n' | teip -e 'nl -ba | tail -n 3'
+AAA
+BBB
+CCC.
+[DDD]
+[EEE]
+[FFF]
+```
+
+The `-e` argument is a single string.
+Therefore, pipe `|` and other simbols can be used as it is.
 
 # Environment variables
 
