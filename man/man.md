@@ -54,6 +54,9 @@ OPTIONS
 `-c` <*list*>
   Select only these characters
 
+`-e` <*string*>
+  Execute <*string*> on another process that receives exactly the same standard input as the teip, and numbers given by the the result is used as line numbers for bypassing
+
 `-s`
   Execute command for each selected part
 
@@ -178,10 +181,10 @@ Convert timestamps in /var/log/secure to UNIX time
 $ cat /var/log/secure | teip -c 1-15 -- date -f- +%s
 ```
 
-Percent-encode bare-minimum range of the file (`php-cli` is required)
+Edit the line containing 'hello' and the three lines before and after it
 
 ```
-$ teip -og '[^-a-zA-Z0-9@:%._\+~#=/]+' -- php -R 'echo urlencode($argn)."\n";'
+$ cat access.log | teip -e 'grep -n -C 3 hello' -- sed 's/./@/g'
 ```
 
 SEE ALSO
