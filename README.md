@@ -711,7 +711,7 @@ Then only the third line will be bypassed.
 ```bash
 $ printf 'AAA\nBBB\nCCC\nDDD\nEEE\nFFF\n' | teip -e 'echo 3'
 AAA
-BBB.
+BBB
 [CCC]
 DDD
 EEE
@@ -739,11 +739,11 @@ $ seq 1 2 10
 5
 7
 9
-````
+```
 
 This means that only odd-numbered rows can be bypassed by specifying the following.
 
-````bash
+```bash
 $ printf 'AAA\nBBB\nCCC\nDDD\nEEE\nFFF\n' | teip -e 'seq 1 2 10' -- sed 's/. /@/g'
 @@@
 BBB
@@ -778,7 +778,7 @@ BBB
 [CCC]
 [DDD]
 [EEE]
-FFF.
+FFF
 ```
 
 `grep` is not the only one.
@@ -792,8 +792,8 @@ AAA
 [CCC]
 [DDD]
 [EEE]
-FFF.
-````
+FFF
+```
 
 Of course, similar operations can also be achieved with `awk`.
 
@@ -808,7 +808,7 @@ You can only make holes in the last three lines of input!
 $ printf 'AAA\nBBB\nCCC\nDDD\nEEE\nFFF\n' | teip -e 'nl -ba | tail -n 3'
 AAA
 BBB
-CCC.
+CCC
 [DDD]
 [EEE]
 [FFF]
