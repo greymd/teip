@@ -37,50 +37,50 @@ mod cmdtest {
 
     // TODO: Add test mofffload + inverse match
     #[test]
-    fn test_moffload_grep() {
+    fn test_exoffload_grep() {
         let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
         let mcmd = format!("{} -n A", ESCAPE_GREP_CMD);
-        cmd.args(&["-M", &mcmd, SED_CMD, "s/./@/"])
+        cmd.args(&["-e", &mcmd, SED_CMD, "s/./@/"])
             .write_stdin("ABC\nDFE\nBCC\nCCA\n")
             .assert()
             .stdout("@BC\nDFE\nBCC\n@CA\n");
     }
 
     #[test]
-    fn test_moffload_nl() {
+    fn test_exoffload_nl() {
         let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
         let mcmd = format!("{}", ESCAPE_NL_CMD);
-        cmd.args(&["-M", &mcmd, SED_CMD, "s/./@/g"])
+        cmd.args(&["-e", &mcmd, SED_CMD, "s/./@/g"])
             .write_stdin("ABC\nDFE\nBCC\nCCA\n")
             .assert()
             .stdout("@@@\n@@@\n@@@\n@@@\n");
     }
 
     #[test]
-    fn test_moffload_nl_solid() {
+    fn test_exoffload_nl_solid() {
         let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
         let mcmd = format!("{}", ESCAPE_NL_CMD);
-        cmd.args(&["-M", &mcmd, "-s", SED_CMD, "s/./@/g"])
+        cmd.args(&["-e", &mcmd, "-s", SED_CMD, "s/./@/g"])
             .write_stdin("ABC\nDFE\nBCC\nCCA\n")
             .assert()
             .stdout("@@@\n@@@\n@@@\n@@@\n");
     }
 
     #[test]
-    fn test_moffload_echo() {
+    fn test_exoffload_echo() {
         let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
         let mcmd = format!("{} 3", ESCAPE_ECHO_CMD);
-        cmd.args(&["-M", &mcmd, SED_CMD, "s/./@/g"])
+        cmd.args(&["-e", &mcmd, SED_CMD, "s/./@/g"])
             .write_stdin("ABC\nDFE\nBCC\nCCA\n")
             .assert()
             .stdout("ABC\nDFE\n@@@\nCCA\n");
     }
 
     #[test]
-    fn test_moffload_echo_solid() {
+    fn test_exoffload_echo_solid() {
         let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
         let mcmd = format!("{} 3", ESCAPE_ECHO_CMD);
-        cmd.args(&["-s", "-M", &mcmd, SED_CMD, "s/.//g"])
+        cmd.args(&["-s", "-e", &mcmd, SED_CMD, "s/.//g"])
             .write_stdin("ABC\nDFE\nBCC\nCCA\n")
             .assert()
             .stdout("ABC\nDFE\n\nCCA\n");

@@ -47,22 +47,24 @@ lazy_static! {
 
 #[derive(StructOpt, Debug)]
 #[structopt(
-    about = "Allow the command handle selected parts of the standard input, and bypass other parts.",
+    about = "Bypassing a partial range of standard input to an arbitrary command",
+    usage = "teip [OPTIONS] [FLAGS] [--] [<command>...]",
     help = "USAGE:
   teip -g <pattern> [-oGsvz] [--] [<command>...]
   teip -f <list> [-d <delimiter> | -D <pattern>] [-svz] [--] [<command>...]
   teip -c <list> [-svz] [--] [<command>...]
   teip -l <list> [-svz] [--] [<command>...]
-  teip -M <pipeline> [-svz] [--] [<command>...]
+  teip -e <string> [-svz] [--] [<command>...]
 
 OPTIONS:
-    -c <list>        Select only these characters
+    -c <list>        Bypassing these characters
     -d <delimiter>   Use <delimiter> for field delimiter of -f
     -D <pattern>     Use regular expression <pattern> for field delimiter of -f
-    -l <list>        Select only these lines
-    -f <list>        Select only these white-space separated fields
-    -g <pattern>     Select lines that match the regular expression <pattern>
-    -M <pipeline>    Offload match rules to an external command which prints line numbers
+    -l <list>        Bypassing these lines
+    -f <list>        Bypassing these white-space separated fields
+    -g <pattern>     Bypassing lines that match the regular expression <pattern>
+    -e <string>      Execute <string> on another process, and numbers included in the result are used as line numbers
+                     for bypassing. This process receives exactly the same standard input as the teip.
 
 FLAGS:
     -h, --help       Prints help information
@@ -72,7 +74,16 @@ FLAGS:
     -s               Execute command for each selected part
     -V, --version    Prints version information
     -z               Line delimiter is NUL instead of newline
-",
+
+EXAMPLES:
+  Edit 2nd, 3rd, and 4th columns in the CSV file
+    $ cat file.csv | teip -f 2-4 -d , -- sed 's/./@/g'
+  Convert timestamps in /var/log/secure to UNIX time
+    $ cat /var/log/secure | teip -c 1-15 -- date -f- +%s
+  Edit the line containing 'hello' and the three lines before and after it
+    $ cat access.log | teip -e 'grep -n -C 3 hello' -- sed 's/./@/g'
+
+Full documentation at:<https://github.com/greymd/teip>",
 )]
 
 struct Args {
@@ -83,7 +94,6 @@ struct Args {
     #[structopt(short = "G")]
     onig_enabled: bool,
     #[structopt(short = "f")]
-    
     list: Option<String>,
     #[structopt(short = "d")]
     delimiter: Option<String>,
@@ -99,9 +109,8 @@ struct Args {
     invert: bool,
     #[structopt(short = "z")]
     zero: bool,
-    #[structopt(short = "M")]
-    moffload_pipeline: Option<String>,
-
+    #[structopt(short = "e")]
+    exoffload_pipeline: Option<String>,
     #[structopt(name = "command")]
     commands: Vec<String>,
 }
@@ -131,8 +140,8 @@ fn main() {
     let flag_delimiter = args.delimiter.is_some();
     let delimiter = args.delimiter.as_ref().map(|s| s.as_str()).unwrap_or("");
     let flag_regex_delimiter = args.regexp_delimiter.is_some();
-    let flag_moffload = args.moffload_pipeline.is_some();
-    let moffload_pipeline = args.moffload_pipeline.as_ref().map(|s| s.as_str()).unwrap_or("");
+    let flag_moffload = args.exoffload_pipeline.is_some();
+    let exoffload_pipeline = args.exoffload_pipeline.as_ref().map(|s| s.as_str()).unwrap_or("");
 
     let mut regex_mode = String::new();
     let mut regex = Regex::new("").unwrap();
@@ -236,7 +245,7 @@ fn main() {
                     .unwrap_or_else(|e| error_exit(&e.to_string()));
             }
         } else if flag_moffload {
-            moffload_proc(&mut ch, moffload_pipeline, flag_invert, line_end)
+            exoffload_proc(&mut ch, exoffload_pipeline, flag_invert, line_end)
                     .unwrap_or_else(|e| error_exit(&e.to_string()));
         }
     } else {
@@ -277,15 +286,15 @@ fn main() {
     }
 }
 
-fn moffload_proc(
+fn exoffload_proc(
     ch: &mut PipeIntercepter,
-    moffload_pipeline: &str,
+    exoffload_pipeline: &str,
     invert: bool,
     line_end: u8,
 ) -> Result<(), errors::TokenSendError> {
     let (stdin1, mut stdin2) = procspawn::tee(line_end)
             .unwrap_or_else(|e| error_exit(&e.to_string()));
-    let noisy_numbers = procspawn::start_moffload_filter(moffload_pipeline, stdin1, line_end)
+    let noisy_numbers = procspawn::start_exoffload_filter(exoffload_pipeline, stdin1, line_end)
             .unwrap_or_else(|e| error_exit(&e.to_string()));
     let print_line_numbers = procspawn::clean_numbers(noisy_numbers, line_end);
     let mut nr: u64 = 0;     // number of read
@@ -307,7 +316,7 @@ fn moffload_proc(
                         Ok(i) => {
                             pos = i;
                             if pos < last_pos {
-                                msg_error(format!("WARN: -M Command must print numbers in ascending order: order {} -> {} found", last_pos, pos).as_ref());
+                                msg_error(format!("WARN: pipeline must print numbers in ascending order: order {} -> {} found", last_pos, pos).as_ref());
                             }
                             last_pos = pos;
                         },

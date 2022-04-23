@@ -101,7 +101,7 @@ pub fn tee(line_end: u8) -> std::result::Result<(BufReader<FileDescriptor>, BufR
     Ok((reader1, reader2))
 }
 
-pub fn start_moffload_filter (
+pub fn start_exoffload_filter (
     command: &str,
     mut input: BufReader<FileDescriptor>,
     line_end: u8
@@ -109,7 +109,7 @@ pub fn start_moffload_filter (
             BufReader<Box<dyn Read + Send>>,
             errors::SpawnError
     > {
-    debug!("start_moffload_filter: start");
+    debug!("start_exoffload_filter: start");
     cfg_if::cfg_if! {
         if #[cfg(windows)] {
             let cmds: Vec<String> = vec!["cmd","/C", command].into_iter().map(|s| s.to_owned()).collect();
@@ -121,7 +121,7 @@ pub fn start_moffload_filter (
     let mut n_writer = BufWriter::new(fd_in);
     let n_reader = BufReader::new(fd_out);
     thread::spawn(move || {
-        debug!("start_moffload_filter: thread: start");
+        debug!("start_exoffload_filter: thread: start");
         loop {
             let mut buf = Vec::with_capacity(DEFAULT_CAP);
             match input.read_until(line_end, &mut buf) {
@@ -138,7 +138,7 @@ pub fn start_moffload_filter (
             }
         }
     });
-    debug!("start_moffload_filter: end");
+    debug!("start_exoffload_filter: end");
     Ok(n_reader)
 }
 
