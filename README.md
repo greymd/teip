@@ -756,7 +756,7 @@ FFF
 Note that the order of the numbers must be in ascending order.
 Now, on its own, this looks like a feature that is just a slight development of the `-l` option.
 
-However, the breakthrough of this feature is that "the pipeline is given identical standard input as `teip`".
+However, the breakthrough of this feature is that "the pipeline obtains identical standard input as `teip`".
 Thus, it can output any number using not only `seq` and `echo`, but also commands such as `grep`, `sed` and `awk`, which process the standard input.
 
 Let's look at a more concrete example.
