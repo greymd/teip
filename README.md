@@ -28,10 +28,10 @@ $ cat file.csv | teip -d, -f 4,6 -- sed 's/./@/g'
 $ cat /var/log/secure | teip -c 1-15 -- date -f- +%s
 ```
 
-* Percent-encode bare-minimum range of the file
+* Edit the line containing 'hello' and the three lines before and after it
 
 ```bash
-$ cat file | teip -og '[^-a-zA-Z0-9@:%._\+~#=/]+' -- php -R 'echo urlencode($argn)."\n";'
+$ cat access.log | teip -e 'grep -n -C 3 hello' -- sed 's/./@/g'
 ```
 
 # Performance enhancement
@@ -47,10 +47,9 @@ See detail on <a href="https://github.com/greymd/teip/wiki/Benchmark">wiki > Ben
 
 # Features
 
-* Allows any command to "ignore unwanted input" which most commands cannot do
-  - The targeted command just handles selected parts of the standard input
-  - Unselected parts are bypassed by `teip`
-  - Flexible methods for selecting a range (Select like AWK, `cut` command, or a regular expression)
+* Bypassing a partial range of standard input to any command whatever you want
+  - The targeted command just handles bypassed parts of the standard input
+  - Flexible methods for selecting a range (Select like AWK, `cut` or `grep`)
 
 * High performer
   - The targeted command's standard input/output are intercepted by multiple `teip`'s threads asynchronously.
