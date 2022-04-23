@@ -21,7 +21,7 @@ pub fn exit_silently(msg: &str) -> ! {
 }
 
 
-const PIPE_ERROR_MSG: &'static str = "Output of given command is exhausted";
+const PIPE_ERROR_MSG: &'static str = "Output of targeted command has been exhausted";
 
 pub enum PipeReceiveError {
     EndOfFd,

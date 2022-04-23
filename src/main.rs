@@ -60,11 +60,12 @@ OPTIONS:
     -c <list>        Bypassing these characters
     -d <delimiter>   Use <delimiter> for field delimiter of -f
     -D <pattern>     Use regular expression <pattern> for field delimiter of -f
+    -e <string>      Execute <string> on another process that receives exactly
+                     the same standard input as the teip, and numbers given by the
+                     the result is used as line numbers for bypassing
     -l <list>        Bypassing these lines
     -f <list>        Bypassing these white-space separated fields
     -g <pattern>     Bypassing lines that match the regular expression <pattern>
-    -e <string>      Execute <string> on another process, and numbers included in the result are used as line numbers
-                     for bypassing. This process receives exactly the same standard input as the teip.
 
 FLAGS:
     -h, --help       Prints help information
@@ -73,7 +74,7 @@ FLAGS:
     -o               -g selects only matched parts
     -s               Execute command for each selected part
     -V, --version    Prints version information
-    -z               Line delimiter is NUL instead of newline
+    -z               Line delimiter is NUL instead of a newline
 
 EXAMPLES:
   Edit 2nd, 3rd, and 4th columns in the CSV file
@@ -286,6 +287,7 @@ fn main() {
     }
 }
 
+/// Offloading line-matching by external command ( -e )
 fn exoffload_proc(
     ch: &mut PipeIntercepter,
     exoffload_pipeline: &str,
