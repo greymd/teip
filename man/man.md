@@ -55,7 +55,7 @@ OPTIONS
   Select only these characters
 
 `-e` <*string*>
-  Execute <*string*> on another process that receives exactly the same standard input as the teip, and numbers given by the the result is used as line numbers for bypassing
+  Execute <*string*> on another process that receives identical standard input as the teip, and numbers given by the the result is used as line numbers for bypassing
 
 `-s`
   Execute command for each selected part
