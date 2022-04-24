@@ -154,17 +154,13 @@ pub fn clean_numbers (mut input: BufReader<Box<dyn Read + Send>>, line_end: u8) 
                     match stringutils::extract_number(line) {
                         Some(i) => {
                             debug!("clean_numbers: thread: tx => {}", i);
-                            tx.send(i).unwrap();
-                            // TODO:
-                            // $ printf 'AAA\nBBB\nCCC\nDDD\nEEE\nFFF\n' | teipd -e 'seq 1 2 100' -- sed 's/./@/g'
-                            // thread '<unnamed>' panicked at 'called `Result::unwrap()` on an `Err` value: SendError { .. }', src/procspawn.rs:157:40
-                            // note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
-                            // @@@
-                            // BBB
-                            // @@@
-                            // DDD
-                            // @@@
-                            // FFF
+                            match tx.send(i) {
+                                Ok(_) => (),
+                                Err(_) => {
+                                    debug!("clean_numbers: thread: receiver thread may be closed earler than this thread.");
+                                    break;
+                                },
+                            }
                         },
                         None => {},
                     }

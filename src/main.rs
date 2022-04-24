@@ -21,7 +21,7 @@ mod stringutils;
 #[macro_use]
 extern crate lazy_static;
 
-use log::debug;
+use log::debug; // Enable with RUST_LOG=debug
 use regex::Regex;
 use std::env;
 use std::io::{self, BufRead};
