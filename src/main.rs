@@ -60,9 +60,9 @@ OPTIONS:
     -c <list>        Bypassing these characters
     -d <delimiter>   Use <delimiter> for field delimiter of -f
     -D <pattern>     Use regular expression <pattern> for field delimiter of -f
-    -e <string>      Execute <string> on another process that receives identical
+    -e <string>      Execute <string> on another process that will receive identical
                      standard input as the teip, and numbers given by the result
-                     is used as line numbers for bypassing
+                     are used as line numbers for bypassing
     -l <list>        Bypassing these lines
     -f <list>        Bypassing these white-space separated fields
     -g <pattern>     Bypassing lines that match the regular expression <pattern>

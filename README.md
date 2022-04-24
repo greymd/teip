@@ -697,39 +697,40 @@ $ cat test.html | teip -z -og '<body>.*</body>' -- grep -a BBB
 
 ### Offloading line-matching by external command (`-e`)
 
-`teip` has the feature to use external commands even for pattern matching.
+`-e` is the option to use external commands for pattern matching.
 Until the above, you had to use `teip`'s own functions, such as `-c` or `-g`, to control the position of the holes on the masking tape.
 With `-e`, however, you can use the external commands you are familiar with to specify the range of holes.
 
 `-e` allows you to specify the shell pipeline as a string.
-On Linux or macOS, this pipeline is executed in `/bin/sh`, on Windows in `cmd.exe`.
+On UNIX-like OS, this pipeline is executed in `/bin/sh`, on Windows in `cmd.exe`.
 
-The pipeline is expected to produce standard output with a number on each line.
-For example, give a pipeline that outputs the string `3` with the command `echo`.
-Then only the third line will be bypassed.
+For example, with a pipeline `echo 3` that outputs `3`, then only the third line will be bypassed.
 
 ```bash
-$ printf 'AAA\nBBB\nCCC\nDDD\nEEE\nFFF\n' | teip -e 'echo 3'
+$ echo -e 'AAA\nBBB\nCCC' | teip -e 'echo 3'
 AAA
 BBB
 [CCC]
-DDD
-EEE
-FFF
 ```
 
-This behaviour is acceptable even if the output is somewhat 'dirty'.
+It works even if the output is somewhat 'dirty'.
 For example, if any spaces or tab characters are included at the beginning of a line, they are ignored.
-Also, once a number is given, it does not matter if there is a string to the right of the number.
+Also, once a number is given, it does not matter if there are non-numerical characters to the right of the number.
 
 ```bash
-... | teip -e 'echo " 3"'
-... | teip -e 'echo " 3:testtest"'
+$ echo -e 'AAA\nBBB\nCCC' | teip -e 'echo " 3"'
+AAA
+BBB
+[CCC]
+$ echo -e 'AAA\nBBB\nCCC' | teip -e 'echo " 3:testtest"'
+AAA
+BBB
+[CCC]
 ```
 
-Technically, the first group in the regular expression `^\s*([0-9]+)` is recognised as a number.
+Technically, the first captured group in the regular expression `^\s*([0-9]+)` is interpreted as a line number.
 
-It will also recognise multiple numbers if there are multiple lines of numbers.
+`-e` will also recognize multiple numbers if the pipeline provides multiple lines of numbers.
 For example, the `seq` command to display only odd numbers up to 100 is.
 
 ```bash
@@ -744,10 +745,10 @@ $ seq 1 2 10
 This means that only odd-numbered rows can be bypassed by specifying the following.
 
 ```bash
-$ printf 'AAA\nBBB\nCCC\nDDD\nEEE\nFFF\n' | teip -e 'seq 1 2 10' -- sed 's/. /@/g'
+$ echo -e 'AAA\nBBB\nCCC\nDDD\nEEE\nFFF' | teip -e 'seq 1 2 10' -- sed 's/. /@/g'
 @@@
 BBB
-@@@@
+@@@
 DDD
 @@@
 FFF
@@ -756,23 +757,23 @@ FFF
 Note that the order of the numbers must be in ascending order.
 Now, on its own, this looks like a feature that is just a slight development of the `-l` option.
 
-However, the breakthrough of this feature is that "the pipeline obtains identical standard input as `teip`".
-Thus, it can output any number using not only `seq` and `echo`, but also commands such as `grep`, `sed` and `awk`, which process the standard input.
+However, the breakthrough of this feature is that **the pipeline obtains identical standard input as `teip`**.
+Thus, it can output any number using not only `seq` and `echo`, but also commands such as `grep`, `sed`, and `awk`, which process the standard input.
 
 Let's look at a more concrete example.
-The following command is a `grep` command that prints "the line containing the string "CCC" and the line numbers of the two lines after it".
+The following command is a `grep` command that prints **the line numbers of the line containing the string "CCC" and the two lines after it**.
 
-```
-$ printf 'AAA\nBBB\nCCC\nDDD\nEEE\nFFF\n' | grep -n -A 2 CCC
+```bash
+$ echo -e 'AAA\nBBB\nCCC\nDDD\nEEE\nFFF' | grep -n -A 2 CCC
 3:CCC
 4-DDD
 5-EEE
 ```
 
-If you give this command to `-e` in `teip`, you can punch holes in "the line containing the string "CCC" and the two lines after it"!
+If you give this command to `-e`, you can punch holes in **the line containing the string "CCC" and the two lines after it**!
 
-```
-$ printf 'AAA\nBBB\nCCC\nDDD\nEEE\nFFF\n' | teip -e 'grep -n -A 2 CCC'
+```bash
+$ echo -e 'AAA\nBBB\nCCC\nDDD\nEEE\nFFF' | teip -e 'grep -n -A 2 CCC'
 AAA
 BBB
 [CCC]
@@ -785,8 +786,8 @@ FFF
 GNU `sed` has `=`, which prints the line number being processed.
 Below is an example of how to drill from the line containing "BBB" to the line containing "EEE".
 
-```
-$ printf 'AAA\nBBB\nCCC\nDDD\nEEE\nFFF\n' | teip -e 'sed -n "/BBB/,/EEE/="'
+```bash
+$ echo -e 'AAA\nBBB\nCCC\nDDD\nEEE\nFFF' | teip -e 'sed -n "/BBB/,/EEE/="'
 AAA
 [BBB]
 [CCC]
@@ -795,17 +796,17 @@ AAA
 FFF
 ```
 
-Of course, similar operations can also be achieved with `awk`.
+Of course, similar operations can also be done with `awk`.
 
-```
-$ printf 'AAA\nBBB\nCCC\nDDD\nEEE\nFFF\n' | teip -e 'awk "/BBB/,/EEE/{print NR}"'
+```bash
+$ echo -e 'AAA\nBBB\nCCC\nDDD\nEEE\nFFF' | teip -e 'awk "/BBB/,/EEE/{print NR}"'
 ```
 
-The following is an example of combining the commands `nl` and `tail`, which have simple functions.
+The following is an example of combining the commands `nl` and `tail`.
 You can only make holes in the last three lines of input!
 
-```
-$ printf 'AAA\nBBB\nCCC\nDDD\nEEE\nFFF\n' | teip -e 'nl -ba | tail -n 3'
+```bash
+$ echo -e 'AAA\nBBB\nCCC\nDDD\nEEE\nFFF' | teip -e 'nl -ba | tail -n 3'
 AAA
 BBB
 CCC
@@ -815,7 +816,7 @@ CCC
 ```
 
 The `-e` argument is a single string.
-Therefore, pipe `|` and other simbols can be used as it is.
+Therefore, pipe `|` and other symbols can be used as it is.
 
 # Environment variables
 
