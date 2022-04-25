@@ -294,35 +294,43 @@ fn exoffload_proc(
     invert: bool,
     line_end: u8,
 ) -> Result<(), errors::TokenSendError> {
-    let (stdin1, mut stdin2) = procspawn::tee(line_end)
+    let (stdin1, mut stdin2, _t1) = procspawn::tee(line_end)
             .unwrap_or_else(|e| error_exit(&e.to_string()));
-    let noisy_numbers = procspawn::start_exoffload_filter(exoffload_pipeline, stdin1, line_end)
+    // TODO: stdin1 can be stucked here?
+    let (noisy_numbers, _t2) = procspawn::spawn_exoffload_command(exoffload_pipeline, stdin1, line_end)
             .unwrap_or_else(|e| error_exit(&e.to_string()));
-    let print_line_numbers = procspawn::clean_numbers(noisy_numbers, line_end);
+    let (print_line_numbers, _t3) = procspawn::clean_numbers(noisy_numbers, line_end);
     let mut nr: u64 = 0;     // number of read
     let mut pos: u64 = 0;
     let mut last_pos: u64 = pos;
+    let mut wrote_bytes: u64 = 0;
     loop {
         let mut buf = Vec::with_capacity(DEFAULT_CAP);
+        // debug!("exoffload_proc: Read from stdin2");
         match stdin2.read_until(line_end, &mut buf) {
             Ok(n) => {
                 let eol = stringutils::trim_eol(&mut buf);
                 let line = String::from_utf8_lossy(&buf).to_string();
+                wrote_bytes += n as u64;
+                debug!("exoffload_proc: wrote bytes {}", wrote_bytes);
                 if n == 0 {
                     ch.send_eof()?;
                     break;
                 }
                 nr += 1;
                 while pos < nr {
+                    debug!("exoffload_proc: Dequeue line numbers");
                     match print_line_numbers.recv() {
                         Ok(i) => {
                             pos = i;
+                            debug!("exoffload_proc: Queued number: {}", pos);
                             if pos < last_pos {
                                 msg_error(format!("WARN: pipeline must print numbers in ascending order: order {} -> {} found", last_pos, pos).as_ref());
                             }
                             last_pos = pos;
                         },
                         Err(_) => {
+                            debug!("exoffload_proc: Queue got emptied");
                             break;
                         },
                     }
