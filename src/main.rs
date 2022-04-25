@@ -25,6 +25,7 @@ use log::debug; // Enable with RUST_LOG=debug
 use regex::Regex;
 use std::env;
 use std::io::{self, BufRead};
+use std::time::Duration;
 use structopt::StructOpt;
 
 #[cfg(feature = "oniguruma")]
@@ -294,7 +295,7 @@ fn exoffload_proc(
     invert: bool,
     line_end: u8,
 ) -> Result<(), errors::TokenSendError> {
-    let (stdin1, mut stdin2, _thread1, tee_processed_bytes) = procspawn::tee(line_end)
+    let (stdin1, mut stdin2, _thread1, tee_processed_bytes, tee_processed_lines) = procspawn::tee(line_end)
             .unwrap_or_else(|e| error_exit(&e.to_string()));
     let (noisy_numbers, _thread2) = procspawn::spawn_exoffload_command(exoffload_pipeline, stdin1, line_end)
             .unwrap_or_else(|e| error_exit(&e.to_string()));
@@ -316,11 +317,14 @@ fn exoffload_proc(
                     break;
                 }
                 read_bytes += n as u64;
-                let mut last_buffer_gap = 0;
+                let mut last_tee_nr_update: Option<std::time::Instant> = None;
+                let mut last_tee_nr = 0;
                 while pos < nr {
                     let wrote_bytes = tee_processed_bytes.lock().unwrap();
                     let buffer_gap = *wrote_bytes - read_bytes;
                     drop(wrote_bytes); // unlock Mutex
+                    let tee_nr = *(tee_processed_lines.lock().unwrap());
+                    let nr_gap = tee_nr - nr;
                     debug!("exoffload_proc: Dequeue line numbers");
                     match print_line_numbers.try_recv() {
                         Ok(i) => {
@@ -332,15 +336,27 @@ fn exoffload_proc(
                             last_pos = pos;
                         },
                         Err(std::sync::mpsc::TryRecvError::Empty) => {
-                            debug!("exoffload_proc: Queie is empty: last_buffer_gap = {}, buffer_gap = {}", last_buffer_gap, buffer_gap);
-                            if last_buffer_gap == buffer_gap && buffer_gap >= 8192 {
-                                // If stdin seems to be stucked, go ahead next line
-                                debug!("exoffload_proc: stdin may be stucked");
-                                break;
+                            debug!("exoffload_proc: Queie is empty: nr = {}, tee_nr = {}, nr_gap = {}, last_tee_nr = {}, (tee_nr == last_tee_nr) = {}", nr, tee_nr, nr_gap, last_tee_nr, tee_nr == last_tee_nr);
+                            debug!("exoffload_proc: Queie is empty: buffer_gap = {}", buffer_gap);
+                            if tee_nr != last_tee_nr {
+                                debug!("exoffload_proc: start to measure time of tee");
+                                last_tee_nr_update = Some(std::time::Instant::now());
                             } else {
-                                last_buffer_gap = buffer_gap;
-                                continue;
+                                debug!("exoffload_proc: tee seems stopped, update time");
+                                match last_tee_nr_update {
+                                    Some(t) => {
+                                        // FIXME: This is quite adhoc workaround
+                                        // If tee stops more than 0.1 ms and pipe buffer is
+                                        // more than 8KB, process next line.
+                                        if t.elapsed() > Duration::new(0, 100000) && buffer_gap >= 8192 {
+                                            debug!("exoffload_proc: give up to wait, go ahead");
+                                            break;
+                                        }
+                                    },
+                                    None => {},
+                                }
                             }
+                            last_tee_nr = tee_nr;
                         },
                         Err(std::sync::mpsc::TryRecvError::Disconnected) => {
                             debug!("exoffload_proc: Queue got emptied");

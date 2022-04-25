@@ -72,7 +72,7 @@ pub fn exec_cmd_sync(input: String, cmds: &Vec<String>, line_end: u8) -> String 
 // Generate two readers which prints identical standard input.
 // Even if either reader outputs a line, another one will keep the identical line.
 // The behavior is similar to `tee' command.
-pub fn tee(line_end: u8) -> std::result::Result<(BufReader<FileDescriptor>, BufReader<FileDescriptor>, JoinHandle<()>, Arc<Mutex<u64>>), errors::SpawnError> {
+pub fn tee(line_end: u8) -> std::result::Result<(BufReader<FileDescriptor>, BufReader<FileDescriptor>, JoinHandle<()>, Arc<Mutex<u64>>, Arc<Mutex<u64>>), errors::SpawnError> {
     let fd1 = Pipe::new().map_err(|e| errors::SpawnError::Fd(e))?;
     let fd2 = Pipe::new().map_err(|e| errors::SpawnError::Fd(e))?;
     let mut writer1 = BufWriter::new(fd1.write);
@@ -80,7 +80,9 @@ pub fn tee(line_end: u8) -> std::result::Result<(BufReader<FileDescriptor>, BufR
     let reader1 = BufReader::new(fd1.read);
     let reader2 = BufReader::new(fd2.read);
     let processed_bytes = Arc::new(Mutex::new(0));
+    let nr = Arc::new(Mutex::new(0)); // number of read
     let byte_incrementer = Arc::clone(&processed_bytes);
+    let nr_incrementer = Arc::clone(&nr);
     let handler = thread::spawn(move || {
         debug!("tee: thread: start");
         let stdin = io::stdin();
@@ -95,6 +97,8 @@ pub fn tee(line_end: u8) -> std::result::Result<(BufReader<FileDescriptor>, BufR
                         Ok(n) => {
                             let mut c = byte_incrementer.lock().unwrap();
                             *c += n as u64;
+                            let mut c = nr_incrementer.lock().unwrap();
+                            *c += 1;
                             // debug!("tee: thread: Deliver to stdin1: FINISH");
                         },
                         Err(_) => {
@@ -127,7 +131,7 @@ pub fn tee(line_end: u8) -> std::result::Result<(BufReader<FileDescriptor>, BufR
         }
         debug!("tee: thread: end");
     });
-    Ok((reader1, reader2, handler, processed_bytes))
+    Ok((reader1, reader2, handler, processed_bytes, nr))
 }
 
 pub fn spawn_exoffload_command (
