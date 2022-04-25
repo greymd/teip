@@ -294,33 +294,35 @@ fn exoffload_proc(
     invert: bool,
     line_end: u8,
 ) -> Result<(), errors::TokenSendError> {
-    let (stdin1, mut stdin2, _t1) = procspawn::tee(line_end)
+    let (stdin1, mut stdin2, _thread1, tee_processed_bytes) = procspawn::tee(line_end)
             .unwrap_or_else(|e| error_exit(&e.to_string()));
-    // TODO: stdin1 can be stucked here?
-    let (noisy_numbers, _t2) = procspawn::spawn_exoffload_command(exoffload_pipeline, stdin1, line_end)
+    let (noisy_numbers, _thread2) = procspawn::spawn_exoffload_command(exoffload_pipeline, stdin1, line_end)
             .unwrap_or_else(|e| error_exit(&e.to_string()));
-    let (print_line_numbers, _t3) = procspawn::clean_numbers(noisy_numbers, line_end);
+    let (print_line_numbers, _thread3) = procspawn::clean_numbers(noisy_numbers, line_end);
     let mut nr: u64 = 0;     // number of read
     let mut pos: u64 = 0;
     let mut last_pos: u64 = pos;
-    let mut wrote_bytes: u64 = 0;
+    let mut read_bytes: u64 = 0;
     loop {
         let mut buf = Vec::with_capacity(DEFAULT_CAP);
-        // debug!("exoffload_proc: Read from stdin2");
+        debug!("exoffload_proc: Read from stdin2");
         match stdin2.read_until(line_end, &mut buf) {
             Ok(n) => {
+                nr += 1;
                 let eol = stringutils::trim_eol(&mut buf);
                 let line = String::from_utf8_lossy(&buf).to_string();
-                wrote_bytes += n as u64;
-                debug!("exoffload_proc: wrote bytes {}", wrote_bytes);
                 if n == 0 {
                     ch.send_eof()?;
                     break;
                 }
-                nr += 1;
+                read_bytes += n as u64;
+                let mut last_buffer_gap = 0;
                 while pos < nr {
+                    let wrote_bytes = tee_processed_bytes.lock().unwrap();
+                    let buffer_gap = *wrote_bytes - read_bytes;
+                    drop(wrote_bytes); // unlock Mutex
                     debug!("exoffload_proc: Dequeue line numbers");
-                    match print_line_numbers.recv() {
+                    match print_line_numbers.try_recv() {
                         Ok(i) => {
                             pos = i;
                             debug!("exoffload_proc: Queued number: {}", pos);
@@ -329,8 +331,20 @@ fn exoffload_proc(
                             }
                             last_pos = pos;
                         },
-                        Err(_) => {
+                        Err(std::sync::mpsc::TryRecvError::Empty) => {
+                            debug!("exoffload_proc: Queie is empty: last_buffer_gap = {}, buffer_gap = {}", last_buffer_gap, buffer_gap);
+                            if last_buffer_gap == buffer_gap && buffer_gap >= 8192 {
+                                // If stdin seems to be stucked, go ahead next line
+                                debug!("exoffload_proc: stdin may be stucked");
+                                break;
+                            } else {
+                                last_buffer_gap = buffer_gap;
+                                continue;
+                            }
+                        },
+                        Err(std::sync::mpsc::TryRecvError::Disconnected) => {
                             debug!("exoffload_proc: Queue got emptied");
+                            // TODO: it is not necessary to check channel statuce, once channel has been disconnected.
                             break;
                         },
                     }

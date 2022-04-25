@@ -1,7 +1,9 @@
-use std::thread::JoinHandle;
 use super::DEFAULT_CAP;
 use super::errors;
 use super::stringutils;
+use std::thread::JoinHandle;
+use std::sync::Mutex;
+use std::sync::Arc;
 use std::io::{self, BufRead, BufWriter, BufReader, Read, Write};
 use std::thread;
 use std::process::{Command, Stdio};
@@ -70,33 +72,33 @@ pub fn exec_cmd_sync(input: String, cmds: &Vec<String>, line_end: u8) -> String 
 // Generate two readers which prints identical standard input.
 // Even if either reader outputs a line, another one will keep the identical line.
 // The behavior is similar to `tee' command.
-pub fn tee(line_end: u8) -> std::result::Result<(BufReader<FileDescriptor>, BufReader<FileDescriptor>, JoinHandle<()>), errors::SpawnError> {
+pub fn tee(line_end: u8) -> std::result::Result<(BufReader<FileDescriptor>, BufReader<FileDescriptor>, JoinHandle<()>, Arc<Mutex<u64>>), errors::SpawnError> {
     let fd1 = Pipe::new().map_err(|e| errors::SpawnError::Fd(e))?;
     let fd2 = Pipe::new().map_err(|e| errors::SpawnError::Fd(e))?;
     let mut writer1 = BufWriter::new(fd1.write);
     let mut writer2 = BufWriter::new(fd2.write);
     let reader1 = BufReader::new(fd1.read);
     let reader2 = BufReader::new(fd2.read);
+    let processed_bytes = Arc::new(Mutex::new(0));
+    let byte_incrementer = Arc::clone(&processed_bytes);
     let handler = thread::spawn(move || {
         debug!("tee: thread: start");
         let stdin = io::stdin();
-        let mut send_bytes1: u64 = 0;
-        let mut send_bytes2: u64 = 0;
         loop {
             let mut buf = Vec::with_capacity(DEFAULT_CAP);
+            // TODO: Use read method not read_until
             match stdin.lock().read_until(line_end, &mut buf) {
                 Ok(n) => {
                     // debug!("tee: thread: Read from parent stdin: FINISH");
                     // debug!("tee: thread: Deliver to stdin1: START");
                     match writer1.write(&buf) {
                         Ok(n) => {
-                            send_bytes1 += n as u64;
-                            debug!("tee: thread: writer1: {}", send_bytes1);
-                            // debue!("tee: thread: Deliver to stdin1: FINISH");
-                            // TODO: Detect buffer gap here
+                            let mut c = byte_incrementer.lock().unwrap();
+                            *c += n as u64;
+                            // debug!("tee: thread: Deliver to stdin1: FINISH");
                         },
                         Err(_) => {
-                            // writer can easily got error if the command which doesn't accept
+                            // Writer can easily got error if the command which doesn't accept
                             // standard input is specified to -e, like teip -e 'cat file'.
                             // Therefore, do nothing explicitly here.
                             // debug!("tee: thread: writer1 error");
@@ -104,12 +106,10 @@ pub fn tee(line_end: u8) -> std::result::Result<(BufReader<FileDescriptor>, BufR
                     };
                     // debug!("tee: thread: Deliver to stdin2: START");
                     match writer2.write(&buf) {
-                        Ok(n) => {
-                            send_bytes2 += n as u64;
-                            debug!("tee: thread: writer2: {}", send_bytes2);
+                        Ok(_) => {
                             // debug!("tee: thread: Deliver to stdin2: FINISH");
                         },
-                        Err(e) => {
+                        Err(_e) => {
                             // debug!("tee: thread: writer2 error: {}", e.to_string());
                         },
                     };
@@ -117,7 +117,7 @@ pub fn tee(line_end: u8) -> std::result::Result<(BufReader<FileDescriptor>, BufR
                         break;
                     }
                 },
-                Err(e) => {
+                Err(_e) => {
                     // debug!("tee: thread: Error: {}", e.to_string());
                     drop(writer1);
                     drop(writer2);
@@ -127,7 +127,7 @@ pub fn tee(line_end: u8) -> std::result::Result<(BufReader<FileDescriptor>, BufR
         }
         debug!("tee: thread: end");
     });
-    Ok((reader1, reader2, handler))
+    Ok((reader1, reader2, handler, processed_bytes))
 }
 
 pub fn spawn_exoffload_command (
