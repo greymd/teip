@@ -32,11 +32,11 @@ jobs:
     strategy:
       matrix:
         include:
-          - name: regex_match
+          - name: perf_regex_match
             cmd: teip -og '.*sshd' < test_secure
-          - name: onig_match
+          - name: perf_onig_match
             cmd: teip -Gog '.*sshd' < test_secure
-          - name: convert_date
+          - name: perf_convert_date
             cmd: teip -c1-15 -- date -f- +%s < test_secure
           - name: mem_usage
             cmd: teip -e 'grep -n -C 3 admin' -- sed 's/./@/g' < test_secure
@@ -63,16 +63,19 @@ jobs:
         gzip -d ./test_secure.gz
 
     - name: Benchmark for a large file
+      if: contains(matrix.name, 'perf')
       run: |
         hyperfine --export-json ./${{ matrix.name }}.json "./target/release/${{ matrix.cmd }}"
 
     - name: Save benchmark result for processing time
+      if: contains(matrix.name, 'perf')
       uses: actions/upload-artifact@v1
       with:
         name: ${{ matrix.name }}
         path: ./${{ matrix.name }}.json
 
     - name: Show benchmark result for processing time
+      if: contains(matrix.name, 'perf')
       run: |
         cat ./${{ matrix.name }}.json
 

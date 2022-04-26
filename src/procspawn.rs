@@ -2,14 +2,11 @@ use super::DEFAULT_CAP;
 use super::errors;
 use super::stringutils;
 use std::thread::JoinHandle;
-use std::sync::Mutex;
-use std::sync::Arc;
 use std::io::{self, BufRead, BufWriter, BufReader, Read, Write};
 use std::thread;
 use std::process::{Command, Stdio};
 use std::sync::mpsc::{self,Receiver};
 use log::debug;
-use filedescriptor::*;
 
 pub fn exec_cmd(
     cmds: &Vec<String>,
@@ -104,8 +101,7 @@ pub fn tee_chan(line_end: u8) -> std::result::Result<(Receiver<Vec<u8>>, Receive
 
 pub fn spawn_exoffload_command_chan (
     command: &str,
-    mut input: Receiver<Vec<u8>>,
-    line_end: u8
+    input: Receiver<Vec<u8>>,
     ) -> std::result::Result<
             (BufReader<Box<dyn Read + Send>>, JoinHandle<()>),
             errors::SpawnError
@@ -125,12 +121,13 @@ pub fn spawn_exoffload_command_chan (
             match input.recv() {
                 Ok(buf) => {
                     match n_writer.write(&buf) {
-                        Ok(_) => (),
-                        Err(e) => {
-                        },
+                        Ok(0) => break,
+                        Ok(_) => {},
+                        Err(_) => {},
                     }
                 },
                 Err(_) => {
+                    // Generally, entering here means queue got emptied.
                     break;
                 },
             }
@@ -138,119 +135,6 @@ pub fn spawn_exoffload_command_chan (
         n_writer = BufWriter::new(Box::new(io::sink()));
         drop(n_writer);
     });
-    debug!("spawn_exoffload_command: thread: end");
-    Ok((n_reader, handler))
-}
-
-
-pub fn tee(line_end: u8) -> std::result::Result<(BufReader<FileDescriptor>, BufReader<FileDescriptor>, JoinHandle<()>, Arc<Mutex<u64>>, Arc<Mutex<u64>>), errors::SpawnError> {
-    let fd1 = Pipe::new().map_err(|e| errors::SpawnError::Fd(e))?;
-    let fd2 = Pipe::new().map_err(|e| errors::SpawnError::Fd(e))?;
-    let mut writer1 = BufWriter::new(fd1.write);
-    let mut writer2 = BufWriter::new(fd2.write);
-    let reader1 = BufReader::new(fd1.read);
-    let reader2 = BufReader::new(fd2.read);
-    let processed_bytes = Arc::new(Mutex::new(0));
-    let nr = Arc::new(Mutex::new(0)); // number of read
-    let byte_incrementer = Arc::clone(&processed_bytes);
-    let nr_incrementer = Arc::clone(&nr);
-    let handler = thread::spawn(move || {
-        debug!("tee: thread: start");
-        let stdin = io::stdin();
-        loop {
-            let mut buf = Vec::with_capacity(DEFAULT_CAP);
-            // TODO: Use read method not read_until
-            match stdin.lock().read_until(line_end, &mut buf) {
-                Ok(n) => {
-                    // debug!("tee: thread: Read from parent stdin: FINISH");
-                    // debug!("tee: thread: Deliver to stdin1: START");
-                    match writer1.write(&buf) {
-                        Ok(n) => {
-                            let mut c = byte_incrementer.lock().unwrap();
-                            *c += n as u64;
-                            let mut c = nr_incrementer.lock().unwrap();
-                            *c += 1;
-                            // debug!("tee: thread: Deliver to stdin1: FINISH");
-                        },
-                        Err(_) => {
-                            // Writer can easily got error if the command which doesn't accept
-                            // standard input is specified to -e, like teip -e 'cat file'.
-                            // Therefore, do nothing explicitly here.
-                            // debug!("tee: thread: writer1 error");
-                        },
-                    };
-                    // debug!("tee: thread: Deliver to stdin2: START");
-                    match writer2.write(&buf) {
-                        Ok(_) => {
-                            // debug!("tee: thread: Deliver to stdin2: FINISH");
-                        },
-                        Err(_e) => {
-                            // debug!("tee: thread: writer2 error: {}", e.to_string());
-                        },
-                    };
-                    if n == 0 {
-                        break;
-                    }
-                },
-                Err(_e) => {
-                    // debug!("tee: thread: Error: {}", e.to_string());
-                    drop(writer1);
-                    drop(writer2);
-                    break;
-                }
-            }
-        }
-        debug!("tee: thread: end");
-    });
-    Ok((reader1, reader2, handler, processed_bytes, nr))
-}
-
-pub fn spawn_exoffload_command (
-    command: &str,
-    mut input: BufReader<FileDescriptor>,
-    line_end: u8
-    ) -> std::result::Result<
-            (BufReader<Box<dyn Read + Send>>, JoinHandle<()>),
-            errors::SpawnError
-    > {
-    cfg_if::cfg_if! {
-        if #[cfg(windows)] {
-            let cmds: Vec<String> = vec!["cmd","/C", command].into_iter().map(|s| s.to_owned()).collect();
-        } else {
-            let cmds: Vec<String> = vec!["sh","-c", command].into_iter().map(|s| s.to_owned()).collect();
-        }
-    }
-    let (fd_in, fd_out, _) = self::exec_cmd(&cmds)?;
-    let mut n_writer = BufWriter::new(fd_in);
-    let n_reader = BufReader::new(fd_out);
-    let handler = thread::spawn(move || {
-        // debug!("spawn_exoffload_command: thread: start");
-        loop {
-            let mut buf = Vec::with_capacity(DEFAULT_CAP);
-            // debug!("spawn_exoffload_command: thread: Read from stdin1: START");
-            match input.read_until(line_end, &mut buf) {
-                Ok(n) => {
-                    // debug!("spawn_exoffload_command: thread: Read from stdin1: FINISH");
-                    let line = String::from_utf8_lossy(&buf).to_string();
-                    match n_writer.write(line.as_bytes()) {
-                        Ok(_) => (),
-                        Err(e) => {
-                            // debug!("spawn_exoffload_command: thread: Error: {}", e.to_string());
-                        },
-                    };
-                    if n == 0 {
-                        break;
-                    }
-                },
-                Err(_) => {
-                    break;
-                },
-            }
-        }
-        n_writer = BufWriter::new(Box::new(io::sink()));
-        drop(n_writer);
-    });
-    debug!("spawn_exoffload_command: thread: end");
     Ok((n_reader, handler))
 }
 
@@ -260,18 +144,14 @@ pub fn clean_numbers (mut input: BufReader<Box<dyn Read + Send>>, line_end: u8) 
         debug!("clean_numbers: thread: start");
         loop {
             let mut buf = Vec::with_capacity(DEFAULT_CAP);
-            // debug!("clean_numbers: thread: START: Read from external offloaded pipeline");
             match input.read_until(line_end, &mut buf) {
                 Ok(n) => {
-                    // debug!("clean_numbers: thread: FINISH: to read from external offloaded pipeline");
                     let line = String::from_utf8_lossy(&buf).to_string();
                     match stringutils::extract_number(line) {
                         Some(i) => {
-                            // debug!("clean_numbers: thread: tx => {}", i);
                             match tx.send(i) {
                                 Ok(_) => (),
                                 Err(_) => {
-                                    // debug!("clean_numbers: thread: receiver thread may be closed earler than this thread.");
                                     break;
                                 },
                             }

@@ -26,9 +26,10 @@ teip_exec () {
 }
 
 readonly TEIP_EXEC=$(teip_exec)
+readonly PAYLOAD="https://github.com/greymd/test_files/raw/v1.0.0/logs/test_secure.gz" 
 rm -f "$THIS_DIR"/test_secure.gz
-curl --retry 3 -o "$THIS_DIR"/test_secure.gz -L "https://github.com/greymd/test_files/raw/v1.0.0/logs/test_secure.gz" 
-zcat "$THIS_DIR"/test_secure.gz | $TEIP_EXEC -e 'grep -n -C 3 admin' -- sed 's/./@/g' > "$THIS_DIR"/grep_n_result
+curl --retry 3 -o "$THIS_DIR"/test_secure.gz -L "$PAYLOAD"
+zcat < "$THIS_DIR"/test_secure.gz | $TEIP_EXEC -e 'grep -n -C 3 admin' -- sed 's/./@/g' > "$THIS_DIR"/grep_n_result
 if [[ "$( shasum -a 256 "$THIS_DIR"/grep_n_result | awk '{print $1}' )" == "$HASH_ANSWER" ]];then
   echo "[SUCCEEDED] TEST WITH LARGE FILE: PATH = $TEIP_EXEC"
   exit 0

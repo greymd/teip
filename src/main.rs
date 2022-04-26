@@ -25,7 +25,6 @@ use log::debug; // Enable with RUST_LOG=debug
 use regex::Regex;
 use std::env;
 use std::io::{self, BufRead};
-use std::time::Duration;
 use structopt::StructOpt;
 
 #[cfg(feature = "oniguruma")]
@@ -297,7 +296,7 @@ fn exoffload_proc(
 ) -> Result<(), errors::TokenSendError> {
     let (ch_stdin1, ch_stdin2, _thread1) = procspawn::tee_chan(line_end)
             .unwrap_or_else(|e| error_exit(&e.to_string()));
-    let (ch_noisy_numbers, _thread2) = procspawn::spawn_exoffload_command_chan(exoffload_pipeline, ch_stdin1, line_end)
+    let (ch_noisy_numbers, _thread2) = procspawn::spawn_exoffload_command_chan(exoffload_pipeline, ch_stdin1)
             .unwrap_or_else(|e| error_exit(&e.to_string()));
     let (print_line_numbers, _thread3) = procspawn::clean_numbers(ch_noisy_numbers, line_end);
     let mut nr: u64 = 0;     // number of read
