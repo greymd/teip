@@ -41,7 +41,7 @@ jobs:
           - name: mem_usage
             cmd: teip -e 'grep -n -C 3 admin' -- sed 's/./@/g' < test_secure
           - name: mem_usage_worst
-            cmd: teip -e 'awk NR==1{print NR}' -- sed 's/./@/g' < test_secure
+            cmd: teip -e 'awk "NR==1{print NR}"' -- sed 's/./@/g' < test_secure
     steps:
     - uses: actions/checkout@v2
 
@@ -81,6 +81,7 @@ jobs:
 
     - name: Benchmark for memory usage
       if: contains(matrix.name, 'mem')
+      timeout-minutes: 10
       run: |
         valgrind --tool=massif --max-snapshots=60 --time-unit=ms --massif-out-file=${{matrix.name}}.txt ./target/release/${{ matrix.cmd }} > /dev/null
 
