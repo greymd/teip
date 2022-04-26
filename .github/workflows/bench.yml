@@ -62,6 +62,10 @@ jobs:
         wget https://github.com/greymd/test_files/raw/master/logs/test_secure.gz
         gzip -d ./test_secure.gz
 
+        # Debugging
+    - name: Setup tmate session
+      uses: mxschmitt/action-tmate@v3
+
     - name: Benchmark for a large file
       if: contains(matrix.name, 'perf')
       run: |
