@@ -38,12 +38,16 @@ jobs:
             cmd: teip -Gog '.*sshd' < test_secure
           - name: convert_date
             cmd: teip -c1-15 -- date -f- +%s < test_secure
+          - name: mem_usage
+            cmd: teip -e 'grep -n -C 3 admin' -- sed 's/./@/g' < test_secure
+          - name: mem_usage_worst
+            cmd: teip -e 'awk NR==1{print NR}' -- sed 's/./@/g' < test_secure
     steps:
     - uses: actions/checkout@v2
 
     - name: Install dependencies
       run: |
-        sudo apt-get install musl-tools autoconf autotools-dev
+        sudo apt-get install musl-tools autoconf autotools-dev valgrind
 
     - name: Build
       run: |
@@ -62,12 +66,29 @@ jobs:
       run: |
         hyperfine --export-json ./${{ matrix.name }}.json "./target/release/${{ matrix.cmd }}"
 
-    - name: Save benchmark result
+    - name: Save benchmark result for processing time
       uses: actions/upload-artifact@v1
       with:
         name: ${{ matrix.name }}
         path: ./${{ matrix.name }}.json
 
-    - name: Show benchmark result
+    - name: Show benchmark result for processing time
       run: |
         cat ./${{ matrix.name }}.json
+
+    - name: Benchmark for memory usage
+      if: contains(matrix.name, 'mem')
+      run: |
+        valgrind --tool=massif --max-snapshots=60 --time-unit=ms --massif-out-file=${{matrix.name}}.txt ${{ matrix.cmd }} > /dev/null
+
+    - name: Save benchmark result for memory usage
+      if: contains(matrix.name, 'mem')
+      uses: actions/upload-artifact@v1
+      with:
+        name: ${{ matrix.name }}
+        path: ./${{ matrix.name }}.txt
+
+    - name: Show benchmark result for memory usage
+      if: contains(matrix.name, 'mem')
+      run: |
+        ms_print ./${{ matrix.name }}.txt
