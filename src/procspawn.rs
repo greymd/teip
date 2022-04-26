@@ -40,7 +40,7 @@ pub fn exec_cmd(
     ))
 }
 
-/// Execute single command and return the result synchronously
+/// Execute single command and return the stdout of the command as String synchronously
 pub fn exec_cmd_sync(input: String, cmds: &Vec<String>, line_end: u8) -> String {
     debug!("thread: exec_cmd_sync: {:?}", &cmds);
     let mut child = Command::new(&cmds[0])
@@ -101,15 +101,7 @@ pub fn tee(line_end: u8) -> std::result::Result<(Receiver<Vec<u8>>, Receiver<Vec
 /// Spawn process with given pipeline and keep sending strings from channel as stdin.
 /// Return value is BufReader of stdout.
 /// Spawn process is supposed to be generating integer numbers but each line may contain some
-/// noise.
-/// Example of output:
-/// ```
-/// 1: test test"
-/// 2-
-///     3
-///     4
-/// 5
-/// ```
+/// noise (see clean_numbers function).
 pub fn run_pipeline_generating_numbers (
     command: &str,
     input: Receiver<Vec<u8>>,
@@ -144,6 +136,23 @@ pub fn run_pipeline_generating_numbers (
     Ok((n_reader, handler))
 }
 
+/// Extract numbers from noisey strings.
+/// Example of noisey numbers (Read from BufReader):
+/// ```
+/// 1: test test"
+/// 2-
+///     3@@@the line has spaces at beginning
+///     4!!!TAB character is also acceptable
+/// 5
+/// ```
+/// Example of result (Receiver will get u64 numbers):
+/// ```
+/// 1
+/// 2
+/// 3
+/// 4
+/// 5
+/// ```
 pub fn clean_numbers (
     mut input: BufReader<Box<dyn Read + Send>>,
     line_end: u8

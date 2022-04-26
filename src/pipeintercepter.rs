@@ -18,6 +18,7 @@ pub struct PipeIntercepter {
     dryrun: bool,
 }
 
+/// TODO: Add description of PipeIntercepter
 impl PipeIntercepter {
     // Spawn another process which continuously prints results
     pub fn start_output(
@@ -33,42 +34,43 @@ impl PipeIntercepter {
             let mut reader = BufReader::new(child_stdout);
             let mut writer = BufWriter::new(io::stdout());
             loop {
-                match rx.recv() {
-                    Ok(token) => match token {
-                        Token::Channel(msg) => {
-                            debug!("thread: rx.recv <= Channle:[{}]", msg);
-                            writer
-                                .write(msg.as_bytes())
-                                .unwrap_or_else(|e| exit_silently(&e.to_string()));
-                        }
-                        Token::Piped => {
-                            debug!("thread: rx.recv <= Piped");
-                            match PipeIntercepter::read_pipe(&mut reader, line_end) {
-                                Ok(msg) => {
-                                    writer
-                                        .write(msg.as_bytes())
-                                        .unwrap_or_else(|e| exit_silently(&e.to_string()));
-                                }
-                                Err(e) => {
-                                    // pipe may be exhausted
-                                    writer.flush().unwrap();
-                                    error_exit(&e.to_string())
-                                }
-                            }
-                        }
-                        Token::EOF => {
-                            debug!("thread: rx.recv <= EOF");
-                            break;
-                        }
-                        _ => {
-                            error_exit("Exit with bug.");
-                        }
-                    },
+                let token = match rx.recv() {
+                    Ok(t) => t,
                     Err(e) => {
                         msg_error(&e.to_string());
                         break;
                     }
-                }
+                };
+                match token {
+                    Token::Channel(msg) => {
+                        debug!("thread: rx.recv <= Channle:[{}]", msg);
+                        writer
+                            .write(msg.as_bytes())
+                            .unwrap_or_else(|e| exit_silently(&e.to_string()));
+                    }
+                    Token::Piped => {
+                        debug!("thread: rx.recv <= Piped");
+                        match PipeIntercepter::read_pipe(&mut reader, line_end) {
+                            Ok(msg) => {
+                                writer
+                                    .write(msg.as_bytes())
+                                    .unwrap_or_else(|e| exit_silently(&e.to_string()));
+                            }
+                            Err(e) => {
+                                // pipe may be exhausted
+                                writer.flush().unwrap();
+                                error_exit(&e.to_string())
+                            }
+                        }
+                    }
+                    Token::EOF => {
+                        debug!("thread: rx.recv <= EOF");
+                        break;
+                    }
+                    _ => {
+                        error_exit("Exit with bug.");
+                    }
+                };
             }
         });
         Ok(PipeIntercepter {
@@ -92,34 +94,35 @@ impl PipeIntercepter {
             debug!("thread: spawn");
             let mut writer = BufWriter::new(io::stdout());
             loop {
-                match rx.recv() {
-                    Ok(token) => match token {
-                        Token::Channel(msg) => {
-                            debug!("thread: rx.recv <= Channle:[{}]", msg);
-                            writer
-                                .write(msg.as_bytes())
-                                .unwrap_or_else(|e| exit_silently(&e.to_string()));
-                        }
-                        Token::Solid(msg) => {
-                            debug!("thread: rx.recv <= Solid:[{}]", msg);
-                            let result = procspawn::exec_cmd_sync(msg, &cmds, line_end);
-                            writer
-                                .write(result.as_bytes())
-                                .unwrap_or_else(|e| exit_silently(&e.to_string()));
-                        }
-                        Token::EOF => {
-                            debug!("thread: rx.recv <= EOF");
-                            break;
-                        }
-                        _ => {
-                            error_exit("Exit with bug.");
-                        }
-                    },
+                let token = match rx.recv() {
+                    Ok(t) => t,
                     Err(e) => {
                         msg_error(&e.to_string());
                         break;
                     }
-                }
+                };
+                match token {
+                    Token::Channel(msg) => {
+                        debug!("thread: rx.recv <= Channle:[{}]", msg);
+                        writer
+                            .write(msg.as_bytes())
+                            .unwrap_or_else(|e| exit_silently(&e.to_string()));
+                    }
+                    Token::Solid(msg) => {
+                        debug!("thread: rx.recv <= Solid:[{}]", msg);
+                        let result = procspawn::exec_cmd_sync(msg, &cmds, line_end);
+                        writer
+                            .write(result.as_bytes())
+                            .unwrap_or_else(|e| exit_silently(&e.to_string()));
+                    }
+                    Token::EOF => {
+                        debug!("thread: rx.recv <= EOF");
+                        break;
+                    }
+                    _ => {
+                        error_exit("Exit with bug.");
+                    }
+                };
             }
         });
         let dummy = Box::new(io::sink());
@@ -159,7 +162,7 @@ impl PipeIntercepter {
         Ok(())
     }
 
-    /// Bypassing string on the hole
+    /// Bypassing strings inside a hole
     pub fn send_pipe(&mut self, msg: String) -> Result<(), errors::TokenSendError> {
         if self.dryrun {
             // Highlight the string instead of bypassing
@@ -193,6 +196,7 @@ impl PipeIntercepter {
         }
     }
 
+    /// Let PipeIntercepter detects the end of file and exit process
     pub fn send_eof(&self) -> Result<(), errors::TokenSendError> {
         debug!("tx.send => EOF");
         self.tx

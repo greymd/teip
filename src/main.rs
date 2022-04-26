@@ -148,7 +148,7 @@ fn main() {
     let mut regex = Regex::new("").unwrap();
     let mut regex_onig = onig::new_regex();
     let mut line_end = b'\n';
-    let mut single_token_per_line = false;
+    let mut single_token_per_line = false; // true if single hole is always coveres entire line
     let mut ch: PipeIntercepter;
     let mut flag_dryrun = true;
     let regex_delimiter;
@@ -254,40 +254,40 @@ fn main() {
         loop {
             let mut buf = Vec::with_capacity(DEFAULT_CAP);
             match stdin.lock().read_until(line_end, &mut buf) {
-                Ok(n) => {
-                    if n == 0 {
-                        ch.send_eof().unwrap_or_else(|e| msg_error(&e.to_string()));
-                        break;
-                    }
-                    let eol = stringutils::trim_eol(&mut buf);
-                    if flag_regex {
-                        if flag_onig {
-                            onig::regex_onig_proc(&mut ch, &buf, &regex_onig, flag_invert)
-                                .unwrap_or_else(|e| error_exit(&e.to_string()));
-                        } else {
-                            regex_proc(&mut ch, &buf, &regex, flag_invert)
-                                .unwrap_or_else(|e| error_exit(&e.to_string()));
-                        }
-                    } else if flag_char {
-                        char_proc(&mut ch, &buf, &char_list)
-                            .unwrap_or_else(|e| error_exit(&e.to_string()));
-                    } else if flag_field && flag_delimiter {
-                        field_proc(&mut ch, &buf, delimiter, &field_list)
-                            .unwrap_or_else(|e| error_exit(&e.to_string()));
-                    } else if flag_field {
-                        field_regex_proc(&mut ch, &buf, &regex_delimiter, &field_list)
-                            .unwrap_or_else(|e| error_exit(&e.to_string()));
-                    }
-                    ch.send_msg(eol)
-                        .unwrap_or_else(|e| msg_error(&e.to_string()));
+                Ok(0) => {
+                    ch.send_eof().unwrap_or_else(|e| msg_error(&e.to_string()));
+                    break;
                 }
+                Ok(_) => {},
                 Err(e) => msg_error(&e.to_string()),
+            };
+            let eol = stringutils::trim_eol(&mut buf);
+            if flag_regex {
+                if flag_onig {
+                    onig::regex_onig_proc(&mut ch, &buf, &regex_onig, flag_invert)
+                        .unwrap_or_else(|e| error_exit(&e.to_string()));
+                } else {
+                    regex_proc(&mut ch, &buf, &regex, flag_invert)
+                        .unwrap_or_else(|e| error_exit(&e.to_string()));
+                }
+            } else if flag_char {
+                char_proc(&mut ch, &buf, &char_list)
+                    .unwrap_or_else(|e| error_exit(&e.to_string()));
+            } else if flag_field && flag_delimiter {
+                field_proc(&mut ch, &buf, delimiter, &field_list)
+                    .unwrap_or_else(|e| error_exit(&e.to_string()));
+            } else if flag_field {
+                field_regex_proc(&mut ch, &buf, &regex_delimiter, &field_list)
+                    .unwrap_or_else(|e| error_exit(&e.to_string()));
             }
+            ch.send_msg(eol)
+                .unwrap_or_else(|e| msg_error(&e.to_string()));
         }
     }
 }
 
 /// External execution for match offloading ( -e )
+/// TODO: Add overview of this function
 fn exoffload_proc(
     ch: &mut PipeIntercepter,
     exoffload_pipeline: &str,
@@ -318,8 +318,8 @@ fn exoffload_proc(
         while pos < nr {
             pos = match rx_printable_numbers.recv() {
                 Ok(n) => n,
-                Err(e) => {
-                    debug!("exoffload_proc: Queue got emptied: {}", e.to_string());
+                Err(_) => {
+                    // TODO: once enter here, it got non-necessary to check channel
                     break;
                 },
             };
