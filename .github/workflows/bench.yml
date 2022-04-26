@@ -83,7 +83,7 @@ jobs:
       if: contains(matrix.name, 'mem')
       timeout-minutes: 10
       run: |
-        valgrind --tool=massif --max-snapshots=60 --time-unit=ms --massif-out-file=${{matrix.name}}.txt ./target/release/${{ matrix.cmd }} > /dev/null
+        valgrind --tool=massif --time-unit=ms --massif-out-file=${{matrix.name}}.txt ./target/release/${{ matrix.cmd }} > tmp
 
     - name: Save benchmark result for memory usage
       if: contains(matrix.name, 'mem')
