@@ -303,48 +303,45 @@ fn exoffload_proc(
     let mut pos: u64 = 0;    // position of printable numbers
     let mut last_pos: u64 = pos;
     loop {
-        match rx_stdin2.recv() {
-            Ok(buf) => {
-                nr += 1;
-                let mut buf = buf;
-                let eol = stringutils::trim_eol(&mut buf);
-                let line = String::from_utf8_lossy(&buf).to_string();
-                while pos < nr {
-                    match rx_printable_numbers.recv() {
-                        Ok(i) => {
-                            pos = i;
-                            debug!("exoffload_proc: Queued number: {}", pos);
-                            if pos < last_pos {
-                                msg_error(format!("WARN: pipeline must print numbers in ascending order: order {} -> {} found", last_pos, pos).as_ref());
-                            }
-                            last_pos = pos;
-                        },
-                        Err(e) => {
-                            debug!("exoffload_proc: Queue got emptied: {}", e.to_string());
-                            break;
-                        },
-                    }
-                }
-                if pos == nr {
-                    if invert {
-                        ch.send_msg(line.to_string())?;
-                    } else {
-                        ch.send_pipe(line.to_string())?;
-                    }
-                } else {
-                    if invert {
-                        ch.send_pipe(line.to_string())?;
-                    } else {
-                        ch.send_msg(line.to_string())?;
-                    }
-                }
-                ch.send_msg(eol)?;
-            },
+        nr += 1;
+        // Load line from stdin
+        let mut buf = match rx_stdin2.recv() {
+            Ok(b) => b,
             Err(_) => {
                 ch.send_eof()?;
                 break;
             },
         };
+        let eol = stringutils::trim_eol(&mut buf);
+        let line = String::from_utf8_lossy(&buf).to_string();
+        // Try to detect printable line numbers which is bigger than current read line
+        while pos < nr {
+            pos = match rx_printable_numbers.recv() {
+                Ok(n) => n,
+                Err(e) => {
+                    debug!("exoffload_proc: Queue got emptied: {}", e.to_string());
+                    break;
+                },
+            };
+            if pos < last_pos {
+                msg_error(format!("WARN: pipeline must print numbers in ascending order: order {} -> {} found", last_pos, pos).as_ref());
+            }
+            last_pos = pos;
+        }
+        if pos == nr {
+            if invert {
+                ch.send_msg(line.to_string())?;
+            } else {
+                ch.send_pipe(line.to_string())?;
+            }
+        } else {
+            if invert {
+                ch.send_pipe(line.to_string())?;
+            } else {
+                ch.send_msg(line.to_string())?;
+            }
+        }
+        ch.send_msg(eol)?;
     }
     Ok(())
 }

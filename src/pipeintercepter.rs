@@ -150,6 +150,7 @@ impl PipeIntercepter {
         Ok(String::from_utf8_lossy(&buf).to_string())
     }
 
+    /// Print string to stdout as it is
     pub fn send_msg(&self, msg: String) -> Result<(), errors::TokenSendError> {
         debug!("tx.send => Channle({})", msg);
         self.tx
@@ -158,13 +159,15 @@ impl PipeIntercepter {
         Ok(())
     }
 
+    /// Bypassing string on the hole
     pub fn send_pipe(&mut self, msg: String) -> Result<(), errors::TokenSendError> {
         if self.dryrun {
-            let msg_annotated: String;
-            msg_annotated = HL[0].to_string() + &msg + HL[1];
-            debug!("tx.send => Channle({})", msg_annotated);
+            // Highlight the string instead of bypassing
+            let msg_highlighted: String;
+            msg_highlighted = HL[0].to_string() + &msg + HL[1];
+            debug!("tx.send => Channle({})", msg_highlighted);
             self.tx
-                .send(Token::Channel(msg_annotated))
+                .send(Token::Channel(msg_highlighted))
                 .map_err(|e| errors::TokenSendError::Channel(e))?;
             return Ok(());
         }

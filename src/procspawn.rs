@@ -79,17 +79,15 @@ pub fn tee(line_end: u8) -> std::result::Result<(Receiver<Vec<u8>>, Receiver<Vec
                 let mut buf = Vec::with_capacity(DEFAULT_CAP);
                 match stdin.lock().read_until(line_end, &mut buf) {
                     Ok(0) => {
+                        // Finish to read entire input, discard channels
+                        drop(tx1);
+                        drop(tx2);
                         break;
                     },
                     Ok(_) => {
-                        match tx1.send(buf.clone()) {
-                            Ok(_) => {},
-                            Err(_) => {},
-                        };
-                        match tx2.send(buf.clone()) {
-                            Ok(_) => {},
-                            Err(_) => {},
-                        };
+                        // Suppress errors
+                        let _ = tx1.send(buf.clone());
+                        let _ = tx2.send(buf.clone());
                     },
                     Err(_) => {
                         debug!("tee_chain: Got error while loading from stdin");
@@ -100,6 +98,18 @@ pub fn tee(line_end: u8) -> std::result::Result<(Receiver<Vec<u8>>, Receiver<Vec
     return Ok((rx1, rx2, handler))
 }
 
+/// Spawn process with given pipeline and keep sending strings from channel as stdin.
+/// Return value is BufReader of stdout.
+/// Spawn process is supposed to be generating integer numbers but each line may contain some
+/// noise.
+/// Example of output:
+/// ```
+/// 1: test test"
+/// 2-
+///     3
+///     4
+/// 5
+/// ```
 pub fn run_pipeline_generating_numbers (
     command: &str,
     input: Receiver<Vec<u8>>,
@@ -121,12 +131,11 @@ pub fn run_pipeline_generating_numbers (
         loop {
             let buf = match input.recv() {
                 Ok(buf) => buf,
-                Err(_) => break, // Generally, entering here means queue got emptied.
+                Err(_) => break, // Generally, entering here means queue just got emptied. Do nothing.
             };
             match n_writer.write(&buf) {
                 Ok(0) => break,
-                Ok(_) => {},
-                Err(_) => {},
+                _ => {},         // Ignore error because the command may not accept standard input (i.e seq command).
             };
         }
         n_writer = BufWriter::new(Box::new(io::sink()));
