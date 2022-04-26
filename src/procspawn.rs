@@ -69,6 +69,9 @@ pub fn exec_cmd_sync(input: String, cmds: &Vec<String>, line_end: u8) -> String 
     String::from_utf8_lossy(&output).to_string()
 }
 
+// Generate two readers which prints identical standard input.
+// The behavior is similar to `tee' command but mpsc:channel queues inputs as much as they can.
+// There is no kernel bufferes
 pub fn tee_chan(line_end: u8) -> std::result::Result<(Receiver<Vec<u8>>, Receiver<Vec<u8>>, JoinHandle<()>), errors::SpawnError> {
     let (tx1, rx1) = mpsc::channel();
     let (tx2, rx2) = mpsc::channel();
@@ -80,7 +83,7 @@ pub fn tee_chan(line_end: u8) -> std::result::Result<(Receiver<Vec<u8>>, Receive
                     Ok(0) => {
                         break
                     },
-                    Ok(n) => {
+                    Ok(_) => {
                         match tx1.send(buf.clone()) {
                             Ok(_) => {},
                             Err(_) => {},
@@ -140,9 +143,6 @@ pub fn spawn_exoffload_command_chan (
 }
 
 
-// Generate two readers which prints identical standard input.
-// Even if either reader outputs a line, another one will keep the identical line.
-// The behavior is similar to `tee' command.
 pub fn tee(line_end: u8) -> std::result::Result<(BufReader<FileDescriptor>, BufReader<FileDescriptor>, JoinHandle<()>, Arc<Mutex<u64>>, Arc<Mutex<u64>>), errors::SpawnError> {
     let fd1 = Pipe::new().map_err(|e| errors::SpawnError::Fd(e))?;
     let fd2 = Pipe::new().map_err(|e| errors::SpawnError::Fd(e))?;
