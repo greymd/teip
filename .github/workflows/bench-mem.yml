@@ -67,6 +67,7 @@ jobs:
     - name: Save benchmark result for memory usage
       uses: actions/upload-artifact@v1
       with:
+        name: ./${{ matrix.name }}
         path: ./${{ matrix.name }}.txt
 
     - name: Show benchmark result for memory usage
