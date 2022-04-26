@@ -166,7 +166,7 @@ $ echo "100 200 300 400" | teip -f 3 -- cut -c 1
 100 200 3 400
 ```
 
-### Offloading line-matching by external command (`-e`)
+### External execution for match offloading (`-e`)
 
 With `-e`, you can use the external commands you are familiar with to specify the range of holes.
 `-e` allows you to specify the shell pipeline as a string. This pipeline is executed in `/bin/sh`.

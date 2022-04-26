@@ -695,7 +695,7 @@ $ cat test.html | teip -z -og '<body>.*</body>' -- grep -a BBB
 </html>
 ```
 
-### Offloading line-matching by external command (`-e`)
+### External execution for match offloading (`-e`)
 
 `-e` is the option to use external commands for pattern matching.
 Until the above, you had to use `teip`'s own functions, such as `-c` or `-g`, to control the position of the holes on the masking tape.

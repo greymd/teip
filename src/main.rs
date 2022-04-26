@@ -287,7 +287,7 @@ fn main() {
     }
 }
 
-/// Offloading line-matching by external command ( -e )
+/// External execution for match offloading ( -e )
 fn exoffload_proc(
     ch: &mut PipeIntercepter,
     exoffload_pipeline: &str,
