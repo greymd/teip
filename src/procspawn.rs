@@ -69,7 +69,7 @@ pub fn exec_cmd_sync(input: String, cmds: &Vec<String>, line_end: u8) -> String 
 // Generate two readers which prints identical standard input.
 // The behavior is similar to `tee' command but mpsc:channel queues inputs as much as they can.
 // There is no kernel bufferes
-pub fn tee_chan(line_end: u8) -> std::result::Result<(Receiver<Vec<u8>>, Receiver<Vec<u8>>, JoinHandle<()>), errors::SpawnError> {
+pub fn tee(line_end: u8) -> std::result::Result<(Receiver<Vec<u8>>, Receiver<Vec<u8>>, JoinHandle<()>), errors::SpawnError> {
     let (tx1, rx1) = mpsc::channel();
     let (tx2, rx2) = mpsc::channel();
     let handler = thread::spawn(move || {
@@ -78,7 +78,7 @@ pub fn tee_chan(line_end: u8) -> std::result::Result<(Receiver<Vec<u8>>, Receive
                 let mut buf = Vec::with_capacity(DEFAULT_CAP);
                 match stdin.lock().read_until(line_end, &mut buf) {
                     Ok(0) => {
-                        break
+                        break;
                     },
                     Ok(_) => {
                         match tx1.send(buf.clone()) {
@@ -118,19 +118,15 @@ pub fn spawn_exoffload_command_chan (
     let n_reader = BufReader::new(fd_out);
     let handler = thread::spawn(move || {
         loop {
-            match input.recv() {
-                Ok(buf) => {
-                    match n_writer.write(&buf) {
-                        Ok(0) => break,
-                        Ok(_) => {},
-                        Err(_) => {},
-                    }
-                },
-                Err(_) => {
-                    // Generally, entering here means queue got emptied.
-                    break;
-                },
-            }
+            let buf = match input.recv() {
+                Ok(buf) => buf,
+                Err(_) => break, // Generally, entering here means queue got emptied.
+            };
+            match n_writer.write(&buf) {
+                Ok(0) => break,
+                Ok(_) => {},
+                Err(_) => {},
+            };
         }
         n_writer = BufWriter::new(Box::new(io::sink()));
         drop(n_writer);
@@ -138,34 +134,32 @@ pub fn spawn_exoffload_command_chan (
     Ok((n_reader, handler))
 }
 
-pub fn clean_numbers (mut input: BufReader<Box<dyn Read + Send>>, line_end: u8) -> (Receiver<u64>, JoinHandle<()>) {
+pub fn clean_numbers (
+    mut input: BufReader<Box<dyn Read + Send>>,
+    line_end: u8
+) -> (Receiver<u64>, JoinHandle<()>) {
     let (tx, rx) = mpsc::channel();
     let handler = thread::spawn(move || {
         debug!("clean_numbers: thread: start");
         loop {
             let mut buf = Vec::with_capacity(DEFAULT_CAP);
             match input.read_until(line_end, &mut buf) {
-                Ok(n) => {
-                    let line = String::from_utf8_lossy(&buf).to_string();
-                    match stringutils::extract_number(line) {
-                        Some(i) => {
-                            match tx.send(i) {
-                                Ok(_) => (),
-                                Err(_) => {
-                                    break;
-                                },
-                            }
+                Ok(0) => break,
+                Ok(_) => {},
+                Err(_) => break,
+            };
+            let line = String::from_utf8_lossy(&buf).to_string();
+            match stringutils::extract_number(line) {
+                Some(i) => {
+                    match tx.send(i) {
+                        Ok(_) => (),
+                        Err(_) => {
+                            break;
                         },
-                        None => {},
-                    }
-                    if n == 0 {
-                        break;
                     }
                 },
-                Err(_) => {
-                    break;
-                },
-            }
+                None => {},
+            };
         }
         drop(tx);
         debug!("clean_numbers: thread: end");
