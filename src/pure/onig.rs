@@ -14,7 +14,7 @@ pub fn new_option_none_regex(_s: &str) -> Regex {
     1
 }
 
-/// Handles regex onig ( -g -G )
+/// Bypassing multiple strings in a line based on Oniguruma Regular Expression ( -g -G -o )
 pub fn regex_onig_proc(
     _ch: &mut PipeIntercepter,
     _line: &Vec<u8>,
@@ -25,6 +25,7 @@ pub fn regex_onig_proc(
     Ok(())
 }
 
+/// Bypassing particular lines based on Oniguruma Regular Expression ( -g -G )
 pub fn regex_onig_line_proc(
     _ch: &mut PipeIntercepter,
     _re: &Regex,

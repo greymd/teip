@@ -141,7 +141,7 @@ fn main() {
     let flag_delimiter = args.delimiter.is_some();
     let delimiter = args.delimiter.as_ref().map(|s| s.as_str()).unwrap_or("");
     let flag_regex_delimiter = args.regexp_delimiter.is_some();
-    let flag_moffload = args.exoffload_pipeline.is_some();
+    let flag_exoffload = args.exoffload_pipeline.is_some();
     let exoffload_pipeline = args.exoffload_pipeline.as_ref().map(|s| s.as_str()).unwrap_or("");
 
     let mut regex_mode = String::new();
@@ -154,7 +154,7 @@ fn main() {
     let regex_delimiter;
 
     // If any necessary flags is not enabled, show help and exit.
-    if !( flag_moffload || flag_regex || flag_field || flag_char || flag_lines) {
+    if !( flag_exoffload || flag_regex || flag_field || flag_char || flag_lines) {
         Args::clap().print_help().unwrap();
         std::process::exit(1);
     }
@@ -219,7 +219,7 @@ fn main() {
         flag_dryrun = false;
     }
 
-    if (!flag_only && flag_regex) || flag_lines || flag_moffload {
+    if (!flag_only && flag_regex) || flag_lines || flag_exoffload {
         single_token_per_line = true;
     }
 
@@ -245,7 +245,7 @@ fn main() {
                 regex_line_proc(&mut ch, &regex, flag_invert, line_end)
                     .unwrap_or_else(|e| error_exit(&e.to_string()));
             }
-        } else if flag_moffload {
+        } else if flag_exoffload {
             exoffload_proc(&mut ch, exoffload_pipeline, flag_invert, line_end)
                     .unwrap_or_else(|e| error_exit(&e.to_string()));
         }
@@ -294,23 +294,23 @@ fn exoffload_proc(
     invert: bool,
     line_end: u8,
 ) -> Result<(), errors::TokenSendError> {
-    let (ch_stdin1, ch_stdin2, _thread1) = procspawn::tee(line_end)
+    let (rx_stdin1, rx_stdin2, _thread1) = procspawn::tee(line_end)
             .unwrap_or_else(|e| error_exit(&e.to_string()));
-    let (ch_noisy_numbers, _thread2) = procspawn::spawn_exoffload_command_chan(exoffload_pipeline, ch_stdin1)
+    let (rx_messy_numbers, _thread2) = procspawn::run_pipeline_generating_numbers(exoffload_pipeline, rx_stdin1)
             .unwrap_or_else(|e| error_exit(&e.to_string()));
-    let (print_line_numbers, _thread3) = procspawn::clean_numbers(ch_noisy_numbers, line_end);
+    let (rx_printable_numbers, _thread3) = procspawn::clean_numbers(rx_messy_numbers, line_end);
     let mut nr: u64 = 0;     // number of read
-    let mut pos: u64 = 0;
+    let mut pos: u64 = 0;    // position of printable numbers
     let mut last_pos: u64 = pos;
     loop {
-        match ch_stdin2.recv() {
+        match rx_stdin2.recv() {
             Ok(buf) => {
                 nr += 1;
                 let mut buf = buf;
                 let eol = stringutils::trim_eol(&mut buf);
                 let line = String::from_utf8_lossy(&buf).to_string();
                 while pos < nr {
-                    match print_line_numbers.recv() {
+                    match rx_printable_numbers.recv() {
                         Ok(i) => {
                             pos = i;
                             debug!("exoffload_proc: Queued number: {}", pos);
@@ -349,6 +349,7 @@ fn exoffload_proc(
     Ok(())
 }
 
+/// Bypassing particular lines based on given list ( -l )
 fn line_line_proc(
     ch: &mut PipeIntercepter,
     ranges: &Vec<list::ranges::Range>,
@@ -384,6 +385,7 @@ fn line_line_proc(
     Ok(())
 }
 
+/// Bypassing particular lines based on Regular Expression ( -g )
 fn regex_line_proc(
     ch: &mut PipeIntercepter,
     re: &Regex,
@@ -422,7 +424,7 @@ fn regex_line_proc(
     Ok(())
 }
 
-/// Handles regex ( -g )
+/// Bypassing particular strings based on Regular Expression ( -o -g )
 fn regex_proc(
     ch: &mut PipeIntercepter,
     line: &Vec<u8>,
@@ -464,7 +466,7 @@ fn regex_proc(
     Ok(())
 }
 
-/// Handles character range ( -c )
+/// Bypassing character range ( -c )
 fn char_proc(
     ch: &mut PipeIntercepter,
     line: &Vec<u8>,
@@ -506,7 +508,7 @@ fn char_proc(
     Ok(())
 }
 
-/// Handles white space separation ( -f )
+/// Bypassing white space separation ( -f )
 fn field_regex_proc(
     ch: &mut PipeIntercepter,
     line: &Vec<u8>,
@@ -550,7 +552,7 @@ fn field_regex_proc(
     Ok(())
 }
 
-/// Handles field separation ( -f -d )
+/// Bypassing field separation ( -f -d )
 fn field_proc(
     ch: &mut PipeIntercepter,
     line: &Vec<u8>,

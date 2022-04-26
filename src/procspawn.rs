@@ -8,6 +8,7 @@ use std::process::{Command, Stdio};
 use std::sync::mpsc::{self,Receiver};
 use log::debug;
 
+/// Execute command and return two pipes, stdin and stdout of the new process.
 pub fn exec_cmd(
     cmds: &Vec<String>,
 ) -> std::result::Result<
@@ -39,6 +40,7 @@ pub fn exec_cmd(
     ))
 }
 
+/// Execute single command and return the result synchronously
 pub fn exec_cmd_sync(input: String, cmds: &Vec<String>, line_end: u8) -> String {
     debug!("thread: exec_cmd_sync: {:?}", &cmds);
     let mut child = Command::new(&cmds[0])
@@ -66,9 +68,8 @@ pub fn exec_cmd_sync(input: String, cmds: &Vec<String>, line_end: u8) -> String 
     String::from_utf8_lossy(&output).to_string()
 }
 
-// Generate two readers which prints identical standard input.
-// The behavior is similar to `tee' command but mpsc:channel queues inputs as much as they can.
-// There is no kernel bufferes
+/// Generate two readers which prints identical standard input.
+/// The behavior is similar to `tee' command but mpsc:channel queues data as much as they can.
 pub fn tee(line_end: u8) -> std::result::Result<(Receiver<Vec<u8>>, Receiver<Vec<u8>>, JoinHandle<()>), errors::SpawnError> {
     let (tx1, rx1) = mpsc::channel();
     let (tx2, rx2) = mpsc::channel();
@@ -99,7 +100,7 @@ pub fn tee(line_end: u8) -> std::result::Result<(Receiver<Vec<u8>>, Receiver<Vec
     return Ok((rx1, rx2, handler))
 }
 
-pub fn spawn_exoffload_command_chan (
+pub fn run_pipeline_generating_numbers (
     command: &str,
     input: Receiver<Vec<u8>>,
     ) -> std::result::Result<
