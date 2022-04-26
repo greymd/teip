@@ -1,4 +1,4 @@
-name: Test
+name: Test for UNIX-like OS
 
 on:
   push:
@@ -45,4 +45,6 @@ jobs:
           mv target/${{matrix.target}}/release/teip target/release
       - name: Run tests
         timeout-minutes: 10
-        run: cargo test --verbose --features oniguruma
+        run: |
+          cargo test --verbose --features oniguruma
+          bash tests/test_large_file.sh

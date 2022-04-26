@@ -295,38 +295,23 @@ fn exoffload_proc(
     invert: bool,
     line_end: u8,
 ) -> Result<(), errors::TokenSendError> {
-    let (stdin1, mut stdin2, _thread1, tee_processed_bytes, tee_processed_lines) = procspawn::tee(line_end)
+    let (ch_stdin1, ch_stdin2, _thread1) = procspawn::tee_chan(line_end)
             .unwrap_or_else(|e| error_exit(&e.to_string()));
-    let (noisy_numbers, _thread2) = procspawn::spawn_exoffload_command(exoffload_pipeline, stdin1, line_end)
+    let (ch_noisy_numbers, _thread2) = procspawn::spawn_exoffload_command_chan(exoffload_pipeline, ch_stdin1, line_end)
             .unwrap_or_else(|e| error_exit(&e.to_string()));
-    let (print_line_numbers, _thread3) = procspawn::clean_numbers(noisy_numbers, line_end);
+    let (print_line_numbers, _thread3) = procspawn::clean_numbers(ch_noisy_numbers, line_end);
     let mut nr: u64 = 0;     // number of read
     let mut pos: u64 = 0;
     let mut last_pos: u64 = pos;
-    let mut read_bytes: u64 = 0;
     loop {
-        let mut buf = Vec::with_capacity(DEFAULT_CAP);
-        debug!("exoffload_proc: Read from stdin2");
-        match stdin2.read_until(line_end, &mut buf) {
-            Ok(n) => {
+        match ch_stdin2.recv() {
+            Ok(buf) => {
                 nr += 1;
+                let mut buf = buf;
                 let eol = stringutils::trim_eol(&mut buf);
                 let line = String::from_utf8_lossy(&buf).to_string();
-                if n == 0 {
-                    ch.send_eof()?;
-                    break;
-                }
-                read_bytes += n as u64;
-                let mut last_tee_nr_update: Option<std::time::Instant> = None;
-                let mut last_tee_nr = 0;
                 while pos < nr {
-                    let wrote_bytes = tee_processed_bytes.lock().unwrap();
-                    let buffer_gap = *wrote_bytes - read_bytes;
-                    drop(wrote_bytes); // unlock Mutex
-                    let tee_nr = *(tee_processed_lines.lock().unwrap());
-                    let nr_gap = tee_nr - nr;
-                    debug!("exoffload_proc: Dequeue line numbers");
-                    match print_line_numbers.try_recv() {
+                    match print_line_numbers.recv() {
                         Ok(i) => {
                             pos = i;
                             debug!("exoffload_proc: Queued number: {}", pos);
@@ -335,32 +320,8 @@ fn exoffload_proc(
                             }
                             last_pos = pos;
                         },
-                        Err(std::sync::mpsc::TryRecvError::Empty) => {
-                            debug!("exoffload_proc: Queie is empty: nr = {}, tee_nr = {}, nr_gap = {}, last_tee_nr = {}, (tee_nr == last_tee_nr) = {}", nr, tee_nr, nr_gap, last_tee_nr, tee_nr == last_tee_nr);
-                            debug!("exoffload_proc: Queie is empty: buffer_gap = {}", buffer_gap);
-                            if tee_nr != last_tee_nr {
-                                debug!("exoffload_proc: start to measure time of tee");
-                                last_tee_nr_update = Some(std::time::Instant::now());
-                            } else {
-                                debug!("exoffload_proc: tee seems stopped, update time");
-                                match last_tee_nr_update {
-                                    Some(t) => {
-                                        // FIXME: This is quite adhoc workaround
-                                        // If tee stops more than 0.1 ms and pipe buffer is
-                                        // more than 8KB, process next line.
-                                        if t.elapsed() > Duration::new(0, 100000) && buffer_gap >= 8192 {
-                                            debug!("exoffload_proc: give up to wait, go ahead");
-                                            break;
-                                        }
-                                    },
-                                    None => {},
-                                }
-                            }
-                            last_tee_nr = tee_nr;
-                        },
-                        Err(std::sync::mpsc::TryRecvError::Disconnected) => {
-                            debug!("exoffload_proc: Queue got emptied");
-                            // TODO: it is not necessary to check channel statuce, once channel has been disconnected.
+                        Err(e) => {
+                            debug!("exoffload_proc: Queue got emptied: {}", e.to_string());
                             break;
                         },
                     }
@@ -380,8 +341,11 @@ fn exoffload_proc(
                 }
                 ch.send_msg(eol)?;
             },
-            Err(e) => msg_error(&e.to_string()),
-        }
+            Err(_) => {
+                ch.send_eof()?;
+                break;
+            },
+        };
     }
     Ok(())
 }

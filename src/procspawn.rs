@@ -69,6 +69,77 @@ pub fn exec_cmd_sync(input: String, cmds: &Vec<String>, line_end: u8) -> String 
     String::from_utf8_lossy(&output).to_string()
 }
 
+pub fn tee_chan(line_end: u8) -> std::result::Result<(Receiver<Vec<u8>>, Receiver<Vec<u8>>, JoinHandle<()>), errors::SpawnError> {
+    let (tx1, rx1) = mpsc::channel();
+    let (tx2, rx2) = mpsc::channel();
+    let handler = thread::spawn(move || {
+            let stdin = io::stdin();
+            loop {
+                let mut buf = Vec::with_capacity(DEFAULT_CAP);
+                match stdin.lock().read_until(line_end, &mut buf) {
+                    Ok(0) => {
+                        break
+                    },
+                    Ok(n) => {
+                        match tx1.send(buf.clone()) {
+                            Ok(_) => {},
+                            Err(_) => {},
+                        };
+                        match tx2.send(buf.clone()) {
+                            Ok(_) => {},
+                            Err(_) => {},
+                        };
+                    },
+                    Err(_) => {
+                        debug!("tee_chain: Got error while loading from stdin");
+                    },
+                };
+            }
+    });
+    return Ok((rx1, rx2, handler))
+}
+
+pub fn spawn_exoffload_command_chan (
+    command: &str,
+    mut input: Receiver<Vec<u8>>,
+    line_end: u8
+    ) -> std::result::Result<
+            (BufReader<Box<dyn Read + Send>>, JoinHandle<()>),
+            errors::SpawnError
+    > {
+    cfg_if::cfg_if! {
+        if #[cfg(windows)] {
+            let cmds: Vec<String> = vec!["cmd","/C", command].into_iter().map(|s| s.to_owned()).collect();
+        } else {
+            let cmds: Vec<String> = vec!["sh","-c", command].into_iter().map(|s| s.to_owned()).collect();
+        }
+    }
+    let (fd_in, fd_out, _) = self::exec_cmd(&cmds)?;
+    let mut n_writer = BufWriter::new(fd_in);
+    let n_reader = BufReader::new(fd_out);
+    let handler = thread::spawn(move || {
+        loop {
+            match input.recv() {
+                Ok(buf) => {
+                    match n_writer.write(&buf) {
+                        Ok(_) => (),
+                        Err(e) => {
+                        },
+                    }
+                },
+                Err(_) => {
+                    break;
+                },
+            }
+        }
+        n_writer = BufWriter::new(Box::new(io::sink()));
+        drop(n_writer);
+    });
+    debug!("spawn_exoffload_command: thread: end");
+    Ok((n_reader, handler))
+}
+
+
 // Generate two readers which prints identical standard input.
 // Even if either reader outputs a line, another one will keep the identical line.
 // The behavior is similar to `tee' command.
