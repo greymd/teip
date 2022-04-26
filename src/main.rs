@@ -298,10 +298,11 @@ fn exoffload_proc(
             .unwrap_or_else(|e| error_exit(&e.to_string()));
     let (rx_messy_numbers, _thread2) = procspawn::run_pipeline_generating_numbers(exoffload_pipeline, rx_stdin1)
             .unwrap_or_else(|e| error_exit(&e.to_string()));
-    let (rx_printable_numbers, _thread3) = procspawn::clean_numbers(rx_messy_numbers, line_end);
+    let (rx_numbers, _thread3) = procspawn::clean_numbers(rx_messy_numbers, line_end);
     let mut nr: u64 = 0;     // number of read
     let mut pos: u64 = 0;    // position of printable numbers
     let mut last_pos: u64 = pos;
+    let mut expect_new_numbers: bool = true;
     loop {
         nr += 1;
         // Load line from stdin
@@ -315,11 +316,12 @@ fn exoffload_proc(
         let eol = stringutils::trim_eol(&mut buf);
         let line = String::from_utf8_lossy(&buf).to_string();
         // Try to detect printable line numbers which is bigger than current read line
-        while pos < nr {
-            pos = match rx_printable_numbers.recv() {
+        while expect_new_numbers && pos < nr {
+            pos = match rx_numbers.recv() {
                 Ok(n) => n,
                 Err(_) => {
-                    // TODO: once enter here, it got non-necessary to check channel
+                    // Once queue got disconnected, new numbers is no longer expected.
+                    expect_new_numbers = false;
                     break;
                 },
             };

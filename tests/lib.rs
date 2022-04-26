@@ -35,7 +35,6 @@ mod cmdtest {
             .code(1);
     }
 
-    // TODO: Add test mofffload + inverse match
     #[test]
     fn test_exoffload_grep() {
         let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
@@ -47,6 +46,16 @@ mod cmdtest {
     }
 
     #[test]
+    fn test_exoffload_grep_invert() {
+        let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
+        let mcmd = format!("{} -n A", ESCAPE_GREP_CMD);
+        cmd.args(&["-e", &mcmd, "-v", SED_CMD, "s/./@/"])
+            .write_stdin("ABC\nDFE\nBCC\nCCA\n")
+            .assert()
+            .stdout("ABC\n@FE\n@CC\nCCA\n");
+    }
+
+    #[test]
     fn test_exoffload_nl() {
         let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
         let mcmd = format!("{}", ESCAPE_NL_CMD);
@@ -54,6 +63,16 @@ mod cmdtest {
             .write_stdin("ABC\nDFE\nBCC\nCCA\n")
             .assert()
             .stdout("@@@\n@@@\n@@@\n@@@\n");
+    }
+
+    #[test]
+    fn test_exoffload_nl_invert() {
+        let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
+        let mcmd = format!("{}", ESCAPE_NL_CMD);
+        cmd.args(&["-v", "-e", &mcmd, SED_CMD, "s/./@/g"])
+            .write_stdin("ABC\nDFE\nBCC\nCCA\n")
+            .assert()
+            .stdout("ABC\nDFE\nBCC\nCCA\n");
     }
 
     #[test]
