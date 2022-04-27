@@ -68,52 +68,8 @@ pub fn exec_cmd_sync(input: String, cmds: &Vec<String>, line_end: u8) -> String 
     String::from_utf8_lossy(&output).to_string()
 }
 
-/// Generate two readers which prints identical standard input.
-/// The behavior is similar to tee(1) command but `mpsc:channel` queues data as much as they can
-/// unlike general Linux pipe buffer.
-/// `line_end` is line delimiter, generally it is supposed to be the new-line character like `\n`.
-///
-/// Example:
-/// ```
-/// let stdin = io::stdin();
-/// let (stdin1, stdin2, _thread1) = tee2(stdin, b'\n').unwrap();
-/// ```
-pub fn tee(
-    input: (impl Read + Send + 'static),
-    line_end: u8
-) -> std::result::Result<(Receiver<Vec<u8>>, Receiver<Vec<u8>>, JoinHandle<()>), errors::SpawnError> {
-    let (tx1, rx1) = mpsc::channel();
-    let (tx2, rx2) = mpsc::channel();
-    let handler = thread::spawn(move || {
-            let mut stdin = BufReader::new(input);
-            loop {
-                let mut buf = Vec::with_capacity(DEFAULT_CAP);
-                match stdin.read_until(line_end, &mut buf) {
-                    Ok(0) => {
-                        // Finish to read entire input, discard channels
-                        drop(tx1);
-                        drop(tx2);
-                        break;
-                    },
-                    Ok(_) => {
-                        // Suppress errors
-                        let _ = tx1.send(buf.clone());
-                        let _ = tx2.send(buf.clone());
-                    },
-                    Err(_) => {
-                        debug!("tee_chain: Got error while loading from stdin");
-                    },
-                };
-            }
-    });
-    return Ok((rx1, rx2, handler))
-}
-
-
-/// Spawn process with given pipeline and keep sending strings from channel as stdin.
-/// Spawn process is supposed to be generating integer numbers but each line may contain some
-/// noise (see clean_numbers function also).
-pub fn run_pipeline_generating_numbers (
+/// Spawn process with a single string command (pipeline) and keep getting input from mpsc::Receiver as stdin.
+pub fn exec_pipeline_mpsc_input (
     command: &str,
     input: Receiver<Vec<u8>>,
     ) -> std::result::Result<
@@ -145,6 +101,48 @@ pub fn run_pipeline_generating_numbers (
         drop(n_writer);
     });
     Ok((n_reader, handler))
+}
+
+/// Generate two mpsc::Receiver(s) which prints identical standard input as given trait.
+/// The behavior is similar to tee(1) command but `mpsc:channel` queues data as much as they can
+/// unlike general Linux pipe buffer.
+/// `line_end` is line delimiter, generally it is supposed to be the new-line character like `\n`.
+///
+/// Example of duplicating standard input:
+/// ```
+/// let stdin = io::stdin();
+/// let (stdin1, stdin2, _thread1) = tee2(stdin, b'\n').unwrap();
+/// ```
+/// => `stdin1` and `stdin2` will receive identical data as `io::stdin()`.
+pub fn tee(
+    input: (impl Read + Send + 'static),
+    line_end: u8
+) -> std::result::Result<(Receiver<Vec<u8>>, Receiver<Vec<u8>>, JoinHandle<()>), errors::SpawnError> {
+    let (tx1, rx1) = mpsc::channel();
+    let (tx2, rx2) = mpsc::channel();
+    let handler = thread::spawn(move || {
+            let mut stdin = BufReader::new(input);
+            loop {
+                let mut buf = Vec::with_capacity(DEFAULT_CAP);
+                match stdin.read_until(line_end, &mut buf) {
+                    Ok(0) => {
+                        // Finish to read entire input, discard channels
+                        drop(tx1);
+                        drop(tx2);
+                        break;
+                    },
+                    Ok(_) => {
+                        // Suppress errors
+                        let _ = tx1.send(buf.clone());
+                        let _ = tx2.send(buf.clone());
+                    },
+                    Err(_) => {
+                        debug!("tee_chain: Got error while loading from stdin");
+                    },
+                };
+            }
+    });
+    return Ok((rx1, rx2, handler))
 }
 
 /// Extract numbers from noisey strings.
@@ -219,7 +217,7 @@ mod test {
             }
         }
         let (tx, rx) = mpsc::channel();
-        let (mut rx_messy_numbers, _) = run_pipeline_generating_numbers(&format!("{} \"s/./3/\"", SED_CMD), rx).unwrap();
+        let (mut rx_messy_numbers, _) = exec_pipeline_mpsc_input(&format!("{} \"s/./3/\"", SED_CMD), rx).unwrap();
         let input = b"abcdef\n".to_vec();
         tx.send(input).unwrap();
         let mut buf = Vec::with_capacity(16);
@@ -255,7 +253,7 @@ mod test {
             }
         }
         let (tx, rx) = mpsc::channel();
-        let (rx_messy_numbers, _) = run_pipeline_generating_numbers(&format!("{} \"s/./3/\"", SED_CMD), rx).unwrap();
+        let (rx_messy_numbers, _) = exec_pipeline_mpsc_input(&format!("{} \"s/./3/\"", SED_CMD), rx).unwrap();
         let input = b"abcdef\n".to_vec();
         tx.send(input).unwrap();
         drop(tx);

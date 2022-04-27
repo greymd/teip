@@ -12,7 +12,7 @@ mod pure {
 }
 mod token;
 mod errors;
-mod procspawn;
+mod spawnutils;
 use errors::*;
 mod pipeintercepter;
 use pipeintercepter::PipeIntercepter;
@@ -295,11 +295,11 @@ fn exoffload_proc(
     line_end: u8,
 ) -> Result<(), errors::TokenSendError> {
     let stdin = io::stdin();
-    let (rx_stdin1, rx_stdin2, _thread1) = procspawn::tee(stdin, line_end)
+    let (rx_stdin1, rx_stdin2, _thread1) = spawnutils::tee(stdin, line_end)
             .unwrap_or_else(|e| error_exit(&e.to_string()));
-    let (rx_messy_numbers, _thread2) = procspawn::run_pipeline_generating_numbers(exoffload_pipeline, rx_stdin1)
+    let (rx_messy_numbers, _thread2) = spawnutils::exec_pipeline_mpsc_input(exoffload_pipeline, rx_stdin1)
             .unwrap_or_else(|e| error_exit(&e.to_string()));
-    let (rx_numbers, _thread3) = procspawn::clean_numbers(rx_messy_numbers, line_end);
+    let (rx_numbers, _thread3) = spawnutils::clean_numbers(rx_messy_numbers, line_end);
     let mut nr: u64 = 0;     // number of read
     let mut pos: u64 = 0;    // position of printable numbers
     let mut last_pos: u64 = pos;

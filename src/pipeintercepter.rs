@@ -1,5 +1,5 @@
 use super::token::Chunk;
-use super::procspawn;
+use super::spawnutils;
 use super::stringutils::trim_eol;
 use super::{errors,errors::*};
 use super::{HL,DEFAULT_CAP};
@@ -9,6 +9,7 @@ use std::sync::mpsc::{self, Sender};
 use std::thread::{self, JoinHandle};
 use log::debug;
 
+/// Bypassing system and its interface set between stdin and stdout
 pub struct PipeIntercepter {
     tx: Sender<Chunk>,
     pipe_writer: BufWriter<Box<dyn Write + Send + 'static>>, // Not used when -s
@@ -56,7 +57,7 @@ impl PipeIntercepter {
         dryrun: bool,
     ) -> Result<PipeIntercepter, errors::SpawnError> {
         let (tx, rx) = mpsc::channel();
-        let (child_stdin, child_stdout, _) = procspawn::exec_cmd(&cmds)?;
+        let (child_stdin, child_stdout, _) = spawnutils::exec_cmd(&cmds)?;
         let pipe_writer = BufWriter::new(child_stdin);
         let handler = thread::spawn(move || {
             debug!("thread: spawn");
@@ -115,7 +116,7 @@ impl PipeIntercepter {
     /// Spawn an external process for solid mode
     ///            Example:
     ///            `````````````````````````````````````````````````````````````
-    ///            $ echo -e "AAA\nBBB\nCCC\nDDD" | teip -l 3,4 -- sed 's/./@/g'
+    ///            $ echo -e "AAA\nBBB\nCCC\nDDD" | teip -s -l 3,4 -- sed 's/./@/g'
     ///            AAA
     ///            BBB
     ///            @@@
@@ -174,7 +175,7 @@ impl PipeIntercepter {
                     }
                     Chunk::SHole(msg) => {
                         debug!("thread: rx.recv <= SHole:[{}]", msg);
-                        let result = procspawn::exec_cmd_sync(msg, &cmds, line_end);
+                        let result = spawnutils::exec_cmd_sync(msg, &cmds, line_end);
                         writer
                             .write(result.as_bytes())
                             .unwrap_or_else(|e| exit_silently(&e.to_string()));
