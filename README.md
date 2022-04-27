@@ -731,7 +731,7 @@ BBB
 Technically, the first captured group in the regular expression `^\s*([0-9]+)` is interpreted as a line number.
 
 `-e` will also recognize multiple numbers if the pipeline provides multiple lines of numbers.
-For example, the `seq` command to display only odd numbers up to 100 is.
+For example, the `seq` command to display only odd numbers up to 10 is.
 
 ```bash
 $ seq 1 2 10

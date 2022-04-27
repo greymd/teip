@@ -40,7 +40,7 @@ pub fn regex_onig_proc(
         // handling empty string is not helpful for users.
         if !unmatched.is_empty() {
             if !invert {
-                ch.send_asis(unmatched.to_string())?;
+                ch.send_keep(unmatched.to_string())?;
             } else {
                 ch.send_byps(unmatched.to_string())?;
             }
@@ -48,14 +48,14 @@ pub fn regex_onig_proc(
         if !invert {
             ch.send_byps(matched.to_string())?;
         } else {
-            ch.send_asis(matched.to_string())?;
+            ch.send_keep(matched.to_string())?;
         }
         left_index = cap.1;
     }
     if left_index < line.len() {
         let unmatched = &line[left_index..line.len()];
         if !invert {
-            ch.send_asis(unmatched.to_string())?;
+            ch.send_keep(unmatched.to_string())?;
         } else {
             ch.send_byps(unmatched.to_string())?;
         }
@@ -84,7 +84,7 @@ pub fn regex_onig_line_proc(
                 match re.find(&line) {
                     Some(_) => {
                         if invert {
-                            ch.send_asis(line.to_string())?;
+                            ch.send_keep(line.to_string())?;
                         } else {
                             ch.send_byps(line.to_string())?;
                         }
@@ -93,11 +93,11 @@ pub fn regex_onig_line_proc(
                         if invert {
                             ch.send_byps(line.to_string())?;
                         } else {
-                            ch.send_asis(line.to_string())?;
+                            ch.send_keep(line.to_string())?;
                         }
                     }
                 };
-                ch.send_asis(eol)?;
+                ch.send_keep(eol)?;
             }
             Err(e) => msg_error(&e.to_string()),
         }

@@ -1,4 +1,4 @@
-use super::token::Token;
+use super::token::Chunk;
 use super::CMD;
 use std::error;
 use std::fmt;
@@ -56,7 +56,7 @@ impl fmt::Debug for PipeReceiveError {
 }
 
 pub enum TokenSendError {
-    Channel(mpsc::SendError<Token>),
+    Channel(mpsc::SendError<Chunk>),
     Pipe(std::io::Error),
 }
 

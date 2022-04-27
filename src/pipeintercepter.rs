@@ -1,4 +1,4 @@
-use super::token::Token;
+use super::token::Chunk;
 use super::procspawn;
 use super::stringutils::trim_eol;
 use super::{errors,errors::*};
@@ -10,7 +10,7 @@ use std::thread::{self, JoinHandle};
 use log::debug;
 
 pub struct PipeIntercepter {
-    tx: Sender<Token>,
+    tx: Sender<Chunk>,
     pipe_writer: BufWriter<Box<dyn Write + Send + 'static>>, // Not used when -s
     handler: Option<JoinHandle<()>>,                         // "option dance"
     line_end: u8,
@@ -18,9 +18,38 @@ pub struct PipeIntercepter {
     dryrun: bool,
 }
 
-/// TODO: Add description of PipeIntercepter
 impl PipeIntercepter {
     /// Spawn an external which receive from bypassed data and modify it
+    ///            Example:
+    ///            `````````````````````````````````````````````````````````````
+    ///            $ echo -e "AAA\nBBB\nCCC\nDDD" | teip -l 3,4 -- sed 's/./@/g'
+    ///            AAA
+    ///            BBB
+    ///            @@@
+    ///            @@@
+    ///            `````````````````````````````````````````````````````````````
+    ///            ┌─────────────────────────┐      ┌────────────────────────────────────────────────────────────────────────────┐
+    ///            │ Main thread             │      │ PipeIntercepter                                                            │
+    ///            ├─────────────────────────┤      ├────────────────────────────────────────────────────────────────────────────┤
+    ///            │  ┌────────────────────┐ │      │                                                    ┌─────────────────────┐ │
+    ///            │  │ line_line_proc     │ │      │                                                    │ start_output thread │ │
+    ///            │  ├────────────────────┤ │   ┌──┴────────┐   Keep("AAA")   ┌─────────────────┐       ├─────────────────────┤ │
+    /// ┌───────┐  │  │                    │ │   │           │   Keep("BBB")   │ tx queue        │       │                     │ │
+    /// │ stdin ├──┼──►  "AAA" <= Unmatch──┼─┼───►           │                 │ (std:sync:mpsc) │       │  Keep("AAA")        │ │
+    /// └───────┘  │  │                    │ │   │ send_keep ├─────────────────►                 ├─(rx)──►                     │ │
+    ///            │  │  "BBB" <= Unmatch──┼─┼───►           │                 │                 │       │  Keep("BBB")        │ │
+    ///            │  │                    │ │   │           │       ┌─────────►                 │       │ ┌────────────────┐  │ │   ┌────────┐
+    ///            │  │                    │ │   └──┬────────┘       │         └─────────────────┘       │ │Hole = "@@@"    │  ├─┼───► stdout │
+    ///            │  │                    │ │      │                │                                   │ ├────────────────┤  │ │   └────────┘
+    ///            │  │                    │ │   ┌──┴─────────┐      │ Hole                              │ │Hole = "@@@"    │  │ │
+    ///            │  │  "CCC" <= Match────┼─┼───►            │      │ Hole    ┌───────────────────┐     │ └──▲─────────────┘  │ │    AAA
+    ///            │  │                    │ │   │            ├──────┘         │ Pipe queue        │     │    │                │ │    BBB
+    ///            │  │  "DDD" <= Match────┼─┼───► send_byps  │                │ (Targeted Command)├─────┼──(pipe_reader)      │ │    @@@
+    ///            │  │                    │ │   │            ├──(pipe_writer)─►                   │     │                     │ │    @@@
+    ///            │  │                    │ │   │            │                │  sed 's/./@/g'    │     └─────────────────────┘ │
+    ///            │  └────────────────────┘ │   └──┬─────────┘    "CCC"       └───────────────────┘                             │
+    ///            │                         │      │              "DDD"                                                         │
+    ///            └─────────────────────────┘      └────────────────────────────────────────────────────────────────────────────┘
     pub fn start_output(
         cmds: Vec<String>,
         line_end: u8,
@@ -31,8 +60,8 @@ impl PipeIntercepter {
         let pipe_writer = BufWriter::new(child_stdin);
         let handler = thread::spawn(move || {
             debug!("thread: spawn");
-            let mut reader = BufReader::new(child_stdout);
-            let mut writer = BufWriter::new(io::stdout());
+            let mut pipe_reader = BufReader::new(child_stdout);
+            let mut result_writer = BufWriter::new(io::stdout());
             loop {
                 let token = match rx.recv() {
                     Ok(t) => t,
@@ -42,28 +71,28 @@ impl PipeIntercepter {
                     }
                 };
                 match token {
-                    Token::Channel(msg) => {
-                        debug!("thread: rx.recv <= Channle:[{}]", msg);
-                        writer
+                    Chunk::Keep(msg) => {
+                        debug!("thread: rx.recv <= Keep:[{}]", msg);
+                        result_writer
                             .write(msg.as_bytes())
                             .unwrap_or_else(|e| exit_silently(&e.to_string()));
                     }
-                    Token::Piped => {
-                        debug!("thread: rx.recv <= Piped");
-                        match PipeIntercepter::read_pipe(&mut reader, line_end) {
+                    Chunk::Hole => {
+                        debug!("thread: rx.recv <= Hole");
+                        match PipeIntercepter::read_pipe(&mut pipe_reader, line_end) {
                             Ok(msg) => {
-                                writer
+                                result_writer
                                     .write(msg.as_bytes())
                                     .unwrap_or_else(|e| exit_silently(&e.to_string()));
                             }
                             Err(e) => {
                                 // pipe may be exhausted
-                                writer.flush().unwrap();
+                                result_writer.flush().unwrap();
                                 error_exit(&e.to_string())
                             }
                         }
                     }
-                    Token::EOF => {
+                    Chunk::EOF => {
                         debug!("thread: rx.recv <= EOF");
                         break;
                     }
@@ -84,6 +113,41 @@ impl PipeIntercepter {
     }
 
     /// Spawn an external process for solid mode
+    ///            Example:
+    ///            `````````````````````````````````````````````````````````````
+    ///            $ echo -e "AAA\nBBB\nCCC\nDDD" | teip -l 3,4 -- sed 's/./@/g'
+    ///            AAA
+    ///            BBB
+    ///            @@@
+    ///            @@@
+    ///            `````````````````````````````````````````````````````````````
+    ///            ┌─────────────────────────┐      ┌───────────────────────────────────────────────────────────────────────────────────────┐
+    ///            │ Main thread             │      │ PipeIntercepter                                                                       │
+    ///            ├─────────────────────────┤      ├───────────────────────────────────────────────────────────────────────────────────────┤
+    ///            │                         │      │                                                    ┌───────────────────────────────┐  │
+    ///            │  ┌────────────────────┐ │      │                                                    │ start_solid_output            │  │
+    ///            │  │ line_line_proc     │ │      │                                                    │ thread                        │  │
+    ///            │  ├────────────────────┤ │   ┌──┴────────┐   Keep("AAA")   ┌─────────────────┐       ├───────────────────────────────┤  │
+    /// ┌───────┐  │  │                    │ │   │           │   Keep("BBB")   │ tx queue        │       │                               │  │
+    /// │ stdin ├──┼──►  "AAA" <= Unmatch──┼─┼───►           │                 │ (std:sync:mpsc) │       │ Keep("AAA")                   │  │
+    /// └───────┘  │  │                    │ │   │ send_keep ├─────────────────►                 ├─(rx)──►                               │  │
+    ///            │  │  "BBB" <= Unmatch──┼─┼───►           │                 │                 │       │ Keep("BBB")                   │  │
+    ///            │  │                    │ │   │           │       ┌─────────►                 │       │                               │  │  ┌────────┐
+    ///            │  │                    │ │   └──┬────────┘       │         └─────────────────┘       │                               ├──┼──► stdout │
+    ///            │  │                    │ │      │                │                                   │                               │  │  └────────┘
+    ///            │  │                    │ │   ┌──┴─────────┐      │                                   │ SHole("CCC")                  │  │
+    ///            │  │  "CCC" <= Match────┼─┼───►            │      │ SHole("CCC")                      │   │ ┌───────────────┐         │  │   AAA
+    ///            │  │                    │ │   │ send_byps  ├──────┘ SHole("DDD")                      │   │ │exec_cmd_sync  ├─► "@@@" │  │   BBB
+    ///            │  │  "DDD" <= Match────┼─┼───►            │                                          │   └─►  sed 's/./@/g'│         │  │   @@@
+    ///            │  │                    │ │   │ solid=true │                                          │     └───────────────┘         │  │   @@@
+    ///            │  │                    │ │   │            │                                          │                               │  │
+    ///            │  └────────────────────┘ │   └──┬─────────┘                                          │ SHole("DDD")                  │  │
+    ///            │                         │      │                                                    │   │ ┌───────────────┐         │  │
+    ///            │                         │      │                                                    │   │ │exec_cmd_sync  ├─► "@@@" │  │
+    ///            └─────────────────────────┘      │                                                    │   └─►  sed 's/./@/g'│         │  │
+    ///                                             │                                                    │     └───────────────┘         │  │
+    ///                                             │                                                    └───────────────────────────────┘  │
+    ///                                             └───────────────────────────────────────────────────────────────────────────────────────┘
     pub fn start_solid_output(
         cmds: Vec<String>,
         line_end: u8,
@@ -102,20 +166,20 @@ impl PipeIntercepter {
                     }
                 };
                 match token {
-                    Token::Channel(msg) => {
-                        debug!("thread: rx.recv <= Channle:[{}]", msg);
+                    Chunk::Keep(msg) => {
+                        debug!("thread: rx.recv <= Keep:[{}]", msg);
                         writer
                             .write(msg.as_bytes())
                             .unwrap_or_else(|e| exit_silently(&e.to_string()));
                     }
-                    Token::Solid(msg) => {
-                        debug!("thread: rx.recv <= Solid:[{}]", msg);
+                    Chunk::SHole(msg) => {
+                        debug!("thread: rx.recv <= SHole:[{}]", msg);
                         let result = procspawn::exec_cmd_sync(msg, &cmds, line_end);
                         writer
                             .write(result.as_bytes())
                             .unwrap_or_else(|e| exit_silently(&e.to_string()));
                     }
-                    Token::EOF => {
+                    Chunk::EOF => {
                         debug!("thread: rx.recv <= EOF");
                         break;
                     }
@@ -155,10 +219,10 @@ impl PipeIntercepter {
 
     /// Print string as is, that means it outputs to stdout without any modifications.
     /// This is data "under the masking tape".
-    pub fn send_asis(&self, msg: String) -> Result<(), errors::TokenSendError> {
+    pub fn send_keep(&self, msg: String) -> Result<(), errors::TokenSendError> {
         debug!("tx.send => Channle({})", msg);
         self.tx
-            .send(Token::Channel(msg))
+            .send(Chunk::Keep(msg))
             .map_err(|e| errors::TokenSendError::Channel(e))?;
         Ok(())
     }
@@ -172,20 +236,20 @@ impl PipeIntercepter {
             msg_highlighted = HL[0].to_string() + &msg + HL[1];
             debug!("tx.send => Channle({})", msg_highlighted);
             self.tx
-                .send(Token::Channel(msg_highlighted))
+                .send(Chunk::Keep(msg_highlighted))
                 .map_err(|e| errors::TokenSendError::Channel(e))?;
             return Ok(());
         }
         if self.solid {
             debug!("tx.send => Solid({})", msg);
             self.tx
-                .send(Token::Solid(msg))
+                .send(Chunk::SHole(msg))
                 .map_err(|e| errors::TokenSendError::Channel(e))?;
             Ok(())
         } else {
             debug!("tx.send => Piped");
             self.tx
-                .send(Token::Piped)
+                .send(Chunk::Hole)
                 .map_err(|e| errors::TokenSendError::Channel(e))?;
             debug!("stdin => {}[line_end]", msg);
             self.pipe_writer
@@ -202,7 +266,7 @@ impl PipeIntercepter {
     pub fn send_eof(&self) -> Result<(), errors::TokenSendError> {
         debug!("tx.send => EOF");
         self.tx
-            .send(Token::EOF)
+            .send(Chunk::EOF)
             .map_err(|e| errors::TokenSendError::Channel(e))?;
         Ok(())
     }

@@ -280,7 +280,7 @@ fn main() {
                 field_regex_proc(&mut ch, &buf, &regex_delimiter, &field_list)
                     .unwrap_or_else(|e| error_exit(&e.to_string()));
             }
-            ch.send_asis(eol)
+            ch.send_keep(eol)
                 .unwrap_or_else(|e| msg_error(&e.to_string()));
         }
     }
@@ -333,7 +333,7 @@ fn exoffload_proc(
         }
         if pos == nr {
             if invert {
-                ch.send_asis(line.to_string())?;
+                ch.send_keep(line.to_string())?;
             } else {
                 ch.send_byps(line.to_string())?;
             }
@@ -341,10 +341,10 @@ fn exoffload_proc(
             if invert {
                 ch.send_byps(line.to_string())?;
             } else {
-                ch.send_asis(line.to_string())?;
+                ch.send_keep(line.to_string())?;
             }
         }
-        ch.send_asis(eol)?;
+        ch.send_keep(eol)?;
     }
     Ok(())
 }
@@ -374,9 +374,9 @@ fn line_line_proc(
                 if ranges[ri].low <= (i + 1) && (i + 1) <= ranges[ri].high {
                     ch.send_byps(line.to_string())?;
                 } else {
-                    ch.send_asis(line.to_string())?;
+                    ch.send_keep(line.to_string())?;
                 }
-                ch.send_asis(eol)?;
+                ch.send_keep(eol)?;
             }
             Err(e) => msg_error(&e.to_string()),
         }
@@ -405,7 +405,7 @@ fn regex_line_proc(
                 let line = String::from_utf8_lossy(&buf).to_string();
                 if re.is_match(&line) {
                     if invert {
-                        ch.send_asis(line.to_string())?;
+                        ch.send_keep(line.to_string())?;
                     } else {
                         ch.send_byps(line.to_string())?;
                     }
@@ -413,10 +413,10 @@ fn regex_line_proc(
                     if invert {
                         ch.send_byps(line.to_string())?;
                     } else {
-                        ch.send_asis(line.to_string())?;
+                        ch.send_keep(line.to_string())?;
                     }
                 }
-                ch.send_asis(eol)?;
+                ch.send_keep(eol)?;
             }
             Err(e) => msg_error(&e.to_string()),
         }
@@ -443,7 +443,7 @@ fn regex_proc(
         // handling empty string is not helpful for users.
         if !unmatched.is_empty() {
             if !invert {
-                ch.send_asis(unmatched.to_string())?;
+                ch.send_keep(unmatched.to_string())?;
             } else {
                 ch.send_byps(unmatched.to_string())?;
             }
@@ -451,14 +451,14 @@ fn regex_proc(
         if !invert {
             ch.send_byps(matched.to_string())?;
         } else {
-            ch.send_asis(matched.to_string())?;
+            ch.send_keep(matched.to_string())?;
         }
         left_index = cap.end();
     }
     if left_index < line.len() {
         let unmatched = &line[left_index..line.len()];
         if !invert {
-            ch.send_asis(unmatched.to_string())?;
+            ch.send_keep(unmatched.to_string())?;
         } else {
             ch.send_byps(unmatched.to_string())?;
         }
@@ -492,7 +492,7 @@ fn char_proc(
             str_out.push(c);
         }
         if is_in && !last_is_in {
-            ch.send_asis(str_out.to_string())?;
+            ch.send_keep(str_out.to_string())?;
             str_out.clear();
         } else if !is_in && last_is_in {
             ch.send_byps(str_in.to_string())?;
@@ -503,7 +503,7 @@ fn char_proc(
     if last_is_in && !str_in.is_empty() {
         ch.send_byps(str_in)?;
     } else {
-        ch.send_asis(str_out)?;
+        ch.send_keep(str_out)?;
     }
     Ok(())
 }
@@ -531,9 +531,9 @@ fn field_regex_proc(
         if ranges[ri].low <= i && i <= ranges[ri].high {
             ch.send_byps(field.to_string())?;
         } else {
-            ch.send_asis(field.to_string())?;
+            ch.send_keep(field.to_string())?;
         }
-        ch.send_asis(spaces.to_string())?;
+        ch.send_keep(spaces.to_string())?;
         i += 1;
     }
     // If line ends with delimiter, empty fields must be handled.
@@ -546,7 +546,7 @@ fn field_regex_proc(
         if ranges[ri].low <= i && i <= ranges[ri].high {
             ch.send_byps(field.to_string())?;
         } else {
-            ch.send_asis(field.to_string())?;
+            ch.send_keep(field.to_string())?;
         }
     }
     Ok(())
@@ -564,7 +564,7 @@ fn field_proc(
     let mut ri = 0;
     for (i, token) in tokens.enumerate() {
         if i > 0 {
-            ch.send_asis(delim.to_string())?;
+            ch.send_keep(delim.to_string())?;
         }
         if ranges[ri].high < (i + 1) && (ri + 1) < ranges.len() {
             ri += 1;
@@ -581,7 +581,7 @@ fn field_proc(
             // ```
             ch.send_byps(token.to_string())?;
         } else {
-            ch.send_asis(token.to_string())?;
+            ch.send_keep(token.to_string())?;
         }
     }
     Ok(())
