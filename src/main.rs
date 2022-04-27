@@ -294,7 +294,8 @@ fn exoffload_proc(
     invert: bool,
     line_end: u8,
 ) -> Result<(), errors::TokenSendError> {
-    let (rx_stdin1, rx_stdin2, _thread1) = procspawn::tee(line_end)
+    let stdin = io::stdin();
+    let (rx_stdin1, rx_stdin2, _thread1) = procspawn::tee(stdin, line_end)
             .unwrap_or_else(|e| error_exit(&e.to_string()));
     let (rx_messy_numbers, _thread2) = procspawn::run_pipeline_generating_numbers(exoffload_pipeline, rx_stdin1)
             .unwrap_or_else(|e| error_exit(&e.to_string()));
