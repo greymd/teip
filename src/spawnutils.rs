@@ -211,13 +211,13 @@ mod test {
     fn test_messy_numbers() {
         cfg_if::cfg_if! {
             if #[cfg(windows)] {
-                static SED_CMD: &str = "C:\\Program Files\\Git\\usr\\bin\\sed.exe";
+                static SED_CMD: &str = "C:\\\"Program Files\"\\Git\\usr\\bin\\sed.exe";
             } else {
                 static SED_CMD: &str = "sed";
             }
         }
         let (tx, rx) = mpsc::channel();
-        let (mut rx_messy_numbers, _) = exec_pipeline_mpsc_input(&format!("{} \"s/./3/\"", SED_CMD), rx).unwrap();
+        let (mut rx_messy_numbers, _) = exec_pipeline_mpsc_input(&format!("{} s/./3/", SED_CMD), rx).unwrap();
         let input = b"abcdef\n".to_vec();
         tx.send(input).unwrap();
         let mut buf = Vec::with_capacity(16);
@@ -247,13 +247,13 @@ mod test {
     fn test_clean_numbers() {
         cfg_if::cfg_if! {
             if #[cfg(windows)] {
-                static SED_CMD: &str = "C:\\Program Files\\Git\\usr\\bin\\sed.exe";
+                static SED_CMD: &str = "C:\\\"Program Files\"\\Git\\usr\\bin\\sed.exe";
             } else {
                 static SED_CMD: &str = "sed";
             }
         }
         let (tx, rx) = mpsc::channel();
-        let (rx_messy_numbers, _) = exec_pipeline_mpsc_input(&format!("{} \"s/./3/\"", SED_CMD), rx).unwrap();
+        let (rx_messy_numbers, _) = exec_pipeline_mpsc_input(&format!("{} s/./3/", SED_CMD), rx).unwrap();
         let input = b"abcdef\n".to_vec();
         tx.send(input).unwrap();
         drop(tx);
