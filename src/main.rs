@@ -69,10 +69,10 @@ OPTIONS:
 
 FLAGS:
     -h, --help       Prints help information
-    -v               Invert the sense of selecting
+    -v               Invert the range of bypassing
     -G               -g adopts Oniguruma regular expressions
-    -o               -g selects only matched parts
-    -s               Execute command for each selected part
+    -o               -g bypasses only matched parts
+    -s               Execute new command for each bypassed part
     -V, --version    Prints version information
     -z               Line delimiter is NUL instead of a newline
 
