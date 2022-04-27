@@ -287,7 +287,62 @@ fn main() {
 }
 
 /// External execution for match offloading ( -e )
-/// TODO: Add overview of this function
+///  Example:
+///  ``````````````````````````````````````````````````````````````````
+///  $ echo -e "AAA\nBBB\nCCC\nDDD\nEEE\n" | teip -e 'grep -n "[ACE]"'
+///  [AAA]
+///  BBB
+///  [CCC]
+///  DDD
+///  [EEE]
+///  ``````````````````````````````````````````````````````````````````
+///                          ┌───────┐
+///                          │ stdin │ "AAA\nBBB\nCCC\n..."
+///                          └───┬───┘
+///                              │
+///                              │
+///   ┌──────────┐          ┌────▼──────────┐
+///   │ argument │          │  _tee_thread  ├──────┐
+///   └────┬─────┘          └────┬──────────┘      │
+///        │                     │                 │
+///        │                 (rx_stdin1)           │
+///        │                 "AAA\nBBB\nCCC\n..."  │
+///        │                     │                 │
+///        │                     │           (rx_stdin2)
+///        │                     │            "AAA\nBBB\nCCC\n..."
+///        │                ┌────▼──────────┐      │
+/// (exoffload_pipeline)────►   _ex_thread  │      │
+/// "grep -n '[ACE]'"       └────┬──────────┘      │
+///                              │                 │
+///                         (rx_messy_numbers)     │
+///                         "1:AAA\n3:CCC\n..."    │
+///                              │                 │
+///                         ┌────▼──────────┐      │
+///                         │  _num_thread  │      │
+///                         └────┬──────────┘      │
+///                              │                 │
+///                            (rx_numbers)        │
+///                            1,│2, 3 ...as u64   │
+///                              │                 │
+///                         ┌────┴─────────────────┴──────────┐  ┌─────────────────────┐
+///                         │ Main thread > exoffload_proc    │  │ PipeIntercepter     │
+///                         ├────┬─────────────────┬──────────┤  ├─────────────────────┤
+///                         │    │                 │          │  │                     │
+///                         │    │              ┌──▼────────┐ │  │                     │
+///                         │    │              │ NR LINE   │ │  │                     │
+///                         │  ┌─▼─┐            │           │ │  │    ┌───────────┐    │
+///                         │  │ 1 │  ==MATCH== │  1 "AAA"──┼─┼──┼────┤►send_byps │    │
+///                         │  │   │            │           │ │  │    │───────────┤    │
+///                         │  │   │            │  2 "BBB"──┼─┼──┼────┤►send_keep │    │
+///                         │  │   │            │           │ │  │    │───────────┤ ───┼──► (See pipeintercepter.rs)
+///                         │  │ 3 │  ==MATCH== │  3 "CCC"──┼─┼──┼────┤►send_byps │    │
+///                         │  │   │            │           │ │  │    │───────────┤    │
+///                         │  │   │            │  4 "DDD"──┼─┼──┼────┤►send_keep │    │
+///                         │  │   │            │           │ │  │    │───────────┤    │
+///                         │  │ 5 │  ==MATCH== │  5 "EEE"──┼─┼──┼────┤►send_byps │    │
+///                         │  │   │            │           │ │  │    └───────────┘    │
+///                         │  └───┘            └───────────┘ │  │                     │
+///                         └─────────────────────────────────┘  └─────────────────────┘
 fn exoffload_proc(
     ch: &mut PipeIntercepter,
     exoffload_pipeline: &str,
@@ -295,11 +350,11 @@ fn exoffload_proc(
     line_end: u8,
 ) -> Result<(), errors::TokenSendError> {
     let stdin = io::stdin();
-    let (rx_stdin1, rx_stdin2, _thread1) = spawnutils::tee(stdin, line_end)
+    let (rx_stdin1, rx_stdin2, _tee_thread) = spawnutils::tee(stdin, line_end)
             .unwrap_or_else(|e| error_exit(&e.to_string()));
-    let (rx_messy_numbers, _thread2) = spawnutils::exec_pipeline_mpsc_input(exoffload_pipeline, rx_stdin1)
+    let (rx_messy_numbers, _ex_thread) = spawnutils::exec_pipeline_mpsc_input(exoffload_pipeline, rx_stdin1)
             .unwrap_or_else(|e| error_exit(&e.to_string()));
-    let (rx_numbers, _thread3) = spawnutils::clean_numbers(rx_messy_numbers, line_end);
+    let (rx_numbers, _num_thread) = spawnutils::clean_numbers(rx_messy_numbers, line_end);
     let mut nr: u64 = 0;     // number of read
     let mut pos: u64 = 0;    // position of printable numbers
     let mut last_pos: u64 = pos;
