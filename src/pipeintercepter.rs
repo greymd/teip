@@ -20,7 +20,7 @@ pub struct PipeIntercepter {
 
 /// TODO: Add description of PipeIntercepter
 impl PipeIntercepter {
-    // Spawn another process which continuously prints results
+    /// Spawn an external which receive from bypassed data and modify it
     pub fn start_output(
         cmds: Vec<String>,
         line_end: u8,
@@ -83,7 +83,7 @@ impl PipeIntercepter {
         })
     }
 
-    // Spawn another process for solid mode
+    /// Spawn an external process for solid mode
     pub fn start_solid_output(
         cmds: Vec<String>,
         line_end: u8,
@@ -153,8 +153,9 @@ impl PipeIntercepter {
         Ok(String::from_utf8_lossy(&buf).to_string())
     }
 
-    /// Print string to stdout as it is
-    pub fn send_msg(&self, msg: String) -> Result<(), errors::TokenSendError> {
+    /// Print string as is, that means it outputs to stdout without any modifications.
+    /// This is data "under the masking tape".
+    pub fn send_asis(&self, msg: String) -> Result<(), errors::TokenSendError> {
         debug!("tx.send => Channle({})", msg);
         self.tx
             .send(Token::Channel(msg))
@@ -162,8 +163,9 @@ impl PipeIntercepter {
         Ok(())
     }
 
-    /// Bypassing strings inside a hole
-    pub fn send_pipe(&mut self, msg: String) -> Result<(), errors::TokenSendError> {
+    /// Bypassing strings to the pipe and will be modified by the targeted command.
+    /// This is data is in the hole on the masking tape".
+    pub fn send_byps(&mut self, msg: String) -> Result<(), errors::TokenSendError> {
         if self.dryrun {
             // Highlight the string instead of bypassing
             let msg_highlighted: String;
@@ -196,7 +198,7 @@ impl PipeIntercepter {
         }
     }
 
-    /// Let PipeIntercepter detects the end of file and exit process
+    /// Notify PipeIntercepter the end of file to exit process
     pub fn send_eof(&self) -> Result<(), errors::TokenSendError> {
         debug!("tx.send => EOF");
         self.tx

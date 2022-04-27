@@ -40,24 +40,24 @@ pub fn regex_onig_proc(
         // handling empty string is not helpful for users.
         if !unmatched.is_empty() {
             if !invert {
-                ch.send_msg(unmatched.to_string())?;
+                ch.send_asis(unmatched.to_string())?;
             } else {
-                ch.send_pipe(unmatched.to_string())?;
+                ch.send_byps(unmatched.to_string())?;
             }
         }
         if !invert {
-            ch.send_pipe(matched.to_string())?;
+            ch.send_byps(matched.to_string())?;
         } else {
-            ch.send_msg(matched.to_string())?;
+            ch.send_asis(matched.to_string())?;
         }
         left_index = cap.1;
     }
     if left_index < line.len() {
         let unmatched = &line[left_index..line.len()];
         if !invert {
-            ch.send_msg(unmatched.to_string())?;
+            ch.send_asis(unmatched.to_string())?;
         } else {
-            ch.send_pipe(unmatched.to_string())?;
+            ch.send_byps(unmatched.to_string())?;
         }
     }
     Ok(())
@@ -84,20 +84,20 @@ pub fn regex_onig_line_proc(
                 match re.find(&line) {
                     Some(_) => {
                         if invert {
-                            ch.send_msg(line.to_string())?;
+                            ch.send_asis(line.to_string())?;
                         } else {
-                            ch.send_pipe(line.to_string())?;
+                            ch.send_byps(line.to_string())?;
                         }
                     }
                     None => {
                         if invert {
-                            ch.send_pipe(line.to_string())?;
+                            ch.send_byps(line.to_string())?;
                         } else {
-                            ch.send_msg(line.to_string())?;
+                            ch.send_asis(line.to_string())?;
                         }
                     }
                 };
-                ch.send_msg(eol)?;
+                ch.send_asis(eol)?;
             }
             Err(e) => msg_error(&e.to_string()),
         }
