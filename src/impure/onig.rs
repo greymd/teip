@@ -27,7 +27,7 @@ pub fn regex_onig_proc(
     line: &Vec<u8>,
     re: &Regex,
     invert: bool,
-) -> Result<(), errors::TokenSendError> {
+) -> Result<(), errors::ChunkSendError> {
     let line = String::from_utf8_lossy(&line).to_string();
     let mut left_index = 0;
     let mut right_index;
@@ -69,7 +69,7 @@ pub fn regex_onig_line_proc(
     re: &Regex,
     invert: bool,
     line_end: u8,
-) -> Result<(), errors::TokenSendError> {
+) -> Result<(), errors::ChunkSendError> {
     let stdin = io::stdin();
     loop {
         let mut buf = Vec::with_capacity(DEFAULT_CAP);

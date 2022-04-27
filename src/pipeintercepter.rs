@@ -1,4 +1,4 @@
-use super::token::Chunk;
+use super::chunk::Chunk;
 use super::spawnutils;
 use super::stringutils::trim_eol;
 use super::{errors,errors::*};
@@ -9,7 +9,7 @@ use std::sync::mpsc::{self, Sender};
 use std::thread::{self, JoinHandle};
 use log::debug;
 
-/// Bypassing system and its interface set between stdin and stdout
+/// struct for bypassing input and its interface
 pub struct PipeIntercepter {
     tx: Sender<Chunk>,
     pipe_writer: BufWriter<Box<dyn Write + Send + 'static>>, // Not used when -s
@@ -64,14 +64,14 @@ impl PipeIntercepter {
             let mut pipe_reader = BufReader::new(child_stdout);
             let mut result_writer = BufWriter::new(io::stdout());
             loop {
-                let token = match rx.recv() {
+                let chunk = match rx.recv() {
                     Ok(t) => t,
                     Err(e) => {
                         msg_error(&e.to_string());
                         break;
                     }
                 };
-                match token {
+                match chunk {
                     Chunk::Keep(msg) => {
                         debug!("thread: rx.recv <= Keep:[{}]", msg);
                         result_writer
@@ -159,14 +159,14 @@ impl PipeIntercepter {
             debug!("thread: spawn");
             let mut writer = BufWriter::new(io::stdout());
             loop {
-                let token = match rx.recv() {
+                let chunk = match rx.recv() {
                     Ok(t) => t,
                     Err(e) => {
                         msg_error(&e.to_string());
                         break;
                     }
                 };
-                match token {
+                match chunk {
                     Chunk::Keep(msg) => {
                         debug!("thread: rx.recv <= Keep:[{}]", msg);
                         writer
@@ -220,17 +220,17 @@ impl PipeIntercepter {
 
     /// Print string as is, that means it outputs to stdout without any modifications.
     /// This is data "under the masking tape".
-    pub fn send_keep(&self, msg: String) -> Result<(), errors::TokenSendError> {
+    pub fn send_keep(&self, msg: String) -> Result<(), errors::ChunkSendError> {
         debug!("tx.send => Channle({})", msg);
         self.tx
             .send(Chunk::Keep(msg))
-            .map_err(|e| errors::TokenSendError::Channel(e))?;
+            .map_err(|e| errors::ChunkSendError::Channel(e))?;
         Ok(())
     }
 
     /// Bypassing strings to the pipe and will be modified by the targeted command.
     /// This is data is in the hole on the masking tape".
-    pub fn send_byps(&mut self, msg: String) -> Result<(), errors::TokenSendError> {
+    pub fn send_byps(&mut self, msg: String) -> Result<(), errors::ChunkSendError> {
         if self.dryrun {
             // Highlight the string instead of bypassing
             let msg_highlighted: String;
@@ -238,37 +238,37 @@ impl PipeIntercepter {
             debug!("tx.send => Channle({})", msg_highlighted);
             self.tx
                 .send(Chunk::Keep(msg_highlighted))
-                .map_err(|e| errors::TokenSendError::Channel(e))?;
+                .map_err(|e| errors::ChunkSendError::Channel(e))?;
             return Ok(());
         }
         if self.solid {
             debug!("tx.send => Solid({})", msg);
             self.tx
                 .send(Chunk::SHole(msg))
-                .map_err(|e| errors::TokenSendError::Channel(e))?;
+                .map_err(|e| errors::ChunkSendError::Channel(e))?;
             Ok(())
         } else {
             debug!("tx.send => Piped");
             self.tx
                 .send(Chunk::Hole)
-                .map_err(|e| errors::TokenSendError::Channel(e))?;
+                .map_err(|e| errors::ChunkSendError::Channel(e))?;
             debug!("stdin => {}[line_end]", msg);
             self.pipe_writer
                 .write(msg.as_bytes())
-                .map_err(|e| errors::TokenSendError::Pipe(e))?;
+                .map_err(|e| errors::ChunkSendError::Pipe(e))?;
             self.pipe_writer
                 .write(&[self.line_end])
-                .map_err(|e| errors::TokenSendError::Pipe(e))?;
+                .map_err(|e| errors::ChunkSendError::Pipe(e))?;
             Ok(())
         }
     }
 
     /// Notify PipeIntercepter the end of file to exit process
-    pub fn send_eof(&self) -> Result<(), errors::TokenSendError> {
+    pub fn send_eof(&self) -> Result<(), errors::ChunkSendError> {
         debug!("tx.send => EOF");
         self.tx
             .send(Chunk::EOF)
-            .map_err(|e| errors::TokenSendError::Channel(e))?;
+            .map_err(|e| errors::ChunkSendError::Channel(e))?;
         Ok(())
     }
 }

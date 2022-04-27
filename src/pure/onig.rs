@@ -20,7 +20,7 @@ pub fn regex_onig_proc(
     _line: &Vec<u8>,
     _re: &Regex,
     _invert: bool,
-) -> Result<(), errors::TokenSendError> {
+) -> Result<(), errors::ChunkSendError> {
     eprintln!("{}: This build is not enabled 'oniguruma'", CMD);
     Ok(())
 }
@@ -31,7 +31,7 @@ pub fn regex_onig_line_proc(
     _re: &Regex,
     _invert: bool,
     _line_end: u8,
-) -> Result<(), errors::TokenSendError> {
+) -> Result<(), errors::ChunkSendError> {
     eprintln!("{}: This build is not enabled 'oniguruma'", CMD);
     Ok(())
 }

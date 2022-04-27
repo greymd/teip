@@ -375,100 +375,100 @@ ABC@@@@@@@@@EFG@@@@@@@@@
 
 Although the selected characters are the same, the result is different.
 
-It is necessary to know the "Tokenization" of `teip` in order to understand this behavior.
+It is necessary to know how `teip` organizes "chunks" in order to understand this behavior.
 
-## Tokenization
+## Chunking
 
-`teip` divides the standard input into tokens.
-A token that does not match the pattern will be displayed on the standard output as it is. On the other hand, the matched token is passed to the standard input of a targeted command.
-After that, the matched token is replaced with the result of the targeted command.
+`teip` divides the standard input into multiple chunks.
+A chunk that does not match the pattern will be displayed on the standard output as it is. On the other hand, the matched chunk is passed to the standard input of a targeted command.
+After that, the matched chunk is replaced with the result of the targeted command.
 
-In the next example, the standard input is divided into four tokens as follows.
+In the next example, the standard input is divided into four chunks as follows.
 
 ```bash
 echo ABC100EFG200 | teip -og '\d+' -- sed 's/.*/@@@/g'
 ```
 
 ```
-ABC => Token(1)
-100 => Token(2) -- Matched
-EFG => Token(3)
-200 => Token(4) -- Matched
+ABC => Chunk(1)
+100 => Chunk(2) -- Matched
+EFG => Chunk(3)
+200 => Chunk(4) -- Matched
 ```
 
-By default, the matched tokens are combined by line breaks and used as the new standard input for the targeted command.
+By default, the matched chunks are combined by line breaks and used as the new standard input for the targeted command.
 Imagine that `teip` executes the following command in its process.
 
 ```bash
 $ printf "100\n200\n" | sed 's/.*/@@@/g'
-@@@ # => Result of Token(2)
-@@@ # => Result of Token(4)
+@@@ # => Result of Chunk(2)
+@@@ # => Result of Chunk(4)
 ```
 
 (It is not technically accurate but you can now see why `$1` is used not `$3` in one of the examples in "Getting Started")
 
-After that, matched tokens are replaced with each line of result.
+After that, matched chunks are replaced with each line of result.
 
 ```
-ABC => Token(1)
-@@@ => Token(2) -- Replaced
-EFG => Token(3)
-@@@ => Token(4) -- Replaced
+ABC => Chunk(1)
+@@@ => Chunk(2) -- Replaced
+EFG => Chunk(3)
+@@@ => Chunk(4) -- Replaced
 ```
 
-Finally, all the tokens are concatenated and the following result is printed.
+Finally, all the chunks are concatenated and the following result is printed.
 
 ```
 ABC@@@EFG@@@
 ```
 
 Practically, the above process is performed asynchronously.
-Tokens being printed sequentially as they become available.
+Chunks being printed sequentially as they become available.
 
-Back to the story, the reason why a lot of `@` are printed in the example below is that the input is broken up into many tokens.
+Back to the story, the reason why a lot of `@` are printed in the example below is that the input is broken up into many chunks.
 
 ```bash
 $ echo ABC100EFG200 | teip -og '\d'
 ABC[1][0][0]EFG[2][0][0]
 ```
 
-`teip` recognizes input matched with the entire regular expression as a single token.
-`\d` matches a single digit, and it results in many tokens.
+`teip` recognizes input matched with the entire regular expression as a single chunk.
+`\d` matches a single digit, and it results in many chunks.
 
 ```
-ABC => Token(1)
-1   => Token(2) -- Matched
-0   => Token(3) -- Matched
-0   => Token(4) -- Matched
-EFG => Token(5)
-2   => Token(6) -- Matched
-0   => Token(7) -- Matched
-0   => Token(8) -- Matched
+ABC => Chunk(1)
+1   => Chunk(2) -- Matched
+0   => Chunk(3) -- Matched
+0   => Chunk(4) -- Matched
+EFG => Chunk(5)
+2   => Chunk(6) -- Matched
+0   => Chunk(7) -- Matched
+0   => Chunk(8) -- Matched
 ```
 
 Therefore, `sed` loads many newline characters.
 
 ```bash
 $ printf "1\n0\n0\n2\n0\n0\n" | sed 's/.*/@@@/g'
-@@@ # => Result of Token(2)
-@@@ # => Result of Token(3)
-@@@ # => Result of Token(4)
-@@@ # => Result of Token(6)
-@@@ # => Result of Token(7)
-@@@ # => Result of Token(8)
+@@@ # => Result of Chunk(2)
+@@@ # => Result of Chunk(3)
+@@@ # => Result of Chunk(4)
+@@@ # => Result of Chunk(6)
+@@@ # => Result of Chunk(7)
+@@@ # => Result of Chunk(8)
 ```
 
-The tokens of the final form are like the following.
+The chunks of the final form are like the following.
 
 ```
-ABC => Token(1)
-@@@ => Token(2) -- Replaced
-@@@ => Token(3) -- Replaced
-@@@ => Token(4) -- Replaced
-EFG => Token(5)
-@@@ => Token(6) -- Replaced
-@@@ => Token(7) -- Replaced
-@@@ => Token(8) -- Replaced
+ABC => Chunk(1)
+@@@ => Chunk(2) -- Replaced
+@@@ => Chunk(3) -- Replaced
+@@@ => Chunk(4) -- Replaced
+EFG => Chunk(5)
+@@@ => Chunk(6) -- Replaced
+@@@ => Chunk(7) -- Replaced
+@@@ => Chunk(8) -- Replaced
 ```
 
 And, here is the final result.
@@ -477,16 +477,16 @@ And, here is the final result.
 ABC@@@@@@@@@EFG@@@@@@@@@
 ```
 
-The concept of tokenization is also used for other options.
-For example, if you use `-f` to specify a range of `A-B`, each field will be a separate token.
-Also, the field delimiter is always an unmatched token.
+The concept of chunking is also used for other options.
+For example, if you use `-f` to specify a range of `A-B`, each field will be a separate chunk.
+Also, the field delimiter is always an unmatched chunk.
 
 ```bash
 $ echo "AA,BB,CC" | teip -f 2-3 -d,
 AA,[BB],[CC]
 ```
 
-With the `-c` option, adjacent characters are treated as the same token even if they are separated by `,`.
+With the `-c` option, adjacent characters are treated as the same chunk even if they are separated by `,`.
 
 ```bash
 $ echo "ABCDEFGHI" | teip -c1,2,3,7-9
@@ -495,7 +495,7 @@ $ echo "ABCDEFGHI" | teip -c1,2,3,7-9
 
 ## What command can be used?
 
-As explained, `teip` replaces tokens on a row-by-row basis.
+As explained, `teip` replaces chunks on a row-by-row basis.
 Therefore, a targeted command must follow the below rule.
 
 * **A targeted command must print a single line of result for each line of input.**
@@ -524,7 +524,7 @@ $ echo $?
 1
 ```
 
-`teip` could not get the result corresponding to the token of D, E, and F.
+`teip` could not get the result corresponding to the chunk of D, E, and F.
 That is why the above example fails.
 
 If an inconsistency occurs, `teip` will exit with the error message.
@@ -536,7 +536,7 @@ Also, the exit status will be 1.
 
 If you want to use a command that does not satisfy the condition, **"A targeted command must print a single line of result for each line of input"**, enable "Solid mode" which is available with the `-s` option.
 
-Solid mode spawns the targeted command for each matched token and executes it each time.
+Solid mode spawns the targeted command for each matched chunk and executes it each time.
 
 ```bash
 $ echo ABCDEF | teip -s -og . -- grep '[ABC]'
@@ -554,7 +554,7 @@ $ echo F | grep '[ABC]' # => Empty
 ```
 
 The empty result is replaced with an empty string.
-Therefore, D, E, and F tokens are replaced with empty as expected.
+Therefore, D, E, and F chunks are replaced with empty as expected.
 
 ```bash
 $ echo ABCDEF | teip -s -og . -- grep '[ABC]'
@@ -599,9 +599,9 @@ ABC[123]DEF456
 
 Those techniques are helpful to reduce the number of "Overlay".
 
-### Empty token
+### Empty chunk
 
-If a blank field exists when the `-f` option is used, the blank is not ignored and treated as an empty token.
+If a blank field exists when the `-f` option is used, the blank is not ignored and treated as an empty chunk.
 
 ```bash
 $ echo ',,,' | teip -d , -f 1-
@@ -652,7 +652,7 @@ $ printf '111,\n222,33\n3\0\n444,55\n5,666\n' | teip -z -f3 -d,
 ```
 
 With this option, the standard input is interpreted per a NUL character rather than per a newline character.
-You should also pay attention to that matched tokens are concatenated with the NUL character instead of a newline character in `teip`'s procedure.
+You should also pay attention to that matched chunks are concatenated with the NUL character instead of a newline character in `teip`'s procedure.
 
 In other words, if you use a targeted command that cannot handle NUL characters (and cannot print NUL-separated results), the final result can be unintended.
 
@@ -827,7 +827,7 @@ Add the statement to your default shell's startup file (i.e `.bashrc`, `.zshrc`)
 
 **DEFAULT VALUE:** `\x1b[36m[\x1b[0m\x1b[01;31m{}\x1b[0m\x1b[36m]\x1b[0m`
 
-The default format for highlighting matched token.
+The default format for highlighting matched chunk.
 It must include at least one `{}` as a placeholder.
 
 Example:

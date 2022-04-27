@@ -102,7 +102,7 @@ $ echo $?
 1
 ```
 
-If *command* is not given, `teip` prints how standard input is tokenized.
+If *command* is not given, `teip` shows how standard input will be devided into chunks.
 
 ```
 $ echo ABCDEF | teip -og .

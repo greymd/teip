@@ -1,4 +1,4 @@
-use super::token::Chunk;
+use super::chunk::Chunk;
 use super::CMD;
 use std::error;
 use std::fmt;
@@ -55,34 +55,34 @@ impl fmt::Debug for PipeReceiveError {
     }
 }
 
-pub enum TokenSendError {
+pub enum ChunkSendError {
     Channel(mpsc::SendError<Chunk>),
     Pipe(std::io::Error),
 }
 
-impl fmt::Display for TokenSendError {
+impl fmt::Display for ChunkSendError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
-            TokenSendError::Channel(ref err) => write!(f, "Channel error: {}", err),
-            TokenSendError::Pipe(ref err) => write!(f, "IO error: {}", err),
+            ChunkSendError::Channel(ref err) => write!(f, "Channel error: {}", err),
+            ChunkSendError::Pipe(ref err) => write!(f, "IO error: {}", err),
         }
     }
 }
 
-impl error::Error for TokenSendError {
+impl error::Error for ChunkSendError {
     fn description(&self) -> &str {
         match *self {
-            TokenSendError::Channel(_) => "Channel error",
-            TokenSendError::Pipe(_) => "IO error",
+            ChunkSendError::Channel(_) => "Channel error",
+            ChunkSendError::Pipe(_) => "IO error",
         }
     }
 }
 
-impl fmt::Debug for TokenSendError {
+impl fmt::Debug for ChunkSendError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
-            TokenSendError::Channel(ref e) => write!(f, "Channel error: {}", e),
-            TokenSendError::Pipe(ref e) => write!(f, "IO error: {}", e),
+            ChunkSendError::Channel(ref e) => write!(f, "Channel error: {}", e),
+            ChunkSendError::Pipe(ref e) => write!(f, "IO error: {}", e),
         }
     }
 }

@@ -10,7 +10,7 @@ mod pure {
     #[cfg(not(feature = "oniguruma"))]
     pub mod onig;
 }
-mod token;
+mod chunk;
 mod errors;
 mod spawnutils;
 use errors::*;
@@ -148,7 +148,7 @@ fn main() {
     let mut regex = Regex::new("").unwrap();
     let mut regex_onig = onig::new_regex();
     let mut line_end = b'\n';
-    let mut single_token_per_line = false; // true if single hole is always coveres entire line
+    let mut single_chunk_per_line = false; // true if single hole is always coveres entire line
     let mut ch: PipeIntercepter;
     let mut flag_dryrun = true;
     let regex_delimiter;
@@ -220,7 +220,7 @@ fn main() {
     }
 
     if (!flag_only && flag_regex) || flag_lines || flag_exoffload {
-        single_token_per_line = true;
+        single_chunk_per_line = true;
     }
 
     if flag_solid {
@@ -233,7 +233,7 @@ fn main() {
     }
 
     // ***** Start processing *****
-    if single_token_per_line {
+    if single_chunk_per_line {
         if flag_lines {
             line_line_proc(&mut ch, &line_list, line_end)
                 .unwrap_or_else(|e| error_exit(&e.to_string()));
@@ -348,7 +348,7 @@ fn exoffload_proc(
     exoffload_pipeline: &str,
     invert: bool,
     line_end: u8,
-) -> Result<(), errors::TokenSendError> {
+) -> Result<(), errors::ChunkSendError> {
     let stdin = io::stdin();
     let (rx_stdin1, rx_stdin2, _tee_thread) = spawnutils::tee(stdin, line_end)
             .unwrap_or_else(|e| error_exit(&e.to_string()));
@@ -409,7 +409,7 @@ fn line_line_proc(
     ch: &mut PipeIntercepter,
     ranges: &Vec<list::ranges::Range>,
     line_end: u8,
-) -> Result<(), errors::TokenSendError> {
+) -> Result<(), errors::ChunkSendError> {
     let mut i: usize = 0;
     let mut ri: usize = 0;
     let stdin = io::stdin();
@@ -446,7 +446,7 @@ fn regex_line_proc(
     re: &Regex,
     invert: bool,
     line_end: u8,
-) -> Result<(), errors::TokenSendError> {
+) -> Result<(), errors::ChunkSendError> {
     let stdin = io::stdin();
     loop {
         let mut buf = Vec::with_capacity(DEFAULT_CAP);
@@ -485,7 +485,7 @@ fn regex_proc(
     line: &Vec<u8>,
     re: &Regex,
     invert: bool,
-) -> Result<(), errors::TokenSendError> {
+) -> Result<(), errors::ChunkSendError> {
     let line = String::from_utf8_lossy(&line).to_string();
     let mut left_index = 0;
     let mut right_index;
@@ -526,7 +526,7 @@ fn char_proc(
     ch: &mut PipeIntercepter,
     line: &Vec<u8>,
     ranges: &Vec<list::ranges::Range>,
-) -> Result<(), errors::TokenSendError> {
+) -> Result<(), errors::ChunkSendError> {
     let line = String::from_utf8_lossy(&line).to_string();
     let cs = line.chars();
     let mut str_in = String::new();
@@ -569,7 +569,7 @@ fn field_regex_proc(
     line: &Vec<u8>,
     re: &Regex,
     ranges: &Vec<list::ranges::Range>,
-) -> Result<(), errors::TokenSendError> {
+) -> Result<(), errors::ChunkSendError> {
     let line = String::from_utf8_lossy(&line).to_string();
     let mut i = 1; // current field index
     let mut ri = 0;
@@ -613,11 +613,11 @@ fn field_proc(
     line: &Vec<u8>,
     delim: &str,
     ranges: &Vec<list::ranges::Range>,
-) -> Result<(), errors::TokenSendError> {
+) -> Result<(), errors::ChunkSendError> {
     let line = String::from_utf8_lossy(&line).to_string();
-    let tokens = line.split(delim);
+    let chunks = line.split(delim);
     let mut ri = 0;
-    for (i, token) in tokens.enumerate() {
+    for (i, chunk) in chunks.enumerate() {
         if i > 0 {
             ch.send_keep(delim.to_string())?;
         }
@@ -634,9 +634,9 @@ fn field_proc(
             // 5,6,7,8
             // 9,10,11,12
             // ```
-            ch.send_byps(token.to_string())?;
+            ch.send_byps(chunk.to_string())?;
         } else {
-            ch.send_keep(token.to_string())?;
+            ch.send_keep(chunk.to_string())?;
         }
     }
     Ok(())
