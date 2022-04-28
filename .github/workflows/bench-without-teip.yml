@@ -1,0 +1,46 @@
+name: Benchmark without teip
+
+on:
+  push:
+    branches:
+      - master
+      - 'develop-**'
+      - 'bugfix/**'
+      - 'feature/**'
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+
+jobs:
+  files:
+    name: Benchmark with a large file
+    runs-on: ubuntu-latest
+    if: "contains(github.event.head_commit.message, '[bench]')"
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Install dependencies
+      run: |
+        sudo apt-get install valgrind
+
+    - name: Prepare benchmarking
+      run: |
+        wget https://github.com/greymd/test_files/raw/v1.0.0/logs/test_secure.gz
+        gzip -d ./test_secure.gz
+
+    - name: Run benchmarking
+      timeout-minutes: 30
+      run: |
+        valgrind --tool=massif --time-unit=ms --trace-children=yes --peak-inaccuracy=0.5 --pages-as-heap=yes --massif-out-file=test_without_teip.txt ./tests/test_without_teip.sh > /dev/null
+
+    - name: Save benchmark result for memory usage
+      uses: actions/upload-artifact@v1
+      with:
+        name: test_without_teip
+        path: ./test_without_teip.txt
+
+    - name: Show benchmark result for memory usage
+      run: |
+        ms_print ./test_without_teip.txt | awk 'NR==1,/Detailed snapshots/{print}'

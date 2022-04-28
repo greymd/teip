@@ -77,7 +77,7 @@ jobs:
     - name: Benchmark for memory usage
       timeout-minutes: 10
       run: |
-        valgrind --tool=massif --time-unit=ms --massif-out-file=${{matrix.name}}.txt ./target/release/${{ matrix.cmd }} > /dev/null
+        valgrind --tool=massif --time-unit=ms --trace-children=yes --peak-inaccuracy=0.5 --pages-as-heap=yes --massif-out-file=${{matrix.name}}.txt ./target/release/${{ matrix.cmd }} > /dev/null
 
     - name: Save benchmark result for memory usage
       uses: actions/upload-artifact@v1
