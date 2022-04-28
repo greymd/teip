@@ -1,4 +1,4 @@
-name: Memory Benchmark
+name: Memory Benchmark x5
 
 on:
   push:
@@ -59,9 +59,9 @@ jobs:
         wget https://github.com/greymd/test_files/raw/v1.0.0/logs/test_secure.gz
         gzip -d ./test_secure.gz
         mv test_secure test_secure_tmp
-        ## Increase seize x5 (approx 500 MiB)
-        #cat test_secure_tmp test_secure_tmp test_secure_tmp test_secure_tmp test_secure_tmp > test_secure
-        #rm test_secure_tmp
+        # Increase seize x5 (approx 500 MiB)
+        cat test_secure_tmp test_secure_tmp test_secure_tmp test_secure_tmp test_secure_tmp > test_secure
+        rm test_secure_tmp
 
     - name: Show Prerequisites
       run: |
