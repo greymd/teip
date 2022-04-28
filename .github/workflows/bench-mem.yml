@@ -58,11 +58,18 @@ jobs:
       run: |
         wget https://github.com/greymd/test_files/raw/v1.0.0/logs/test_secure.gz
         gzip -d ./test_secure.gz
+        mv test_secure test_secure_tmp
+        # Increase seize x5 (approx 500 MiB)
+        cat test_secure_tmp test_secure_tmp test_secure_tmp test_secure_tmp test_secure_tmp > test_secure
+        rm test_secure_tmp
+        # Show test conditions
+        cat /proc/meminfo
+        du -hs test_secure
 
     - name: Benchmark for memory usage
       timeout-minutes: 10
       run: |
-        valgrind --tool=massif --time-unit=i --massif-out-file=${{matrix.name}}.txt ./target/release/${{ matrix.cmd }} > /dev/null
+        valgrind --tool=massif --time-unit=ms --massif-out-file=${{matrix.name}}.txt ./target/release/${{ matrix.cmd }} > /dev/null
 
     - name: Save benchmark result for memory usage
       uses: actions/upload-artifact@v1
