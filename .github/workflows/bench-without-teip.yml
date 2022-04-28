@@ -31,7 +31,7 @@ jobs:
         gzip -d ./test_secure.gz
 
     - name: Run benchmarking
-      timeout-minutes: 30
+      timeout-minutes: 120
       run: |
         valgrind --tool=massif --time-unit=ms --trace-children=yes --peak-inaccuracy=0.5 --pages-as-heap=yes --massif-out-file=test_without_teip.txt ./tests/test_without_teip.sh > /dev/null
 
