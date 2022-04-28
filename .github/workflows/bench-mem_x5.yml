@@ -58,8 +58,8 @@ jobs:
       run: |
         wget https://github.com/greymd/test_files/raw/v1.0.0/logs/test_secure.gz
         gzip -d ./test_secure.gz
-        mv test_secure test_secure_tmp
         # Increase seize x5 (approx 500 MiB)
+        mv test_secure test_secure_tmp
         cat test_secure_tmp test_secure_tmp test_secure_tmp test_secure_tmp test_secure_tmp > test_secure
         rm test_secure_tmp
 
