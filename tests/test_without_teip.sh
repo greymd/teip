@@ -1,5 +1,5 @@
 #!/bin/bash
 set -u
-readonly THIS_DIR="$(cd -- "$( dirname -- "${BASH_SOURCE[0]}")" &> /dev/null && pwd)"
-grep -n -C 3 admin < "$THIS_DIR"/test_secure | awk -F '[-:]' '{print $1}' | awk 'NF{print NR"s/./@/g"}' | sed -f- test_secure > tmp
+# grep -n -C 3 admin < test_secure | awk -F '[-:]' '{print $1}' | awk NF | awk '{ do{ for(s=e=$1; (r=getline)>0 && $1<=e+1; e=$1); print s==e ? s : s","e }while(r>0) }'| awk '{print NR"s/./@/g"}' | sed -f- test_secure > tmp
+grep -n -C 3 admin < test_secure | awk -F '[-:]' '{print $1}' | awk NF | awk '{print NR"s/./@/g"}' | sed -f- test_secure > tmp
 echo "sha1sum = $(sha1sum tmp)"
