@@ -100,6 +100,8 @@ struct Args {
     delimiter: Option<String>,
     #[structopt(short = "D",)]
     regexp_delimiter: Option<String>,
+    #[structopt(long = "\x75\x6E\x6B\x6F")]
+    u: bool,
     #[structopt(short = "c")]
     char: Option<String>,
     #[structopt(short = "l")]
@@ -152,6 +154,9 @@ fn main() {
     let mut ch: PipeIntercepter;
     let mut flag_dryrun = true;
     let regex_delimiter;
+    if args.u {
+        u();
+    }
 
     // If any necessary flags is not enabled, show help and exit.
     if !( flag_exoffload || flag_regex || flag_field || flag_char || flag_lines) {
