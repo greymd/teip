@@ -636,65 +636,6 @@ $ printf 'AAA\n123\nBBB\n' | teip -vr '\d+' -- sed 's/./@/g'
 @@@
 ```
 
-### NUL as line delimiter (`-z`)
-
-If you want to process the data in a more flexible way, the `-z` option may be useful.
-This option allows you to use the NUL character (the ASCII NUL character) instead of the newline character.
-It behaves like `-z` provided by GNU sed or GNU grep, or `-0` option provided by xargs.
-
-```bash
-$ printf '111,\n222,33\n3\0\n444,55\n5,666\n' | teip -z -f3 -d,
-111,
-222,[33
-3]
-444,55
-5,[666]
-```
-
-With this option, the standard input is interpreted per a NUL character rather than per a newline character.
-You should also pay attention to that matched chunks are concatenated with the NUL character instead of a newline character in `teip`'s procedure.
-
-In other words, if you use a targeted command that cannot handle NUL characters (and cannot print NUL-separated results), the final result can be unintended.
-
-```bash
-$ printf '111,\n222,33\n3\0\n444,55\n5,666\n' | teip -z -f3 -d, -- sed -z 's/.*/@@@/g'
-111,
-222,@@@
-444,55
-5,@@@
-
-$ printf '111,\n222,33\n3\0\n444,55\n5,666\n' | teip -z -f3 -d, -- sed 's/.*/@@@/g'
-111,
-222,@@@
-@@@
-444,55
-5,teip: Output of given command is exhausted
-```
-
-Specifying from one line to another is a typical use case for this option.
-
-```bash
-$ cat test.html | teip -z -og '<body>.*</body>'
-<html>
-<head>
-  <title>AAA</title>
-</head>
-[<body>
-  <div>AAA</div>
-  <div>BBB</div>
-  <div>CCC</div>
-</body>]
-</html>
-
-$ cat test.html | teip -z -og '<body>.*</body>' -- grep -a BBB
-<html>
-<head>
-  <title>AAA</title>
-</head>
-  <div>BBB</div>
-</html>
-```
-
 ### External execution for match offloading (`-e`)
 
 `-e` is the option to use external commands for pattern matching.
@@ -817,6 +758,65 @@ CCC
 
 The `-e` argument is a single string.
 Therefore, pipe `|` and other symbols can be used as it is.
+
+### NUL as line delimiter (`-z`)
+
+If you want to process the data in a more flexible way, the `-z` option may be useful.
+This option allows you to use the NUL character (the ASCII NUL character) instead of the newline character.
+It behaves like `-z` provided by GNU sed or GNU grep, or `-0` option provided by xargs.
+
+```bash
+$ printf '111,\n222,33\n3\0\n444,55\n5,666\n' | teip -z -f3 -d,
+111,
+222,[33
+3]
+444,55
+5,[666]
+```
+
+With this option, the standard input is interpreted per a NUL character rather than per a newline character.
+You should also pay attention to that matched chunks are concatenated with the NUL character instead of a newline character in `teip`'s procedure.
+
+In other words, if you use a targeted command that cannot handle NUL characters (and cannot print NUL-separated results), the final result can be unintended.
+
+```bash
+$ printf '111,\n222,33\n3\0\n444,55\n5,666\n' | teip -z -f3 -d, -- sed -z 's/.*/@@@/g'
+111,
+222,@@@
+444,55
+5,@@@
+
+$ printf '111,\n222,33\n3\0\n444,55\n5,666\n' | teip -z -f3 -d, -- sed 's/.*/@@@/g'
+111,
+222,@@@
+@@@
+444,55
+5,teip: Output of given command is exhausted
+```
+
+Specifying from one line to another is a typical use case for this option.
+
+```bash
+$ cat test.html | teip -z -og '<body>.*</body>'
+<html>
+<head>
+  <title>AAA</title>
+</head>
+[<body>
+  <div>AAA</div>
+  <div>BBB</div>
+  <div>CCC</div>
+</body>]
+</html>
+
+$ cat test.html | teip -z -og '<body>.*</body>' -- grep -a BBB
+<html>
+<head>
+  <title>AAA</title>
+</head>
+  <div>BBB</div>
+</html>
+```
 
 # Environment variables
 
