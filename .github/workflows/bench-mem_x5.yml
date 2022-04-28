@@ -65,14 +65,14 @@ jobs:
 
     - name: Show Prerequisites
       run: |
-        uname -a
-        cat /proc/meminfo
-        cat /proc/cpuinfo
-        awk --version
-        grep --version
-        sed --version
-        cat --version
-        du -s test_secure
+        uname -a || true
+        cat /proc/meminfo || true
+        cat /proc/cpuinfo || true
+        awk --version || true
+        grep --version || true
+        sed --version || true
+        cat --version || true
+        du -s test_secure || true
 
     - name: Benchmark for memory usage
       timeout-minutes: 10
