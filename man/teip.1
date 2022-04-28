@@ -1,4 +1,4 @@
-.TH TEIP 1 "MAY 2020" "User Commands" ""
+.TH TEIP 1 "APR 2022" "User Commands" ""
 .SH NAME
 .PP
 teip \- Highly efficient "Masking tape" for standard input
@@ -42,6 +42,9 @@ Use a regular expression <\fIpattern\fP> for field delimiter of \-f
 .TP
 \fB\fC\-c\fR <\fIlist\fP>
 Select only these characters
+.TP
+\fB\fC\-e\fR <\fIstring\fP>
+Execute <\fIstring\fP> on another process that will receive identical standard input as the teip, and numbers given by the result are used as line numbers for bypassing
 .TP
 \fB\fC\-s\fR
 Execute command for each selected part
@@ -100,7 +103,7 @@ $ echo $?
 .fi
 .RE
 .PP
-If \fIcommand\fP is not given, \fB\fCteip\fR prints how standard input is tokenized.
+If \fIcommand\fP is not given, \fB\fCteip\fR shows how standard input will be devided into chunks.
 .PP
 .RS
 .nf
@@ -178,6 +181,122 @@ $ echo "100 200 300 400" | teip \-f 3 \-\- cut \-c 1
 100 200 3 400
 .fi
 .RE
+.SS External execution for match offloading (\fB\fC\-e\fR)
+.PP
+With \fB\fC\-e\fR, you can use the external commands you are familiar with to specify the range of holes.
+\fB\fC\-e\fR allows you to specify the shell pipeline as a string. This pipeline is executed in \fB\fC/bin/sh\fR\&.
+.PP
+For example, with a pipeline \fB\fCecho 3\fR that outputs \fB\fC3\fR, then only the third line will be bypassed.
+.PP
+.RS
+.nf
+$ echo \-e 'AAA\\nBBB\\nCCC' | teip \-e 'echo 3'
+AAA
+BBB
+[CCC]
+.fi
+.RE
+.PP
+It works even if the output is somewhat 'dirty'.
+For example, if any spaces or tab characters are included at the beginning of a line, they are ignored.
+Also, once a number is given, it does not matter if there are non\-numerical characters to the right of the number.
+.PP
+.RS
+.nf
+$ echo \-e 'AAA\\nBBB\\nCCC' | teip \-e 'echo " 3"'
+AAA
+BBB
+[CCC]
+$ echo \-e 'AAA\\nBBB\\nCCC' | teip \-e 'echo " 3:testtest"'
+AAA
+BBB
+[CCC]
+.fi
+.RE
+.PP
+Technically, the first captured group in the regular expression \fB\fC^\\s*([0\-9]+)\fR is interpreted as a line number.
+\fB\fC\-e\fR will also recognize multiple numbers if the pipeline provides multiple lines of numbers.
+.PP
+.RS
+.nf
+$ echo \-e 'AAA\\nBBB\\nCCC\\nDDD\\nEEE\\nFFF' | teip \-e 'seq 1 2 10' \-\- sed 's/. /@/g'
+@@@
+BBB
+@@@
+DDD
+@@@
+FFF
+.fi
+.RE
+.PP
+Note that the order of the numbers must be in ascending order.
+.PP
+The pipeline obtains identical standard input as \fB\fCteip\fR\&.
+The following command is a \fB\fCgrep\fR command that prints \fBthe line numbers of the line containing the string "CCC" and the two lines after it\fP\&.
+.PP
+.RS
+.nf
+$ echo \-e 'AAA\\nBBB\\nCCC\\nDDD\\nEEE\\nFFF' | grep \-n \-A 2 CCC
+3:CCC
+4\-DDD
+5\-EEE
+.fi
+.RE
+.PP
+If you give this command to \fB\fC\-e\fR, you can punch holes in \fBthe line containing the string "CCC" and the two lines after it\fP\&.
+.PP
+.RS
+.nf
+$ echo \-e 'AAA\\nBBB\\nCCC\\nDDD\\nEEE\\nFFF' | teip \-e 'grep \-n \-A 2 CCC'
+AAA
+BBB
+[CCC]
+[DDD]
+[EEE]
+FFF
+.fi
+.RE
+.PP
+GNU \fB\fCsed\fR has \fB\fC=\fR, which prints the line number being processed.
+Below is an example of how to drill from the line containing "BBB" to the line containing "EEE".
+.PP
+.RS
+.nf
+$ echo \-e 'AAA\\nBBB\\nCCC\\nDDD\\nEEE\\nFFF' | teip \-e 'sed \-n "/BBB/,/EEE/="'
+AAA
+[BBB]
+[CCC]
+[DDD]
+[EEE]
+FFF
+.fi
+.RE
+.PP
+Of course, similar operations can also be done with \fB\fCawk\fR\&.
+.PP
+.RS
+.nf
+$ echo \-e 'AAA\\nBBB\\nCCC\\nDDD\\nEEE\\nFFF' | teip \-e 'awk "/BBB/,/EEE/{print NR}"'
+.fi
+.RE
+.PP
+The following is an example of combining the commands \fB\fCnl\fR and \fB\fCtail\fR\&.
+You can only make holes in the last three lines of input.
+.PP
+.RS
+.nf
+$ echo \-e 'AAA\\nBBB\\nCCC\\nDDD\\nEEE\\nFFF' | teip \-e 'nl \-ba | tail \-n 3'
+AAA
+BBB
+CCC
+[DDD]
+[EEE]
+[FFF]
+.fi
+.RE
+.PP
+The \fB\fC\-e\fR argument is a single string.
+Therefore, pipe \fB\fC|\fR and other symbols can be used as it is.
 .SH EXAMPLES
 .PP
 Edit 2nd, 3rd, and 4th columns in the CSV file
@@ -196,11 +315,11 @@ $ cat /var/log/secure | teip \-c 1\-15 \-\- date \-f\- +%s
 .fi
 .RE
 .PP
-Percent\-encode bare\-minimum range of the file (\fB\fCphp\-cli\fR is required)
+Edit the line containing 'hello' and the three lines before and after it
 .PP
 .RS
 .nf
-$ teip \-og '[^\-a\-zA\-Z0\-9@:%._\\+~#=/]+' \-\- php \-R 'echo urlencode($argn)."\\n";'
+$ cat access.log | teip \-e 'grep \-n \-C 3 hello' \-\- sed 's/./@/g'
 .fi
 .RE
 .SH SEE ALSO

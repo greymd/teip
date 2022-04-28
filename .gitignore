@@ -6,3 +6,5 @@ tags
 [._]*.s[a-w][a-z]
 [._]s[a-w][a-z]
 Cargo.lock
+test/test_secure
+test/test_secure.gz

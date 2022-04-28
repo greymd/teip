@@ -1,4 +1,4 @@
-name: Benchmark
+name: Performance Benchmark
 
 on:
   push:
@@ -15,9 +15,9 @@ on:
 
 jobs:
   bench:
-    name: Benchmark
+    name: Performance Benchmark
     runs-on: ubuntu-latest
-    if: "! contains(github.event.head_commit.message, '[skip ci]')"
+    if: "contains(github.event.head_commit.message, '[bench]')"
     steps:
     - uses: actions/checkout@v2
     - name: Build
@@ -28,7 +28,7 @@ jobs:
   files:
     name: Benchmark with a large file
     runs-on: ubuntu-latest
-    if: "! contains(github.event.head_commit.message, '[skip ci]')"
+    if: "contains(github.event.head_commit.message, '[bench]')"
     strategy:
       matrix:
         include:
@@ -43,7 +43,7 @@ jobs:
 
     - name: Install dependencies
       run: |
-        sudo apt-get install musl-tools autoconf autotools-dev
+        sudo apt-get install musl-tools autoconf autotools-dev valgrind
 
     - name: Build
       run: |
@@ -55,19 +55,19 @@ jobs:
       run: |
         wget https://github.com/sharkdp/hyperfine/releases/download/v1.9.0/hyperfine_1.9.0_amd64.deb
         sudo dpkg -i ./hyperfine_1.9.0_amd64.deb
-        wget https://github.com/greymd/test_files/raw/master/logs/test_secure.gz
+        wget https://github.com/greymd/test_files/raw/v1.0.0/logs/test_secure.gz
         gzip -d ./test_secure.gz
 
     - name: Benchmark for a large file
       run: |
         hyperfine --export-json ./${{ matrix.name }}.json "./target/release/${{ matrix.cmd }}"
 
-    - name: Save benchmark result
+    - name: Save benchmark result for processing time
       uses: actions/upload-artifact@v1
       with:
         name: ${{ matrix.name }}
         path: ./${{ matrix.name }}.json
 
-    - name: Show benchmark result
+    - name: Show benchmark result for processing time
       run: |
         cat ./${{ matrix.name }}.json

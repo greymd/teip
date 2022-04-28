@@ -2,7 +2,7 @@
 Use md2man (https://github.com/sunaku/md2man) to generate the man file like this.
 $ md2man-roff man.md > teip.1
 -->
-TEIP 1 "MAY 2020" "User Commands" ""
+TEIP 1 "APR 2022" "User Commands" ""
 =======================================
 
 NAME
@@ -54,6 +54,9 @@ OPTIONS
 `-c` <*list*>
   Select only these characters
 
+`-e` <*string*>
+  Execute <*string*> on another process that will receive identical standard input as the teip, and numbers given by the result are used as line numbers for bypassing
+
 `-s`
   Execute command for each selected part
 
@@ -99,7 +102,7 @@ $ echo $?
 1
 ```
 
-If *command* is not given, `teip` prints how standard input is tokenized.
+If *command* is not given, `teip` shows how standard input will be devided into chunks.
 
 ```
 $ echo ABCDEF | teip -og .
@@ -163,6 +166,108 @@ $ echo "100 200 300 400" | teip -f 3 -- cut -c 1
 100 200 3 400
 ```
 
+### External execution for match offloading (`-e`)
+
+With `-e`, you can use the external commands you are familiar with to specify the range of holes.
+`-e` allows you to specify the shell pipeline as a string. This pipeline is executed in `/bin/sh`.
+
+For example, with a pipeline `echo 3` that outputs `3`, then only the third line will be bypassed.
+
+```bash
+$ echo -e 'AAA\nBBB\nCCC' | teip -e 'echo 3'
+AAA
+BBB
+[CCC]
+```
+
+It works even if the output is somewhat 'dirty'.
+For example, if any spaces or tab characters are included at the beginning of a line, they are ignored.
+Also, once a number is given, it does not matter if there are non-numerical characters to the right of the number.
+
+```bash
+$ echo -e 'AAA\nBBB\nCCC' | teip -e 'echo " 3"'
+AAA
+BBB
+[CCC]
+$ echo -e 'AAA\nBBB\nCCC' | teip -e 'echo " 3:testtest"'
+AAA
+BBB
+[CCC]
+```
+
+Technically, the first captured group in the regular expression `^\s*([0-9]+)` is interpreted as a line number.
+`-e` will also recognize multiple numbers if the pipeline provides multiple lines of numbers.
+
+```
+$ echo -e 'AAA\nBBB\nCCC\nDDD\nEEE\nFFF' | teip -e 'seq 1 2 10' -- sed 's/. /@/g'
+@@@
+BBB
+@@@
+DDD
+@@@
+FFF
+```
+
+Note that the order of the numbers must be in ascending order.
+
+The pipeline obtains identical standard input as `teip`.
+The following command is a `grep` command that prints **the line numbers of the line containing the string "CCC" and the two lines after it**.
+
+```
+$ echo -e 'AAA\nBBB\nCCC\nDDD\nEEE\nFFF' | grep -n -A 2 CCC
+3:CCC
+4-DDD
+5-EEE
+```
+
+If you give this command to `-e`, you can punch holes in **the line containing the string "CCC" and the two lines after it**.
+
+```
+$ echo -e 'AAA\nBBB\nCCC\nDDD\nEEE\nFFF' | teip -e 'grep -n -A 2 CCC'
+AAA
+BBB
+[CCC]
+[DDD]
+[EEE]
+FFF
+```
+
+GNU `sed` has `=`, which prints the line number being processed.
+Below is an example of how to drill from the line containing "BBB" to the line containing "EEE".
+
+```
+$ echo -e 'AAA\nBBB\nCCC\nDDD\nEEE\nFFF' | teip -e 'sed -n "/BBB/,/EEE/="'
+AAA
+[BBB]
+[CCC]
+[DDD]
+[EEE]
+FFF
+```
+
+Of course, similar operations can also be done with `awk`.
+
+```
+$ echo -e 'AAA\nBBB\nCCC\nDDD\nEEE\nFFF' | teip -e 'awk "/BBB/,/EEE/{print NR}"'
+```
+
+The following is an example of combining the commands `nl` and `tail`.
+You can only make holes in the last three lines of input.
+
+```
+$ echo -e 'AAA\nBBB\nCCC\nDDD\nEEE\nFFF' | teip -e 'nl -ba | tail -n 3'
+AAA
+BBB
+CCC
+[DDD]
+[EEE]
+[FFF]
+```
+
+The `-e` argument is a single string.
+Therefore, pipe `|` and other symbols can be used as it is.
+
+
 EXAMPLES
 -------
 
@@ -178,10 +283,10 @@ Convert timestamps in /var/log/secure to UNIX time
 $ cat /var/log/secure | teip -c 1-15 -- date -f- +%s
 ```
 
-Percent-encode bare-minimum range of the file (`php-cli` is required)
+Edit the line containing 'hello' and the three lines before and after it
 
 ```
-$ teip -og '[^-a-zA-Z0-9@:%._\+~#=/]+' -- php -R 'echo urlencode($argn)."\n";'
+$ cat access.log | teip -e 'grep -n -C 3 hello' -- sed 's/./@/g'
 ```
 
 SEE ALSO

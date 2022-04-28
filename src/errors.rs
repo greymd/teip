@@ -1,4 +1,4 @@
-use super::token::Token;
+use super::chunk::Chunk;
 use super::CMD;
 use std::error;
 use std::fmt;
@@ -14,6 +14,13 @@ pub fn error_exit(msg: &str) -> ! {
     std::process::exit(1);
 }
 
+// If something very sad happens to you, run it
+pub fn u() -> ! {
+    let payload = b"\xEF\xBC\xBF\xE4\xBA\xBA\xE4\xBA\xBA\xE4\xBA\xBA\xE4\xBA\xBA\xE4\xBA\xBA\xE4\xBA\xBA\xE4\xBA\xBA\xE4\xBA\xBA\xE4\xBA\xBA\xE4\xBA\xBA\xE4\xBA\xBA\xE4\xBA\xBA\xE4\xBA\xBA\xE4\xBA\xBA\xE4\xBA\xBA\xE4\xBA\xBA\xE4\xBA\xBA\xE4\xBA\xBA\xE4\xBA\xBA\xE4\xBA\xBA\xE4\xBA\xBA\xE4\xBA\xBA\xEF\xBC\xBF\x0A\xEF\xBC\x9E\xE3\x80\x80\x54\x68\x65\x72\x65\x20\x61\x72\x65\x20\x6E\x6F\x20\x45\x61\x73\x74\x65\x72\x20\x45\x67\x67\x73\x20\x69\x6E\x20\x74\x68\x69\x73\x20\x70\x72\x6F\x67\x72\x61\x6D\xE3\x80\x80\xEF\xBC\x9C\x0A\xEF\xBF\xA3\xEF\xBC\xB9\xEF\xBC\xB9\xEF\xBC\xB9\xEF\xBC\xB9\xEF\xBC\xB9\xEF\xBC\xB9\xEF\xBC\xB9\xEF\xBC\xB9\xEF\xBC\xB9\xEF\xBC\xB9\xEF\xBC\xB9\xEF\xBC\xB9\xEF\xBC\xB9\xEF\xBC\xB9\xEF\xBC\xB9\xEF\xBC\xB9\xEF\xBC\xB9\xEF\xBC\xB9\xEF\xBC\xB9\xEF\xBC\xB9\xEF\xBC\xB9\xEF\xBC\xB9\xEF\xBF\xA3\x0A\xE3\x80\x80\xE3\x80\x80\xE3\x80\x80\xE3\x80\x80\xE3\x80\x80\xE3\x80\x80\xF0\x9F\x91\x91\x0A\xE3\x80\x80\xE3\x80\x80\xE3\x80\x80\xE3\x80\x80\xEF\xBC\x88\xF0\x9F\x92\xA9\xF0\x9F\x92\xA9\xF0\x9F\x92\xA9\xEF\xBC\x89\x0A\xE3\x80\x80\xE3\x80\x80\xE3\x80\x80\xEF\xBC\x88\xF0\x9F\x92\xA9\xF0\x9F\x91\x81\xF0\x9F\x92\xA9\xF0\x9F\x91\x81\xF0\x9F\x92\xA9\xEF\xBC\x89\x0A\xE3\x80\x80\xE3\x80\x80\xEF\xBC\x88\xF0\x9F\x92\xA9\xF0\x9F\x92\xA9\xF0\x9F\x92\xA9\xF0\x9F\x91\x83\xF0\x9F\x92\xA9\xF0\x9F\x92\xA9\xF0\x9F\x92\xA9\xEF\xBC\x89\x0A\xE3\x80\x80\xEF\xBC\x88\xF0\x9F\x92\xA9\xF0\x9F\x92\xA9\xF0\x9F\x92\xA9\xF0\x9F\x92\xA9\xF0\x9F\x91\x84\xF0\x9F\x92\xA9\xF0\x9F\x92\xA9\xF0\x9F\x92\xA9\xF0\x9F\x92\xA9\xEF\xBC\x89";
+    println!("{}", String::from_utf8(payload.to_vec()).unwrap());
+    std::process::exit(256);
+}
+
 /// Exit silently because the error can be intentional.
 pub fn exit_silently(msg: &str) -> ! {
     debug!("SIGPIPE?:{}", msg);
@@ -21,7 +28,7 @@ pub fn exit_silently(msg: &str) -> ! {
 }
 
 
-const PIPE_ERROR_MSG: &'static str = "Output of given command is exhausted";
+const PIPE_ERROR_MSG: &'static str = "Output of targeted command has been exhausted";
 
 pub enum PipeReceiveError {
     EndOfFd,
@@ -55,34 +62,34 @@ impl fmt::Debug for PipeReceiveError {
     }
 }
 
-pub enum TokenSendError {
-    Channel(mpsc::SendError<Token>),
+pub enum ChunkSendError {
+    Channel(mpsc::SendError<Chunk>),
     Pipe(std::io::Error),
 }
 
-impl fmt::Display for TokenSendError {
+impl fmt::Display for ChunkSendError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
-            TokenSendError::Channel(ref err) => write!(f, "Channel error: {}", err),
-            TokenSendError::Pipe(ref err) => write!(f, "IO error: {}", err),
+            ChunkSendError::Channel(ref err) => write!(f, "Channel error: {}", err),
+            ChunkSendError::Pipe(ref err) => write!(f, "IO error: {}", err),
         }
     }
 }
 
-impl error::Error for TokenSendError {
+impl error::Error for ChunkSendError {
     fn description(&self) -> &str {
         match *self {
-            TokenSendError::Channel(_) => "Channel error",
-            TokenSendError::Pipe(_) => "IO error",
+            ChunkSendError::Channel(_) => "Channel error",
+            ChunkSendError::Pipe(_) => "IO error",
         }
     }
 }
 
-impl fmt::Debug for TokenSendError {
+impl fmt::Debug for ChunkSendError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
-            TokenSendError::Channel(ref e) => write!(f, "Channel error: {}", e),
-            TokenSendError::Pipe(ref e) => write!(f, "IO error: {}", e),
+            ChunkSendError::Channel(ref e) => write!(f, "Channel error: {}", e),
+            ChunkSendError::Pipe(ref e) => write!(f, "IO error: {}", e),
         }
     }
 }

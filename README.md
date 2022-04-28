@@ -28,10 +28,10 @@ $ cat file.csv | teip -d, -f 4,6 -- sed 's/./@/g'
 $ cat /var/log/secure | teip -c 1-15 -- date -f- +%s
 ```
 
-* Percent-encode bare-minimum range of the file
+* Edit the line containing 'hello' and the three lines before and after it
 
 ```bash
-$ cat file | teip -og '[^-a-zA-Z0-9@:%._\+~#=/]+' -- php -R 'echo urlencode($argn)."\n";'
+$ cat access.log | teip -e 'grep -n -C 3 hello' -- sed 's/./@/g'
 ```
 
 # Performance enhancement
@@ -47,10 +47,9 @@ See detail on <a href="https://github.com/greymd/teip/wiki/Benchmark">wiki > Ben
 
 # Features
 
-* Allows any command to "ignore unwanted input" which most commands cannot do
-  - The targeted command just handles selected parts of the standard input
-  - Unselected parts are bypassed by `teip`
-  - Flexible methods for selecting a range (Select like AWK, `cut` command, or a regular expression)
+* Bypassing a partial range of standard input to any command whatever you want
+  - The targeted command just handles bypassed parts of the standard input
+  - Flexible methods for selecting a range (Select like AWK, `cut` or `grep`)
 
 * High performer
   - The targeted command's standard input/output are intercepted by multiple `teip`'s threads asynchronously.
@@ -145,27 +144,32 @@ PS C:\> cargo install teip --features oniguruma
 # Usage
 
 ```
-Usage:
+USAGE:
   teip -g <pattern> [-oGsvz] [--] [<command>...]
   teip -f <list> [-d <delimiter> | -D <pattern>] [-svz] [--] [<command>...]
   teip -c <list> [-svz] [--] [<command>...]
   teip -l <list> [-svz] [--] [<command>...]
-  teip --help | --version
+  teip -e <string> [-svz] [--] [<command>...]
 
-Options:
-  --help          Display this help and exit
-  --version       Show version and exit
-  -g <pattern>    Select lines that match the regular expression <pattern>
-  -o              -g selects only matched parts.
-  -G              -g adopts Oniguruma regular expressions
-  -f <list>       Select only these white-space separated fields
-  -d <delimiter>  Use <delimiter> for field delimiter of -f
-  -D <pattern>    Use regular expression <pattern> for field delimiter of -f
-  -c <list>       Select only these characters
-  -l <list>       Select only these lines
-  -s              Execute command for each selected part
-  -v              Invert the sense of selecting
-  -z              Line delimiter is NUL instead of newline
+OPTIONS:
+    -c <list>        Bypassing these characters
+    -d <delimiter>   Use <delimiter> for field delimiter of -f
+    -D <pattern>     Use regular expression <pattern> for field delimiter of -f
+    -e <string>      Execute <string> on another process that will receive identical
+                     standard input as the teip, and numbers given by the result
+                     are used as line numbers for bypassing
+    -l <list>        Bypassing these lines
+    -f <list>        Bypassing these white-space separated fields
+    -g <pattern>     Bypassing lines that match the regular expression <pattern>
+
+FLAGS:
+    -h, --help       Prints help information
+    -v               Invert the range of bypassing
+    -G               -g adopts Oniguruma regular expressions
+    -o               -g bypasses only matched parts
+    -s               Execute new command for each bypassed part
+    -V, --version    Prints version information
+    -z               Line delimiter is NUL instead of a newline
 ```
 
 ## Getting Started
@@ -371,100 +375,100 @@ ABC@@@@@@@@@EFG@@@@@@@@@
 
 Although the selected characters are the same, the result is different.
 
-It is necessary to know the "Tokenization" of `teip` in order to understand this behavior.
+It is necessary to know how `teip` organizes "chunks" in order to understand this behavior.
 
-## Tokenization
+## Chunking
 
-`teip` divides the standard input into tokens.
-A token that does not match the pattern will be displayed on the standard output as it is. On the other hand, the matched token is passed to the standard input of a targeted command.
-After that, the matched token is replaced with the result of the targeted command.
+`teip` divides the standard input into multiple chunks.
+A chunk that does not match the pattern will be displayed on the standard output as it is. On the other hand, the matched chunk is passed to the standard input of a targeted command.
+After that, the matched chunk is replaced with the result of the targeted command.
 
-In the next example, the standard input is divided into four tokens as follows.
+In the next example, the standard input is divided into four chunks as follows.
 
 ```bash
 echo ABC100EFG200 | teip -og '\d+' -- sed 's/.*/@@@/g'
 ```
 
 ```
-ABC => Token(1)
-100 => Token(2) -- Matched
-EFG => Token(3)
-200 => Token(4) -- Matched
+ABC => Chunk(1)
+100 => Chunk(2) -- Matched
+EFG => Chunk(3)
+200 => Chunk(4) -- Matched
 ```
 
-By default, the matched tokens are combined by line breaks and used as the new standard input for the targeted command.
+By default, the matched chunks are combined by line breaks and used as the new standard input for the targeted command.
 Imagine that `teip` executes the following command in its process.
 
 ```bash
 $ printf "100\n200\n" | sed 's/.*/@@@/g'
-@@@ # => Result of Token(2)
-@@@ # => Result of Token(4)
+@@@ # => Result of Chunk(2)
+@@@ # => Result of Chunk(4)
 ```
 
 (It is not technically accurate but you can now see why `$1` is used not `$3` in one of the examples in "Getting Started")
 
-After that, matched tokens are replaced with each line of result.
+After that, matched chunks are replaced with each line of result.
 
 ```
-ABC => Token(1)
-@@@ => Token(2) -- Replaced
-EFG => Token(3)
-@@@ => Token(4) -- Replaced
+ABC => Chunk(1)
+@@@ => Chunk(2) -- Replaced
+EFG => Chunk(3)
+@@@ => Chunk(4) -- Replaced
 ```
 
-Finally, all the tokens are concatenated and the following result is printed.
+Finally, all the chunks are concatenated and the following result is printed.
 
 ```
 ABC@@@EFG@@@
 ```
 
 Practically, the above process is performed asynchronously.
-Tokens being printed sequentially as they become available.
+Chunks being printed sequentially as they become available.
 
-Back to the story, the reason why a lot of `@` are printed in the example below is that the input is broken up into many tokens.
+Back to the story, the reason why a lot of `@` are printed in the example below is that the input is broken up into many chunks.
 
 ```bash
 $ echo ABC100EFG200 | teip -og '\d'
 ABC[1][0][0]EFG[2][0][0]
 ```
 
-`teip` recognizes input matched with the entire regular expression as a single token.
-`\d` matches a single digit, and it results in many tokens.
+`teip` recognizes input matched with the entire regular expression as a single chunk.
+`\d` matches a single digit, and it results in many chunks.
 
 ```
-ABC => Token(1)
-1   => Token(2) -- Matched
-0   => Token(3) -- Matched
-0   => Token(4) -- Matched
-EFG => Token(5)
-2   => Token(6) -- Matched
-0   => Token(7) -- Matched
-0   => Token(8) -- Matched
+ABC => Chunk(1)
+1   => Chunk(2) -- Matched
+0   => Chunk(3) -- Matched
+0   => Chunk(4) -- Matched
+EFG => Chunk(5)
+2   => Chunk(6) -- Matched
+0   => Chunk(7) -- Matched
+0   => Chunk(8) -- Matched
 ```
 
 Therefore, `sed` loads many newline characters.
 
 ```bash
 $ printf "1\n0\n0\n2\n0\n0\n" | sed 's/.*/@@@/g'
-@@@ # => Result of Token(2)
-@@@ # => Result of Token(3)
-@@@ # => Result of Token(4)
-@@@ # => Result of Token(6)
-@@@ # => Result of Token(7)
-@@@ # => Result of Token(8)
+@@@ # => Result of Chunk(2)
+@@@ # => Result of Chunk(3)
+@@@ # => Result of Chunk(4)
+@@@ # => Result of Chunk(6)
+@@@ # => Result of Chunk(7)
+@@@ # => Result of Chunk(8)
 ```
 
-The tokens of the final form are like the following.
+The chunks of the final form are like the following.
 
 ```
-ABC => Token(1)
-@@@ => Token(2) -- Replaced
-@@@ => Token(3) -- Replaced
-@@@ => Token(4) -- Replaced
-EFG => Token(5)
-@@@ => Token(6) -- Replaced
-@@@ => Token(7) -- Replaced
-@@@ => Token(8) -- Replaced
+ABC => Chunk(1)
+@@@ => Chunk(2) -- Replaced
+@@@ => Chunk(3) -- Replaced
+@@@ => Chunk(4) -- Replaced
+EFG => Chunk(5)
+@@@ => Chunk(6) -- Replaced
+@@@ => Chunk(7) -- Replaced
+@@@ => Chunk(8) -- Replaced
 ```
 
 And, here is the final result.
@@ -473,16 +477,16 @@ And, here is the final result.
 ABC@@@@@@@@@EFG@@@@@@@@@
 ```
 
-The concept of tokenization is also used for other options.
-For example, if you use `-f` to specify a range of `A-B`, each field will be a separate token.
-Also, the field delimiter is always an unmatched token.
+The concept of chunking is also used for other options.
+For example, if you use `-f` to specify a range of `A-B`, each field will be a separate chunk.
+Also, the field delimiter is always an unmatched chunk.
 
 ```bash
 $ echo "AA,BB,CC" | teip -f 2-3 -d,
 AA,[BB],[CC]
 ```
 
-With the `-c` option, adjacent characters are treated as the same token even if they are separated by `,`.
+With the `-c` option, adjacent characters are treated as the same chunk even if they are separated by `,`.
 
 ```bash
 $ echo "ABCDEFGHI" | teip -c1,2,3,7-9
@@ -491,7 +495,7 @@ $ echo "ABCDEFGHI" | teip -c1,2,3,7-9
 
 ## What command can be used?
 
-As explained, `teip` replaces tokens on a row-by-row basis.
+As explained, `teip` replaces chunks on a row-by-row basis.
 Therefore, a targeted command must follow the below rule.
 
 * **A targeted command must print a single line of result for each line of input.**
@@ -520,7 +524,7 @@ $ echo $?
 1
 ```
 
-`teip` could not get the result corresponding to the token of D, E, and F.
+`teip` could not get the result corresponding to the chunk of D, E, and F.
 That is why the above example fails.
 
 If an inconsistency occurs, `teip` will exit with the error message.
@@ -532,7 +536,7 @@ Also, the exit status will be 1.
 
 If you want to use a command that does not satisfy the condition, **"A targeted command must print a single line of result for each line of input"**, enable "Solid mode" which is available with the `-s` option.
 
-Solid mode spawns the targeted command for each matched token and executes it each time.
+Solid mode spawns the targeted command for each matched chunk and executes it each time.
 
 ```bash
 $ echo ABCDEF | teip -s -og . -- grep '[ABC]'
@@ -550,7 +554,7 @@ $ echo F | grep '[ABC]' # => Empty
 ```
 
 The empty result is replaced with an empty string.
-Therefore, D, E, and F tokens are replaced with empty as expected.
+Therefore, D, E, and F chunks are replaced with empty as expected.
 
 ```bash
 $ echo ABCDEF | teip -s -og . -- grep '[ABC]'
@@ -581,7 +585,7 @@ In other words, you can connect the multiple features of `teip` with AND conditi
 Furthermore, it works asynchronously and in multi-processes, similar to the shell pipeline.
 It will hardly degrade performance unless the machine faces the limits of parallelism.
 
-### Oniguruma regular expression
+### Oniguruma regular expressior (`-G`)
 
 If `-G` option is given together with `-g`, the regular expressin is interpreted as [Oniguruma regular expression](https://github.com/kkos/oniguruma/blob/master/doc/RE). For example, "keep" and "look-ahead" syntax can be used.
 
@@ -595,9 +599,9 @@ ABC[123]DEF456
 
 Those techniques are helpful to reduce the number of "Overlay".
 
-### Empty token
+### Empty chunk
 
-If a blank field exists when the `-f` option is used, the blank is not ignored and treated as an empty token.
+If a blank field exists when the `-f` option is used, the blank is not ignored and treated as an empty chunk.
 
 ```bash
 $ echo ',,,' | teip -d , -f 1-
@@ -613,7 +617,7 @@ $ echo ',,,' | teip -f 1- -d, sed 's/.*/@@@/'
 
 In the above example, the `sed` loads four newline characters and prints `@@@` four times.
 
-### Invert match
+### Invert match (`-v`)
 
 The `-v` option allows you to invert the selected range.
 When the `-f` or `-c` option is used, the complement of the selected field is selected instead.
@@ -632,7 +636,130 @@ $ printf 'AAA\n123\nBBB\n' | teip -vr '\d+' -- sed 's/./@/g'
 @@@
 ```
 
-### NUL as line delimiter
+### External execution for match offloading (`-e`)
+
+`-e` is the option to use external commands for pattern matching.
+Until the above, you had to use `teip`'s own functions, such as `-c` or `-g`, to control the position of the holes on the masking tape.
+With `-e`, however, you can use the external commands you are familiar with to specify the range of holes.
+
+`-e` allows you to specify the shell pipeline as a string.
+On UNIX-like OS, this pipeline is executed in `/bin/sh`, on Windows in `cmd.exe`.
+
+For example, with a pipeline `echo 3` that outputs `3`, then only the third line will be bypassed.
+
+```bash
+$ echo -e 'AAA\nBBB\nCCC' | teip -e 'echo 3'
+AAA
+BBB
+[CCC]
+```
+
+It works even if the output is somewhat 'dirty'.
+For example, if any spaces or tab characters are included at the beginning of a line, they are ignored.
+Also, once a number is given, it does not matter if there are non-numerical characters to the right of the number.
+
+```bash
+$ echo -e 'AAA\nBBB\nCCC' | teip -e 'echo " 3"'
+AAA
+BBB
+[CCC]
+$ echo -e 'AAA\nBBB\nCCC' | teip -e 'echo " 3:testtest"'
+AAA
+BBB
+[CCC]
+```
+
+Technically, the first captured group in the regular expression `^\s*([0-9]+)` is interpreted as a line number.
+
+`-e` will also recognize multiple numbers if the pipeline provides multiple lines of numbers.
+For example, the `seq` command to display only odd numbers up to 10 is.
+
+```bash
+$ seq 1 2 10
+1
+3
+5
+7
+9
+```
+
+This means that only odd-numbered rows can be bypassed by specifying the following.
+
+```bash
+$ echo -e 'AAA\nBBB\nCCC\nDDD\nEEE\nFFF' | teip -e 'seq 1 2 10' -- sed 's/. /@/g'
+@@@
+BBB
+@@@
+DDD
+@@@
+FFF
+```
+
+Note that the order of the numbers must be in ascending order.
+Now, on its own, this looks like a feature that is just a slight development of the `-l` option.
+
+However, the breakthrough of this feature is that **the pipeline obtains identical standard input as `teip`**.
+Thus, it can output any number using not only `seq` and `echo`, but also commands such as `grep`, `sed`, and `awk`, which process the standard input.
+
+Let's look at a more concrete example.
+The following command is a `grep` command that prints **the line numbers of the line containing the string "CCC" and the two lines after it**.
+
+```bash
+$ echo -e 'AAA\nBBB\nCCC\nDDD\nEEE\nFFF' | grep -n -A 2 CCC
+3:CCC
+4-DDD
+5-EEE
+```
+
+If you give this command to `-e`, you can punch holes in **the line containing the string "CCC" and the two lines after it**!
+
+```bash
+$ echo -e 'AAA\nBBB\nCCC\nDDD\nEEE\nFFF' | teip -e 'grep -n -A 2 CCC'
+AAA
+BBB
+[CCC]
+[DDD]
+[EEE]
+FFF
+```
+
+`grep` is not the only one.
+GNU `sed` has `=`, which prints the line number being processed.
+Below is an example of how to drill from the line containing "BBB" to the line containing "EEE".
+
+```bash
+$ echo -e 'AAA\nBBB\nCCC\nDDD\nEEE\nFFF' | teip -e 'sed -n "/BBB/,/EEE/="'
+AAA
+[BBB]
+[CCC]
+[DDD]
+[EEE]
+FFF
+```
+
+Of course, similar operations can also be done with `awk`.
+
+```bash
+$ echo -e 'AAA\nBBB\nCCC\nDDD\nEEE\nFFF' | teip -e 'awk "/BBB/,/EEE/{print NR}"'
+```
+
+The following is an example of combining the commands `nl` and `tail`.
+You can only make holes in the last three lines of input!
+
+```bash
+$ echo -e 'AAA\nBBB\nCCC\nDDD\nEEE\nFFF' | teip -e 'nl -ba | tail -n 3'
+AAA
+BBB
+CCC
+[DDD]
+[EEE]
+[FFF]
+```
+
+The `-e` argument is a single string.
+Therefore, pipe `|` and other symbols can be used as it is.
+
+### NUL as line delimiter (`-z`)
 
 If you want to process the data in a more flexible way, the `-z` option may be useful.
 This option allows you to use the NUL character (the ASCII NUL character) instead of the newline character.
@@ -648,7 +775,7 @@ $ printf '111,\n222,33\n3\0\n444,55\n5,666\n' | teip -z -f3 -d,
 ```
 
 With this option, the standard input is interpreted per a NUL character rather than per a newline character.
-You should also pay attention to that matched tokens are concatenated with the NUL character instead of a newline character in `teip`'s procedure.
+You should also pay attention to that matched chunks are concatenated with the NUL character instead of a newline character in `teip`'s procedure.
 
 In other words, if you use a targeted command that cannot handle NUL characters (and cannot print NUL-separated results), the final result can be unintended.
 
@@ -700,7 +827,7 @@ Add the statement to your default shell's startup file (i.e `.bashrc`, `.zshrc`)
 
 **DEFAULT VALUE:** `\x1b[36m[\x1b[0m\x1b[01;31m{}\x1b[0m\x1b[36m]\x1b[0m`
 
-The default format for highlighting matched token.
+The default format for highlighting matched chunk.
 It must include at least one `{}` as a placeholder.
 
 Example:

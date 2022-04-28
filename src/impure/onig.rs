@@ -21,13 +21,13 @@ pub fn new_option_none_regex(s: &str) -> Regex {
         .unwrap_or_else(|e| error_exit(&e.to_string()))
 }
 
-/// Handles regex onig ( -g -G )
+/// Bypassing multiple strings in a line based on Oniguruma Regular Expression ( -g -G -o )
 pub fn regex_onig_proc(
     ch: &mut PipeIntercepter,
     line: &Vec<u8>,
     re: &Regex,
     invert: bool,
-) -> Result<(), errors::TokenSendError> {
+) -> Result<(), errors::ChunkSendError> {
     let line = String::from_utf8_lossy(&line).to_string();
     let mut left_index = 0;
     let mut right_index;
@@ -40,35 +40,36 @@ pub fn regex_onig_proc(
         // handling empty string is not helpful for users.
         if !unmatched.is_empty() {
             if !invert {
-                ch.send_msg(unmatched.to_string())?;
+                ch.send_keep(unmatched.to_string())?;
             } else {
-                ch.send_pipe(unmatched.to_string())?;
+                ch.send_byps(unmatched.to_string())?;
             }
         }
         if !invert {
-            ch.send_pipe(matched.to_string())?;
+            ch.send_byps(matched.to_string())?;
         } else {
-            ch.send_msg(matched.to_string())?;
+            ch.send_keep(matched.to_string())?;
         }
         left_index = cap.1;
     }
     if left_index < line.len() {
         let unmatched = &line[left_index..line.len()];
         if !invert {
-            ch.send_msg(unmatched.to_string())?;
+            ch.send_keep(unmatched.to_string())?;
         } else {
-            ch.send_pipe(unmatched.to_string())?;
+            ch.send_byps(unmatched.to_string())?;
         }
     }
     Ok(())
 }
 
+/// Bypassing particular lines based on Oniguruma Regular Expression ( -g -G )
 pub fn regex_onig_line_proc(
     ch: &mut PipeIntercepter,
     re: &Regex,
     invert: bool,
     line_end: u8,
-) -> Result<(), errors::TokenSendError> {
+) -> Result<(), errors::ChunkSendError> {
     let stdin = io::stdin();
     loop {
         let mut buf = Vec::with_capacity(DEFAULT_CAP);
@@ -83,20 +84,20 @@ pub fn regex_onig_line_proc(
                 match re.find(&line) {
                     Some(_) => {
                         if invert {
-                            ch.send_msg(line.to_string())?;
+                            ch.send_keep(line.to_string())?;
                         } else {
-                            ch.send_pipe(line.to_string())?;
+                            ch.send_byps(line.to_string())?;
                         }
                     }
                     None => {
                         if invert {
-                            ch.send_pipe(line.to_string())?;
+                            ch.send_byps(line.to_string())?;
                         } else {
-                            ch.send_msg(line.to_string())?;
+                            ch.send_keep(line.to_string())?;
                         }
                     }
                 };
-                ch.send_msg(eol)?;
+                ch.send_keep(eol)?;
             }
             Err(e) => msg_error(&e.to_string()),
         }

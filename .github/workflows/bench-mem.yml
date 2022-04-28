@@ -1,0 +1,90 @@
+name: Memory Benchmark
+
+on:
+  push:
+    branches:
+      - master
+      - 'develop-**'
+      - 'bugfix/**'
+      - 'feature/**'
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+
+jobs:
+  bench:
+    name: Memory Benchmark
+    runs-on: ubuntu-latest
+    if: "contains(github.event.head_commit.message, '[bench]')"
+    steps:
+    - uses: actions/checkout@v2
+    - name: Build
+      run: cargo build --release
+    - name: Benchmark for each functions
+      run: cargo bench
+
+  files:
+    name: Benchmark with a large file
+    runs-on: ubuntu-latest
+    if: "contains(github.event.head_commit.message, '[bench]')"
+    strategy:
+      matrix:
+        include:
+          - name: mem_usage_real
+            cmd: teip -e 'grep -n -C 3 admin' -- sed 's/./@/g' < test_secure
+          - name: mem_usage_worst
+            cmd: teip -e 'awk "NR==1{print NR}"' -- sed 's/./@/g' < test_secure
+          - name: mem_usage_best
+            cmd: teip -e 'cat -n' -- sed 's/./@/g' < test_secure
+          - name: mem_usage_half
+            cmd: teip -e 'awk "NR % 2 == 0 {print NR}"' -- sed 's/./@/g' < test_secure
+          - name: mem_usage_one_third
+            cmd: teip -e 'awk "NR % 3 == 0 {print NR}"' -- sed 's/./@/g' < test_secure
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get install valgrind
+
+    - name: Build
+      run: |
+        # Do not build with musl release since Valgrind requires an executable file with debugging symbols
+        cargo build --release
+
+    - name: Prepare benchmarking
+      run: |
+        wget https://github.com/greymd/test_files/raw/v1.0.0/logs/test_secure.gz
+        gzip -d ./test_secure.gz
+        ## Increase seize x5 (approx 500 MiB)
+        #mv test_secure test_secure_tmp
+        #cat test_secure_tmp test_secure_tmp test_secure_tmp test_secure_tmp test_secure_tmp > test_secure
+        #rm test_secure_tmp
+
+    - name: Show Prerequisites
+      run: |
+        uname -a || true
+        cat /proc/meminfo || true
+        cat /proc/cpuinfo || true
+        awk --version || true
+        grep --version || true
+        sed --version || true
+        cat --version || true
+        du -s test_secure || true
+
+    - name: Benchmark for memory usage
+      timeout-minutes: 10
+      run: |
+        valgrind --tool=massif --time-unit=ms --trace-children=yes --peak-inaccuracy=0.5 --pages-as-heap=yes --massif-out-file=${{matrix.name}}.txt ./target/release/${{ matrix.cmd }} > /dev/null
+
+    - name: Save benchmark result for memory usage
+      uses: actions/upload-artifact@v1
+      with:
+        name: ${{ matrix.name }}
+        path: ./${{ matrix.name }}.txt
+
+    - name: Show benchmark result for memory usage
+      run: |
+        ms_print ./${{ matrix.name }}.txt | awk 'NR==1,/Detailed snapshots/{print}'

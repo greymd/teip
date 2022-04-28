@@ -7,6 +7,11 @@ mod cmdtest {
             static PERL_CMD: &str = "C:\\Program Files\\Git\\usr\\bin\\perl.exe";
             static SEQ_CMD: &str = "C:\\Program Files\\Git\\usr\\bin\\seq.exe";
             static GREP_CMD: &str = "C:\\Program Files\\Git\\usr\\bin\\grep.exe";
+            static _NL_CMD: &str = "C:\\Program Files\\Git\\usr\\bin\\nl.exe";
+            static _ECHO_CMD: &str = "C:\\Program Files\\Git\\usr\\bin\\echo.exe";
+            static ESCAPE_ECHO_CMD: &str = "C:\\\"Program Files\"\\Git\\usr\\bin\\echo.exe";
+            static ESCAPE_NL_CMD: &str = "C:\\\"Program Files\"\\Git\\usr\\bin\\nl.exe";
+            static ESCAPE_GREP_CMD: &str = "C:\\\"Program Files\"\\Git\\usr\\bin\\grep.exe";
         } else {
             static SED_CMD: &str = "sed";
             static TR_CMD: &str = "tr";
@@ -14,8 +19,92 @@ mod cmdtest {
             static PERL_CMD: &str = "perl";
             static SEQ_CMD: &str = "seq";
             static GREP_CMD: &str = "grep";
+            static _NL_CMD: &str = "nl";
+            static _ECHO_CMD: &str = "echo";
+            static ESCAPE_ECHO_CMD: &str = "echo";
+            static ESCAPE_NL_CMD: &str = "nl";
+            static ESCAPE_GREP_CMD: &str = "grep";
         }
     }
+
+    #[test]
+    fn test_no_argument() {
+        let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
+        cmd.write_stdin("test\n")
+            .assert()
+            .code(1);
+    }
+
+    #[test]
+    fn test_exoffload_grep() {
+        let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
+        let mcmd = format!("{} -n A", ESCAPE_GREP_CMD);
+        cmd.args(&["-e", &mcmd, SED_CMD, "s/./@/"])
+            .write_stdin("ABC\nDFE\nBCC\nCCA\n")
+            .assert()
+            .stdout("@BC\nDFE\nBCC\n@CA\n");
+    }
+
+    #[test]
+    fn test_exoffload_grep_invert() {
+        let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
+        let mcmd = format!("{} -n A", ESCAPE_GREP_CMD);
+        cmd.args(&["-e", &mcmd, "-v", SED_CMD, "s/./@/"])
+            .write_stdin("ABC\nDFE\nBCC\nCCA\n")
+            .assert()
+            .stdout("ABC\n@FE\n@CC\nCCA\n");
+    }
+
+    #[test]
+    fn test_exoffload_nl() {
+        let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
+        let mcmd = format!("{}", ESCAPE_NL_CMD);
+        cmd.args(&["-e", &mcmd, SED_CMD, "s/./@/g"])
+            .write_stdin("ABC\nDFE\nBCC\nCCA\n")
+            .assert()
+            .stdout("@@@\n@@@\n@@@\n@@@\n");
+    }
+
+    #[test]
+    fn test_exoffload_nl_invert() {
+        let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
+        let mcmd = format!("{}", ESCAPE_NL_CMD);
+        cmd.args(&["-v", "-e", &mcmd, SED_CMD, "s/./@/g"])
+            .write_stdin("ABC\nDFE\nBCC\nCCA\n")
+            .assert()
+            .stdout("ABC\nDFE\nBCC\nCCA\n");
+    }
+
+    #[test]
+    fn test_exoffload_nl_solid() {
+        let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
+        let mcmd = format!("{}", ESCAPE_NL_CMD);
+        cmd.args(&["-e", &mcmd, "-s", SED_CMD, "s/./@/g"])
+            .write_stdin("ABC\nDFE\nBCC\nCCA\n")
+            .assert()
+            .stdout("@@@\n@@@\n@@@\n@@@\n");
+    }
+
+    #[test]
+    fn test_exoffload_echo() {
+        let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
+        let mcmd = format!("{} 3", ESCAPE_ECHO_CMD);
+        cmd.args(&["-e", &mcmd, SED_CMD, "s/./@/g"])
+            .write_stdin("ABC\nDFE\nBCC\nCCA\n")
+            .assert()
+            .stdout("ABC\nDFE\n@@@\nCCA\n");
+    }
+
+    #[test]
+    fn test_exoffload_echo_solid() {
+        let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
+        let mcmd = format!("{} 3", ESCAPE_ECHO_CMD);
+        cmd.args(&["-s", "-e", &mcmd, SED_CMD, "s/.//g"])
+            .write_stdin("ABC\nDFE\nBCC\nCCA\n")
+            .assert()
+            .stdout("ABC\nDFE\n\nCCA\n");
+    }
+
     #[test]
     fn test_character_range_error_c() {
         let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
