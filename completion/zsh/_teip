@@ -3,17 +3,19 @@
 _teip () {
   local opts_omit="--help --version"
   # (<options which should not exist together>)-option[description]:name:(element1 element2 ...)
-  _arguments "(: -)--help[Display this help and exit]" \
+  _arguments "(: -)--help[Prints help information]" \
     "(: -)--version[Show version and exit]" \
-    "($opts_omit -g -f -d -D -c)-g[Select lines that match the regular expression <pattern>]:pattern:" \
-    "($opts_omit -o -f -d -D -c)-o[-g selects only matched parts]" \
-    "($opts_omit -G -f -d -D -c)-G[-g adopts Oniguruma regular expressions]" \
-    "($opts_omit -f -g -o -G -c)-f[Select only these white-space separated fields]:list:" \
-    "($opts_omit -d -D -g -o -G -c)-d[Use <delimiter> for field delimiter of -f]:delimiter:" \
-    "($opts_omit -D -d -g -o -G -c)-D[Use regular expression <pattern> for field delimiter of -f]:pattern:" \
-    "($opts_omit -c -f -D -d -g -o -G)-c[Select only these characters]:list:" \
-    "($opts_omit -s)-s[Execute command for each selected part]" \
-    "($opts_omit -v)-v[Invert the sense of selecting]" \
-    "($opts_omit -z)-z[Line delimiter is NUL instead of newline]" \
-    "($opts_omit -- -g -o -G -f -d -D -c -s -v -z)--[Follow commands after --]"
+    "($opts_omit -g -f -d -D -c)-g[Bypassing lines that match the regular expression <pattern>]:pattern:" \
+    "($opts_omit -o -f -d -D -c -l -e)-o[-g bypasses only matched parts]" \
+    "($opts_omit -G -f -d -D -c -l -e)-G[-g adopts Oniguruma regular expressions]" \
+    "($opts_omit -f -g -o -G -c -l -e)-f[Bypassing these white-space separated fields]:list:" \
+    "($opts_omit -d -D -g -o -G -c -l -e)-d[Use <delimiter> for field delimiter of -f]:delimiter:" \
+    "($opts_omit -D -d -g -o -G -c -l -e)-D[Use regular expression <pattern> for field delimiter of -f]:pattern:" \
+    "($opts_omit -c -f -D -d -g -o -G -l -e)-c[Bypassing these characters]:list:" \
+    "($opts_omit -c -f -D -d -g -o -G -l -e)-l[Bypassing these lines]:list:" \
+    "($opts_omit -c -f -D -d -g -o -G -l -e)-e[Execute <string> on another process that will receive identical standard input as the teip, and numbers given by the result are used as line numbers for bypassing]:string:" \
+    "($opts_omit -s)-s[Execute new command for each bypassed part]" \
+    "($opts_omit -v)-v[Prints version information]" \
+    "($opts_omit -z)-z[Line delimiter is NUL instead of a newline]" \
+    "($opts_omit -- -g -o -G -f -d -D -c -s -v -z -l -e)--[Follow commands after --]"
 }
