@@ -17,7 +17,7 @@ jobs:
   bench:
     name: Memory Benchmark
     runs-on: ubuntu-latest
-    if: "contains(github.event.head_commit.message, '[bench]')"
+    if: "contains(github.event.head_commit.message, '[bench]') || contains(github.event.head_commit.message, 'Bump version')"
     steps:
     - uses: actions/checkout@v2
     - name: Build
@@ -28,7 +28,7 @@ jobs:
   files:
     name: Benchmark with a large file
     runs-on: ubuntu-latest
-    if: "contains(github.event.head_commit.message, '[bench]')"
+    if: "contains(github.event.head_commit.message, '[bench]') || contains(github.event.head_commit.message, 'Bump version')"
     strategy:
       matrix:
         include:
