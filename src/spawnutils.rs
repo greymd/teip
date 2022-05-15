@@ -111,7 +111,7 @@ pub fn exec_pipeline_mpsc_input (
 /// Example of duplicating standard input:
 /// ```
 /// let stdin = io::stdin();
-/// let (stdin1, stdin2, _thread1) = tee2(stdin, b'\n').unwrap();
+/// let (stdin1, stdin2, _thread1) = tee(stdin, b'\n').unwrap();
 /// ```
 /// => `stdin1` and `stdin2` will receive identical data as `io::stdin()`.
 pub fn tee(
@@ -132,7 +132,8 @@ pub fn tee(
                         break;
                     },
                     Ok(_) => {
-                        // Suppress errors
+                        // FIXME: This part requires memory capacity more than double of stdin.
+                        // There is a room to reduce memory usage.
                         let _ = tx1.send(buf.clone());
                         let _ = tx2.send(buf.clone());
                     },

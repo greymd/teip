@@ -31,14 +31,6 @@ pub fn extract_number(line: String) -> Option<u64> {
     None
 }
 
-pub fn vecstr_rm_references(orig: &Vec<&str>) -> Vec<String> {
-    let mut removed: Vec<String> = Vec::new();
-    for c in orig {
-        removed.push(c.to_string());
-    }
-    removed
-}
-
 #[cfg(test)]
 mod test {
     use super::*;
