@@ -29,7 +29,7 @@ jobs:
       - name: Set envs
         id: vars
         run: |
-          echo ::set-output name=ver::${GITHUB_REF/refs\/tags\/v/}
+          echo ver=${GITHUB_REF/refs\/tags\/v/} >> ${GITHUB_OUTPUT}
 
       - name: Checkout code
         uses: actions/checkout@v2
@@ -69,7 +69,7 @@ jobs:
         run: |
           _TAR=teip-${{ steps.vars.outputs.ver }}.${{ matrix.target }}.tar.gz
           docker run -i "greymd/tar2rpm:1.0.1" < "$_TAR" > teip-${{ steps.vars.outputs.ver }}.${{ matrix.target }}.rpm
-          echo ::set-output name=sha256::$( sha256sum teip-${{ steps.vars.outputs.ver }}.${{ matrix.target }}.rpm | awk '{print $1}' )
+          echo sha256=$( sha256sum teip-${{ steps.vars.outputs.ver }}.${{ matrix.target }}.rpm | awk '{print $1}' ) >> ${GITHUB_OUTPUT}
 
       - name: Build deb
         id: deb
@@ -77,7 +77,7 @@ jobs:
         run: |
           _TAR=teip-${{ steps.vars.outputs.ver }}.${{ matrix.target }}.tar.gz
           docker run -i "greymd/tar2deb:1.0.1" < "$_TAR" > teip-${{ steps.vars.outputs.ver }}.${{ matrix.target }}.deb
-          echo ::set-output name=sha256::$( sha256sum teip-${{ steps.vars.outputs.ver }}.${{ matrix.target }}.deb | awk '{print $1}' )
+          echo sha256=$( sha256sum teip-${{ steps.vars.outputs.ver }}.${{ matrix.target }}.deb | awk '{print $1}' ) >> ${GITHUB_OUTPUT}
 
       - name: Upload binaries to release
         uses: svenstaro/upload-release-action@v1-release
@@ -130,7 +130,7 @@ jobs:
         id: vars
         shell: bash
         run: |
-          echo ::set-output name=ver::${GITHUB_REF/refs\/tags\/v/}
+          echo ver=${GITHUB_REF/refs\/tags\/v/} >> ${GITHUB_OUTPUT}
 
       - name: Checkout code
         uses: actions/checkout@v2
@@ -150,7 +150,7 @@ jobs:
           & "C:\\Program Files\\Git\\usr\\bin\\sed.exe" -i 's/#define MyAppVersion \"0.0.0\"/#define MyAppVersion \"${{ steps.vars.outputs.ver }}\"/' .\windows\installer.iss
           & "${Env:ProgramFiles(x86)}\Inno Setup 6\iscc.exe" windows\installer.iss
           Move-Item windows\Output\teip_installer.exe .
-          echo "::set-output name=sha256::$(Get-FileHash .\\teip_installer.exe -Algorithm SHA256 | Select-Object -ExpandProperty Hash)"
+          echo "sha256=$(Get-FileHash .\\teip_installer.exe -Algorithm SHA256 | Select-Object -ExpandProperty Hash)" >> ${GITHUB_OUTPUT}
           Rename-Item teip_installer.exe teip_installer-${{ steps.vars.outputs.ver }}-${{ matrix.target }}.${{ matrix.ext }}
 
       - name: Upload binaries to release for Windows
@@ -183,7 +183,7 @@ jobs:
       - name: Set envs
         id: vars
         run: |
-          echo ::set-output name=ver::${GITHUB_REF/refs\/tags\/v/}
+          echo ver=${GITHUB_REF/refs\/tags\/v/} >> ${GITHUB_OUTPUT}
 
       - name: Checkout code
         uses: actions/checkout@v2
