@@ -158,7 +158,7 @@ fn main() {
     let mut regex = Regex::new("").unwrap();
     let mut regex_onig = onig::new_regex();
     let mut line_end = b'\n';
-    let mut single_chunk_per_line = false; // true if single hole is always coveres entire line
+    let mut process_each_line = true; // true if single hole is always coveres entire line
     let mut ch: PipeIntercepter;
     let mut flag_dryrun = true;
     let regex_delimiter;
@@ -172,6 +172,7 @@ fn main() {
         std::process::exit(1);
     }
 
+    // Parse argument of -c option if specified
     let char_list = args
         .char
         .as_ref()
@@ -182,6 +183,7 @@ fn main() {
         })
         .unwrap_or_else(|| list::converter::to_ranges("1", true).unwrap());
 
+    // Parse argument of -f option if specified
     let field_list = args
         .list
         .as_ref()
@@ -192,6 +194,7 @@ fn main() {
         })
         .unwrap_or_else(|| list::converter::to_ranges("1", true).unwrap());
 
+    // Parse argument of -l option if specified
     let line_list = args
         .line
         .as_ref()
@@ -202,16 +205,19 @@ fn main() {
         })
         .unwrap_or_else(|| list::converter::to_ranges("1", true).unwrap());
 
+    // If -z option is specified, change regex mode and line end
     if flag_zero {
         regex_mode = "(?ms)".to_string();
         line_end = b'\0';
     }
 
     if !flag_onig {
+        // Use default regex engine
         regex =
             Regex::new(&(regex_mode.to_owned() + args.regex.as_ref().unwrap_or(&"".to_owned())))
                 .unwrap_or_else(|e| error_exit(&e.to_string()));
     } else {
+        // If -G option is specified, change regex engine
         if flag_zero {
             regex_onig =
                 onig::new_option_multiline_regex(args.regex.as_ref().unwrap_or(&"".to_owned()));
@@ -220,6 +226,7 @@ fn main() {
         }
     }
 
+    // If -D option is specified, compile regex delimiter
     if flag_regex_delimiter {
         regex_delimiter =
             Regex::new(&(regex_mode.to_string() + args.regexp_delimiter.as_ref().unwrap()))
@@ -228,12 +235,14 @@ fn main() {
         regex_delimiter = REGEX_WS.clone();
     }
 
+    // If no command is specified, set dryrun mode
     if cmds.len() > 0 {
         flag_dryrun = false;
     }
 
     if (!flag_only && flag_regex) || flag_lines || flag_exoffload {
-        single_chunk_per_line = true;
+        // The process requires to process whole stdin, not line by line
+        process_each_line = false;
     }
 
     if flag_solid {
@@ -246,23 +255,7 @@ fn main() {
     }
 
     // ***** Start processing *****
-    if single_chunk_per_line {
-        if flag_lines {
-            procs::line_line_proc(&mut ch, &line_list, line_end)
-                .unwrap_or_else(|e| error_exit(&e.to_string()));
-        } else if flag_regex {
-            if flag_onig {
-                onig::regex_onig_line_proc(&mut ch, &regex_onig, flag_invert, line_end)
-                    .unwrap_or_else(|e| error_exit(&e.to_string()));
-            } else {
-                procs::regex_line_proc(&mut ch, &regex, flag_invert, line_end)
-                    .unwrap_or_else(|e| error_exit(&e.to_string()));
-            }
-        } else if flag_exoffload {
-            procs::exoffload_proc(&mut ch, exoffload_pipeline, flag_invert, line_end)
-                    .unwrap_or_else(|e| error_exit(&e.to_string()));
-        }
-    } else {
+    if process_each_line {
         let stdin = io::stdin();
         loop {
             let mut buf = Vec::with_capacity(DEFAULT_CAP);
@@ -295,6 +288,22 @@ fn main() {
             }
             ch.send_keep(eol)
                 .unwrap_or_else(|e| msg_error(&e.to_string()));
+        }
+    } else {
+        if flag_lines {
+            procs::line_line_proc(&mut ch, &line_list, line_end)
+                .unwrap_or_else(|e| error_exit(&e.to_string()));
+        } else if flag_regex {
+            if flag_onig {
+                onig::regex_onig_line_proc(&mut ch, &regex_onig, flag_invert, line_end)
+                    .unwrap_or_else(|e| error_exit(&e.to_string()));
+            } else {
+                procs::regex_line_proc(&mut ch, &regex, flag_invert, line_end)
+                    .unwrap_or_else(|e| error_exit(&e.to_string()));
+            }
+        } else if flag_exoffload {
+            procs::exoffload_proc(&mut ch, exoffload_pipeline, flag_invert, line_end)
+                    .unwrap_or_else(|e| error_exit(&e.to_string()));
         }
     }
 }
