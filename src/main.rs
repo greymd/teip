@@ -2,6 +2,10 @@ mod list {
     pub mod converter;
     pub mod ranges;
 }
+mod csv {
+    pub mod parser;
+    pub mod terminator;
+}
 mod impure {
     #[cfg(feature = "oniguruma")]
     pub mod onig;
