@@ -104,6 +104,8 @@ struct Args {
     #[structopt(short = "d")]
     delimiter: Option<String>,
     #[structopt(short = "D",)]
+    csv: Option<String>,
+    #[structopt(long = "csv",)]
     regexp_delimiter: Option<String>,
     #[structopt(long = "\x75\x6E\x6B\x6F")]
     u: bool,
@@ -146,6 +148,7 @@ fn main() {
     let flag_lines = args.line.is_some();
     let flag_field = args.list.is_some();
     let flag_delimiter = args.delimiter.is_some();
+    let flag_csv = args.csv.is_some();
     let delimiter = args.delimiter.as_ref().map(|s| s.as_str()).unwrap_or("");
     let flag_regex_delimiter = args.regexp_delimiter.is_some();
     let flag_exoffload = args.exoffload_pipeline.is_some();
@@ -163,8 +166,8 @@ fn main() {
         u();
     }
 
-    // If any necessary flags is not enabled, show help and exit.
-    if !( flag_exoffload || flag_regex || flag_field || flag_char || flag_lines) {
+    // If any mandatory flags is not enabled, show help and exit.
+    if !( flag_exoffload || flag_regex || flag_field || flag_char || flag_lines || flag_csv) {
         Args::clap().print_help().unwrap();
         std::process::exit(1);
     }
