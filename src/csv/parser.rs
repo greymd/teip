@@ -123,7 +123,10 @@ impl Parser {
 
     /// Return if the current position is in a field or not.
     pub fn is_in_field(&self) -> bool {
-        self.nfa_state == NfaState::InField
+        self.nfa_state == NfaState::InField ||
+            self.nfa_state == NfaState::InQuotedField ||
+            self.nfa_state == NfaState::InEscapedQuote ||
+            self.nfa_state == NfaState::InDoubleEscapedQuote
     }
 
     /// Set the line number.
