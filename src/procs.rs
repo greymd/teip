@@ -5,6 +5,7 @@ use super::{errors,errors::*};
 use super::stringutils;
 use regex::Regex;
 use super::DEFAULT_CAP;
+use std::io::Read;
 use std::io::{self, BufRead};
 
 /// Bypassing particular lines based on given list ( -l )
@@ -361,3 +362,73 @@ pub fn exoffload_proc(
     }
     Ok(())
 }
+
+/// Process CSV align with RFC 4180 (--csv)
+///
+/// This function is called from main() when --csv option is specified.
+pub fn csv_proc(
+    ch: &mut PipeIntercepter,
+    ranges: &Vec<list::ranges::Range>,
+    ) -> Result<(), errors::ChunkSendError> {
+    use super::csv::parser::Parser;
+    let mut parser = Parser::new();
+    let mut str_byps = String::new();
+    let mut str_keep = String::new();
+    let mut is_byps;
+    let mut last_is_byps = false;
+    let mut ri = 0;
+    let stdin = io::stdin();
+    loop {
+        let mut buf = Vec::with_capacity(DEFAULT_CAP);
+        match stdin.lock().read_to_end(&mut buf) {
+            Ok(n) => {
+                // Check each byte in the buffer
+                for i in 0..n {
+                    let c = buf[i];
+                    use log::debug;
+                    debug!("csv_proc: c={}", c as char);
+                    parser.interpret(c);
+                    if !parser.is_in_field() {
+                        str_keep.push(c as char);
+                        continue;
+                    }
+                    let field = parser.field() as usize;
+                    // check if the field is in the range
+                    if ranges[ri].high < field && (ri + 1) < ranges.len() {
+                        ri += 1;
+                    }
+                    if ranges[ri].low <= field && field <= ranges[ri].high {
+                        is_byps = true;
+                        str_byps.push(c as char);
+                    } else {
+                        is_byps = false;
+                        str_keep.push(c as char);
+                    }
+                    if is_byps && !last_is_byps {
+                        ch.send_keep(str_keep.to_string())?;
+                        str_keep.clear();
+                    } else if !is_byps && last_is_byps {
+                        ch.send_byps(str_byps.to_string())?;
+                        str_byps.clear();
+                    }
+                    last_is_byps = is_byps;
+                }
+                if n == 0 {
+                    if last_is_byps && !str_byps.is_empty() {
+                        ch.send_byps(str_byps)?;
+                    }
+                    if !str_keep.is_empty() {
+                        ch.send_keep(str_keep)?;
+                    }
+                    ch.send_eof()?;
+                    break;
+                }
+                ri = 0;
+            }
+            Err(e) => msg_error(&e.to_string()),
+        }
+    }
+    Ok(())
+}
+
+

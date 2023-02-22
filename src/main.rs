@@ -56,7 +56,7 @@ lazy_static! {
     usage = "teip [OPTIONS] [FLAGS] [--] [<command>...]",
     help = "USAGE:
   teip -g <pattern> [-oGsvz] [--] [<command>...]
-  teip -f <list> [-d <delimiter> | -D <pattern>] [-svz] [--] [<command>...]
+  teip -f <list> [-d <delimiter> | -D <pattern> | --csv] [-svz] [--] [<command>...]
   teip -c <list> [-svz] [--] [<command>...]
   teip -l <list> [-svz] [--] [<command>...]
   teip -e <string> [-svz] [--] [<command>...]
@@ -80,6 +80,7 @@ FLAGS:
     -s               Execute new command for each bypassed part
     -V, --version    Prints version information
     -z               Line delimiter is NUL instead of a newline
+    --csv            -f uses CSV parser instead of white-space separated fields
 
 EXAMPLES:
   Edit 2nd, 3rd, and 4th columns in the CSV file
@@ -104,9 +105,9 @@ struct Args {
     #[structopt(short = "d")]
     delimiter: Option<String>,
     #[structopt(short = "D",)]
-    csv: Option<String>,
-    #[structopt(long = "csv",)]
     regexp_delimiter: Option<String>,
+    #[structopt(long = "csv",)]
+    csv: bool,
     #[structopt(long = "\x75\x6E\x6B\x6F")]
     u: bool,
     #[structopt(short = "c")]
@@ -148,7 +149,7 @@ fn main() {
     let flag_lines = args.line.is_some();
     let flag_field = args.list.is_some();
     let flag_delimiter = args.delimiter.is_some();
-    let flag_csv = args.csv.is_some();
+    let flag_csv = args.csv;
     let delimiter = args.delimiter.as_ref().map(|s| s.as_str()).unwrap_or("");
     let flag_regex_delimiter = args.regexp_delimiter.is_some();
     let flag_exoffload = args.exoffload_pipeline.is_some();
@@ -167,7 +168,14 @@ fn main() {
     }
 
     // If any mandatory flags is not enabled, show help and exit.
-    if !( flag_exoffload || flag_regex || flag_field || flag_char || flag_lines || flag_csv) {
+    if !( flag_exoffload ||
+          flag_regex     ||
+          flag_field     ||
+          flag_char      ||
+          flag_lines )
+        // Even though --csv is specified, -f is not specified, show help and exit.
+        || ( flag_csv && !flag_field)
+    {
         Args::clap().print_help().unwrap();
         std::process::exit(1);
     }
@@ -240,7 +248,7 @@ fn main() {
         flag_dryrun = false;
     }
 
-    if (!flag_only && flag_regex) || flag_lines || flag_exoffload {
+    if (!flag_only && flag_regex) || flag_lines || flag_exoffload || flag_csv {
         // The process requires to process whole stdin, not line by line
         process_each_line = false;
     }
@@ -303,6 +311,9 @@ fn main() {
             }
         } else if flag_exoffload {
             procs::exoffload_proc(&mut ch, exoffload_pipeline, flag_invert, line_end)
+                    .unwrap_or_else(|e| error_exit(&e.to_string()));
+        } else if flag_csv {
+            procs::csv_proc(&mut ch, &field_list)
                     .unwrap_or_else(|e| error_exit(&e.to_string()));
         }
     }

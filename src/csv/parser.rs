@@ -113,6 +113,19 @@ impl Parser {
         self.line
     }
 
+    /// Return the current field number as measured by the number of occurrences
+    /// of `,` on the current line.
+    ///
+    /// field numbers starts at `0` and are reset when `reset` is called.
+    pub fn field(&self) -> u64 {
+        self.field
+    }
+
+    /// Return if the current position is in a field or not.
+    pub fn is_in_field(&self) -> bool {
+        self.nfa_state == NfaState::InField
+    }
+
     /// Set the line number.
     ///
     /// This is useful after a call to `reset` where the caller knows the
@@ -237,10 +250,8 @@ impl Parser {
     /// Parser is updated its own state according to the char.
     pub fn interpret(&mut self, c: u8) -> Option<std::io::Error> {
         loop {
-            println!("interpret:{}", c as char);
             let (state, action) = self.transition_nfa(self.nfa_state, c);
             self.nfa_state = state;
-            println!("  state:{:?}", self.nfa_state);
             match self.nfa_state {
                 NfaState::StartRecord => {
                     self.line += 1;
