@@ -371,38 +371,45 @@ pub fn csv_proc(
     ranges: &Vec<list::ranges::Range>,
     ) -> Result<(), errors::ChunkSendError> {
     use super::csv::parser::Parser;
+    use log::debug;
     let mut parser = Parser::new();
     let mut str_byps = String::new();
     let mut str_keep = String::new();
-    let mut is_byps;
+    let mut is_byps = false;
     let mut last_is_byps = false;
     let mut ri = 0;
+    let line_end = b'\n';
     let stdin = io::stdin();
+    debug!("ranges={:?}", ranges);
     loop {
         let mut buf = Vec::with_capacity(DEFAULT_CAP);
-        match stdin.lock().read_to_end(&mut buf) {
+        match stdin.lock().read_until(line_end, &mut buf) {
             Ok(n) => {
-                // Check each byte in the buffer
-                for i in 0..n {
-                    let c = buf[i];
-                    use log::debug;
-                    debug!("csv_proc: c={}", c as char);
+                // EOL を取り除くと、CSV
+                // パーサがレコードの区切りを認識できなくなるので除いてはいけない
+                // let eol = stringutils::trim_eol(&mut buf);
+                let line = String::from_utf8_lossy(&buf).to_string();
+                let cs = line.chars();
+                // Check each byte in the line
+                for (i, c) in cs.enumerate() {
+                    debug!("csv_proc: c={}", c);
                     parser.interpret(c);
-                    if !parser.is_in_field() {
-                        str_keep.push(c as char);
-                        continue;
-                    }
-                    let field = parser.field() as usize;
-                    // check if the field is in the range
-                    if ranges[ri].high < field && (ri + 1) < ranges.len() {
-                        ri += 1;
-                    }
-                    if ranges[ri].low <= field && field <= ranges[ri].high {
-                        is_byps = true;
-                        str_byps.push(c as char);
+                    if parser.is_in_field() {
+                        let field = parser.field() as usize;
+                        // check if the field is in the range
+                        if ranges[ri].high < field && (ri + 1) < ranges.len() {
+                            ri += 1;
+                        }
+                        if ranges[ri].low <= field && field <= ranges[ri].high {
+                            is_byps = true;
+                            str_byps.push(c);
+                        } else {
+                            is_byps = false;
+                            str_keep.push(c);
+                        }
                     } else {
                         is_byps = false;
-                        str_keep.push(c as char);
+                        str_keep.push(c);
                     }
                     if is_byps && !last_is_byps {
                         ch.send_keep(str_keep.to_string())?;
@@ -413,6 +420,16 @@ pub fn csv_proc(
                     }
                     last_is_byps = is_byps;
                 }
+                if last_is_byps && !str_byps.is_empty() {
+                    ch.send_byps(str_byps.clone())?;
+                    str_byps.clear();
+                }
+                if !str_keep.is_empty() {
+                    ch.send_keep(str_keep.clone())?;
+                    str_keep.clear();
+                }
+                ri = 0;
+                // ch.send_keep(eol)?;
                 if n == 0 {
                     if last_is_byps && !str_byps.is_empty() {
                         ch.send_byps(str_byps)?;
@@ -423,7 +440,6 @@ pub fn csv_proc(
                     ch.send_eof()?;
                     break;
                 }
-                ri = 0;
             }
             Err(e) => msg_error(&e.to_string()),
         }

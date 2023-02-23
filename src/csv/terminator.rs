@@ -7,7 +7,7 @@ pub enum Terminator {
     /// Parses `\r`, `\n` or `\r\n` as a single record terminator.
     CRLF,
     /// Parses the byte given as a record terminator.
-    Any(u8),
+    Any(char),
     /// Hints that destructuring should not be exhaustive.
     ///
     /// This enum may grow additional variants, so this makes sure clients
@@ -27,9 +27,9 @@ impl Terminator {
         }
     }
 
-    pub fn equals(&self, other: u8) -> bool {
+    pub fn equals(&self, other: char) -> bool {
         match *self {
-            Terminator::CRLF => other == b'\r' || other == b'\n',
+            Terminator::CRLF => other == '\r' || other == '\n',
             Terminator::Any(b) => other == b,
             _ => unreachable!(),
         }

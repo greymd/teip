@@ -45,23 +45,25 @@ enum NfaInputAction {
 pub struct Parser {
     /// The current NFA state
     nfa_state: NfaState,
+    /// The last NFA state
+    last_nfa_state: Option<NfaState>,
     /// The delimiter that separates fields.
-    delimiter: u8,
+    delimiter: char,
     /// The terminator that separates records.
     term: Terminator,
     /// The quotation byte.
-    quote: u8,
+    quote: char,
     /// Whether to recognize escaped quotes.
-    escape: Option<u8>,
+    escape: Option<char>,
     /// Whether to recognized doubled quotes.
     double_quote: bool,
     /// If enabled, lines beginning with this byte are ignored.
-    comment: Option<u8>,
+    comment: Option<char>,
     /// If enabled (the default), then quotes are respected. When disabled,
     /// quotes are not treated specially.
     quoting: bool,
     /// The current line.
-    line: u64,
+    record: u64,
     /// The current field.
     field: u64,
     /// Whether this parser has ever read anything.
@@ -75,14 +77,15 @@ impl Default for Parser {
     fn default() -> Parser {
         Parser {
             nfa_state: NfaState::StartRecord,
-            delimiter: b',',
+            last_nfa_state: None,
+            delimiter: ',',
             term: Terminator::default(),
-            quote: b'"',
+            quote: '"',
             escape: None,
             double_quote: true,
             comment: None,
             quoting: true,
-            line: 0,
+            record: 0,
             field: 0,
             has_read: false,
             output_pos: 0,
@@ -101,16 +104,17 @@ impl Parser {
     /// This may be useful when reading CSV data in a random access pattern.
     pub fn reset(&mut self) {
         self.nfa_state = NfaState::StartRecord;
-        self.line = 1;
+        self.last_nfa_state = None;
+        self.record = 1;
         self.has_read = false;
     }
 
-    /// Return the current line number as measured by the number of occurrences
+    /// Return the current record number as measured by the number of occurrences
     /// of `\n`.
     ///
     /// Line numbers starts at `1` and are reset when `reset` is called.
-    pub fn line(&self) -> u64 {
-        self.line
+    pub fn record(&self) -> u64 {
+        self.record
     }
 
     /// Return the current field number as measured by the number of occurrences
@@ -129,12 +133,12 @@ impl Parser {
             self.nfa_state == NfaState::InDoubleEscapedQuote
     }
 
-    /// Set the line number.
+    /// Set the record number.
     ///
     /// This is useful after a call to `reset` where the caller knows the
     /// line number from some additional context.
-    pub fn set_line(&mut self, line: u64) {
-        self.line = line;
+    pub fn set_record(&mut self, record: u64) {
+        self.record = record;
     }
 
     /// Strip off a possible UTF-8 BOM at the start of a file. Quick note that
@@ -164,7 +168,7 @@ impl Parser {
     fn transition_nfa(
         &self,
         state: NfaState,
-        c: u8,
+        c: char,
     ) -> (NfaState, NfaInputAction) {
         use self::NfaState::*;
         match state {
@@ -223,21 +227,21 @@ impl Parser {
                 }
             }
             InComment => {
-                if b'\n' == c {
+                if '\n' == c {
                     (StartRecord, NfaInputAction::Discard)
                 } else {
                     (InComment, NfaInputAction::Discard)
                 }
             }
             InRecordTerm => {
-                if self.term.is_crlf() && b'\r' == c {
+                if self.term.is_crlf() && '\r' == c {
                     (CRLF, NfaInputAction::Discard)
                 } else {
                     (EndRecord, NfaInputAction::Discard)
                 }
             }
             CRLF => {
-                if b'\n' == c {
+                if '\n' == c {
                     (StartRecord, NfaInputAction::Discard)
                 } else {
                     (StartRecord, NfaInputAction::Epsilon)
@@ -251,20 +255,33 @@ impl Parser {
     /// This method is used to interpret single char as a part of CSV.
     /// It returns None if the char is a part of CSV and error otherwise.
     /// Parser is updated its own state according to the char.
-    pub fn interpret(&mut self, c: u8) -> Option<std::io::Error> {
+    pub fn interpret(&mut self, c: char) -> Option<std::io::Error> {
         loop {
             let (state, action) = self.transition_nfa(self.nfa_state, c);
             self.nfa_state = state;
+            // println!("c = {:?}, record = {}, state = {:?}, last = {:?}", c, self.record, self.nfa_state, self.last_nfa_state);
             match self.nfa_state {
                 NfaState::StartRecord => {
-                    self.line += 1;
                     self.field = 0;
+                    match self.last_nfa_state {
+                        Some(NfaState::EndRecord) => {
+                            self.record += 1;
+                        }
+                        _ => {}
+                    }
                 }
                 NfaState::StartField => {
                     self.field += 1;
+                    // Forcefully set record 1.
+                    // If the input starts with a field,
+                    // StartRecord is not emitted.
+                    if self.record == 0 {
+                        self.record = 1
+                    }
                 }
                 _ => {}
             }
+            self.last_nfa_state = Some(self.nfa_state.clone());
             match action {
                 NfaInputAction::Epsilon => {},
                 _ => {
@@ -302,7 +319,7 @@ impl ParserBuilder {
     /// The field delimiter to use when parsing CSV.
     ///
     /// The default is `b','`.
-    pub fn delimiter(&mut self, delimiter: u8) -> &mut ParserBuilder {
+    pub fn delimiter(&mut self, delimiter: char) -> &mut ParserBuilder {
         self.par.delimiter = delimiter;
         self
     }
@@ -320,7 +337,7 @@ impl ParserBuilder {
     /// The quote character to use when parsing CSV.
     ///
     /// The default is `b'"'`.
-    pub fn quote(&mut self, quote: u8) -> &mut ParserBuilder {
+    pub fn quote(&mut self, quote: char) -> &mut ParserBuilder {
         self.par.quote = quote;
         self
     }
@@ -331,7 +348,7 @@ impl ParserBuilder {
     /// character like `\` (instead of escaping quotes by doubling them).
     ///
     /// By default, recognizing these idiosyncratic escapes is disabled.
-    pub fn escape(&mut self, escape: Option<u8>) -> &mut ParserBuilder {
+    pub fn escape(&mut self, escape: Option<char>) -> &mut ParserBuilder {
         self.par.escape = escape;
         self
     }
@@ -360,7 +377,7 @@ impl ParserBuilder {
     /// line is ignored by the CSV parser.
     ///
     /// This is disabled by default.
-    pub fn comment(&mut self, comment: Option<u8>) -> &mut ParserBuilder {
+    pub fn comment(&mut self, comment: Option<char>) -> &mut ParserBuilder {
         self.par.comment = comment;
         self
     }
@@ -371,13 +388,15 @@ impl ParserBuilder {
     /// This sets the delimiter and record terminator to the ASCII unit
     /// separator (`\x1F`) and record separator (`\x1E`), respectively.
     pub fn ascii(&mut self) -> &mut ParserBuilder {
-        self.delimiter(b'\x1F').terminator(Terminator::Any(b'\x1E'))
+        self.delimiter('\x1F').terminator(Terminator::Any('\x1E'))
     }
 }
 
 #[cfg(test)]
 mod test {
     use super::*;
+
+    #[test]
     fn test_parse_csv() {
         let data = "
 foo,bar,baz
@@ -387,10 +406,11 @@ e,ff,ggg
 xxx,yyy,zzz
 ";
         let mut parser = Parser::new();
-        let bytes = data.as_bytes();
+        let bytes = data.chars();
         // Check each one byte
         for b in bytes {
-            let res = parser.interpret(*b);
+            let res = parser.interpret(b);
+            println!("{:?} record = {}, {:?}", b, parser.record(), parser.nfa_state);
             match res {
                 Some(err) => {
                     println!("Error: {}", err);
@@ -398,7 +418,72 @@ xxx,yyy,zzz
                 None => {}
             }
         }
-        assert_eq!(3, parser.field);
-        assert_eq!(5, parser.line);
+        assert_eq!(5, parser.record());
+    }
+
+    #[test]
+    fn test_parse_csv_utf8() {
+        let data = "いち,に,さん
+１rec,\"あいう
+えお\",かきく
+２rec,\"さしす
+せそ\",\"たちつ
+てと\"
+";
+        let mut parser = Parser::new();
+        let c = data.chars().collect::<Vec<char>>();
+        // Check each one byte
+        let mut i = 0;
+        parser.interpret(c[i]); assert_eq!('い', c[i]); i += 1; assert_eq!(1, parser.record()); assert_eq!(1, parser.field());
+        parser.interpret(c[i]); assert_eq!('ち', c[i]); i += 1; assert_eq!(1, parser.record()); assert_eq!(1, parser.field());
+        parser.interpret(c[i]); assert_eq!(',' , c[i]); i += 1; assert_eq!(1, parser.record()); assert_eq!(1, parser.field());
+        parser.interpret(c[i]); assert_eq!('に', c[i]); i += 1; assert_eq!(1, parser.record()); assert_eq!(2, parser.field());
+        parser.interpret(c[i]); assert_eq!(',' , c[i]); i += 1; assert_eq!(1, parser.record()); assert_eq!(2, parser.field());
+        parser.interpret(c[i]); assert_eq!('さ', c[i]); i += 1; assert_eq!(1, parser.record()); assert_eq!(3, parser.field());
+        parser.interpret(c[i]); assert_eq!('ん', c[i]); i += 1; assert_eq!(1, parser.record()); assert_eq!(3, parser.field());
+        parser.interpret(c[i]); assert_eq!('\n', c[i]); i += 1; assert_eq!(1, parser.record()); assert_eq!(3, parser.field());
+        parser.interpret(c[i]); assert_eq!('１', c[i]); i += 1; assert_eq!(2, parser.record()); assert_eq!(1, parser.field());
+        parser.interpret(c[i]); assert_eq!('r' , c[i]); i += 1; assert_eq!(2, parser.record()); assert_eq!(1, parser.field());
+        parser.interpret(c[i]); assert_eq!('e' , c[i]); i += 1; assert_eq!(2, parser.record()); assert_eq!(1, parser.field());
+        parser.interpret(c[i]); assert_eq!('c' , c[i]); i += 1; assert_eq!(2, parser.record()); assert_eq!(1, parser.field());
+        parser.interpret(c[i]); assert_eq!(',' , c[i]); i += 1; assert_eq!(2, parser.record()); assert_eq!(1, parser.field());
+        parser.interpret(c[i]); assert_eq!('"' , c[i]); i += 1; assert_eq!(2, parser.record()); assert_eq!(2, parser.field());
+        parser.interpret(c[i]); assert_eq!('あ', c[i]); i += 1; assert_eq!(2, parser.record()); assert_eq!(2, parser.field());
+        parser.interpret(c[i]); assert_eq!('い', c[i]); i += 1; assert_eq!(2, parser.record()); assert_eq!(2, parser.field());
+        parser.interpret(c[i]); assert_eq!('う', c[i]); i += 1; assert_eq!(2, parser.record()); assert_eq!(2, parser.field());
+        parser.interpret(c[i]); assert_eq!('\n', c[i]); i += 1; assert_eq!(2, parser.record()); assert_eq!(2, parser.field());
+        parser.interpret(c[i]); assert_eq!('え', c[i]); i += 1; assert_eq!(2, parser.record()); assert_eq!(2, parser.field());
+        parser.interpret(c[i]); assert_eq!('お', c[i]); i += 1; assert_eq!(2, parser.record()); assert_eq!(2, parser.field());
+        parser.interpret(c[i]); assert_eq!('"' , c[i]); i += 1; assert_eq!(2, parser.record()); assert_eq!(2, parser.field());
+        parser.interpret(c[i]); assert_eq!(',' , c[i]); i += 1; assert_eq!(2, parser.record()); assert_eq!(2, parser.field());
+        parser.interpret(c[i]); assert_eq!('か', c[i]); i += 1; assert_eq!(2, parser.record()); assert_eq!(3, parser.field());
+        parser.interpret(c[i]); assert_eq!('き', c[i]); i += 1; assert_eq!(2, parser.record()); assert_eq!(3, parser.field());
+        parser.interpret(c[i]); assert_eq!('く', c[i]); i += 1; assert_eq!(2, parser.record()); assert_eq!(3, parser.field());
+        parser.interpret(c[i]); assert_eq!('\n', c[i]); i += 1; assert_eq!(2, parser.record()); assert_eq!(3, parser.field());
+        parser.interpret(c[i]); assert_eq!('２', c[i]); i += 1; assert_eq!(3, parser.record()); assert_eq!(1, parser.field());
+        parser.interpret(c[i]); assert_eq!('r' , c[i]); i += 1; assert_eq!(3, parser.record()); assert_eq!(1, parser.field());
+        parser.interpret(c[i]); assert_eq!('e' , c[i]); i += 1; assert_eq!(3, parser.record()); assert_eq!(1, parser.field());
+        parser.interpret(c[i]); assert_eq!('c' , c[i]); i += 1; assert_eq!(3, parser.record()); assert_eq!(1, parser.field());
+        parser.interpret(c[i]); assert_eq!(',' , c[i]); i += 1; assert_eq!(3, parser.record()); assert_eq!(1, parser.field());
+        parser.interpret(c[i]); assert_eq!('"' , c[i]); i += 1; assert_eq!(3, parser.record()); assert_eq!(2, parser.field());
+        parser.interpret(c[i]); assert_eq!('さ', c[i]); i += 1; assert_eq!(3, parser.record()); assert_eq!(2, parser.field());
+        parser.interpret(c[i]); assert_eq!('し', c[i]); i += 1; assert_eq!(3, parser.record()); assert_eq!(2, parser.field());
+        parser.interpret(c[i]); assert_eq!('す', c[i]); i += 1; assert_eq!(3, parser.record()); assert_eq!(2, parser.field());
+        parser.interpret(c[i]); assert_eq!('\n', c[i]); i += 1; assert_eq!(3, parser.record()); assert_eq!(2, parser.field());
+        parser.interpret(c[i]); assert_eq!('せ', c[i]); i += 1; assert_eq!(3, parser.record()); assert_eq!(2, parser.field());
+        parser.interpret(c[i]); assert_eq!('そ', c[i]); i += 1; assert_eq!(3, parser.record()); assert_eq!(2, parser.field());
+        parser.interpret(c[i]); assert_eq!('"' , c[i]); i += 1; assert_eq!(3, parser.record()); assert_eq!(2, parser.field());
+        parser.interpret(c[i]); assert_eq!(',' , c[i]); i += 1; assert_eq!(3, parser.record()); assert_eq!(2, parser.field());
+        parser.interpret(c[i]); assert_eq!('"' , c[i]); i += 1; assert_eq!(3, parser.record()); assert_eq!(3, parser.field());
+        parser.interpret(c[i]); assert_eq!('た', c[i]); i += 1; assert_eq!(3, parser.record()); assert_eq!(3, parser.field());
+        parser.interpret(c[i]); assert_eq!('ち', c[i]); i += 1; assert_eq!(3, parser.record()); assert_eq!(3, parser.field());
+        parser.interpret(c[i]); assert_eq!('つ', c[i]); i += 1; assert_eq!(3, parser.record()); assert_eq!(3, parser.field());
+        parser.interpret(c[i]); assert_eq!('\n', c[i]); i += 1; assert_eq!(3, parser.record()); assert_eq!(3, parser.field());
+        parser.interpret(c[i]); assert_eq!('て', c[i]); i += 1; assert_eq!(3, parser.record()); assert_eq!(3, parser.field());
+        parser.interpret(c[i]); assert_eq!('と', c[i]); i += 1; assert_eq!(3, parser.record()); assert_eq!(3, parser.field());
+        parser.interpret(c[i]); assert_eq!('"' , c[i]); i += 1; assert_eq!(3, parser.record()); assert_eq!(3, parser.field());
+        parser.interpret(c[i]); assert_eq!('\n', c[i]); i += 1; assert_eq!(3, parser.record()); assert_eq!(3, parser.field());
     }
 }
+
+
