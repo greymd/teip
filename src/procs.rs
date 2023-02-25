@@ -368,6 +368,7 @@ pub fn exoffload_proc(
 pub fn csv_proc(
     ch: &mut PipeIntercepter,
     ranges: &Vec<list::ranges::Range>,
+    line_end: u8,
     ) -> Result<(), errors::ChunkSendError> {
     use super::csv::parser::Parser;
     use log::debug;
@@ -375,9 +376,9 @@ pub fn csv_proc(
     let mut str_byps = String::new();
     let mut str_keep = String::new();
     let mut is_byps;
+    let line_end_char = line_end as char;
     let mut last_is_byps = false;
     let mut ri = 0;
-    let line_end = b'\n';
     let stdin = io::stdin();
     debug!("ranges={:?}", ranges);
     loop {
@@ -390,7 +391,7 @@ pub fn csv_proc(
                 for (_, c) in cs.enumerate() {
                     parser.interpret(c);
                     debug!("csv_proc: c={:?}, state={:?}", c, parser.state());
-                    if parser.is_in_field() && c != '\n' {
+                    if parser.is_in_field() && c != line_end_char {
                         let field = parser.field() as usize;
                         // check if the field is in the range
                         if ranges[ri].high < field && (ri + 1) < ranges.len() {
