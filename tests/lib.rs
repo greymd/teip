@@ -625,6 +625,15 @@ mod cmdtest {
     }
 
     #[test]
+    fn test_csv_crlf() {
+        let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
+        cmd.args(&["--csv", "-f", "3", "--", TR_CMD, "\\r", "@"])
+            .write_stdin("AAA,BBB,CCC\r\n1AAA,\"1BBB\r\nBB\",1CCC\r\n2AAA,2BBB,\"2CCC\r\nCC\"\r\n")
+            .assert()
+                 .stdout("AAA,BBB,CCC\r\n1AAA,\"1BBB\r\nBB\",1CCC\r\n2AAA,2BBB,\"2CCC@\nCC\"\r\n");
+    }
+
+    #[test]
     fn test_solid_field() {
         let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
         cmd.args(&["-s", "-d", ",", "-f", "1,2,4", SED_CMD, "s/./_/"])
