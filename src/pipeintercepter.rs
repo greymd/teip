@@ -73,7 +73,7 @@ impl PipeIntercepter {
                 };
                 match chunk {
                     Chunk::Keep(msg) => {
-                        debug!("thread: rx.recv <= Keep:[{}]", msg);
+                        debug!("thread: rx.recv <= Keep:[{:?}]", msg);
                         result_writer
                             .write(msg.as_bytes())
                             .unwrap_or_else(|e| exit_silently(&e.to_string()));
@@ -168,13 +168,13 @@ impl PipeIntercepter {
                 };
                 match chunk {
                     Chunk::Keep(msg) => {
-                        debug!("thread: rx.recv <= Keep:[{}]", msg);
+                        debug!("thread: rx.recv <= Keep:[{:?}]", msg);
                         writer
                             .write(msg.as_bytes())
                             .unwrap_or_else(|e| exit_silently(&e.to_string()));
                     }
                     Chunk::SHole(msg) => {
-                        debug!("thread: rx.recv <= SHole:[{}]", msg);
+                        debug!("thread: rx.recv <= SHole:[{:?}]", msg);
                         let result = spawnutils::exec_cmd_sync(msg, &cmds, line_end);
                         writer
                             .write(result.as_bytes())
@@ -221,7 +221,7 @@ impl PipeIntercepter {
     /// Print string as is, that means it outputs to stdout without any modifications.
     /// This is data "under the masking tape".
     pub fn send_keep(&self, msg: String) -> Result<(), errors::ChunkSendError> {
-        debug!("tx.send => Channle({})", msg);
+        debug!("tx.send => Channle({:?})", msg);
         self.tx
             .send(Chunk::Keep(msg))
             .map_err(|e| errors::ChunkSendError::Channel(e))?;
@@ -235,14 +235,14 @@ impl PipeIntercepter {
             // Highlight the string instead of bypassing
             let msg_highlighted: String;
             msg_highlighted = HL[0].to_string() + &msg + HL[1];
-            debug!("tx.send => Channle({})", msg_highlighted);
+            debug!("tx.send => Channle({:?})", msg_highlighted);
             self.tx
                 .send(Chunk::Keep(msg_highlighted))
                 .map_err(|e| errors::ChunkSendError::Channel(e))?;
             return Ok(());
         }
         if self.solid {
-            debug!("tx.send => Solid({})", msg);
+            debug!("tx.send => Solid({:?})", msg);
             self.tx
                 .send(Chunk::SHole(msg))
                 .map_err(|e| errors::ChunkSendError::Channel(e))?;
@@ -253,6 +253,8 @@ impl PipeIntercepter {
                 .send(Chunk::Hole)
                 .map_err(|e| errors::ChunkSendError::Channel(e))?;
             debug!("stdin => {}[line_end]", msg);
+            // FIXME: Marging line_end to the end of the string may improve the performance.
+            //        Need benchmarking.
             self.pipe_writer
                 .write(msg.as_bytes())
                 .map_err(|e| errors::ChunkSendError::Pipe(e))?;
