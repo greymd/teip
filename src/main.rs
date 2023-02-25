@@ -4,7 +4,6 @@ mod list {
 }
 mod csv {
     pub mod parser;
-    pub mod terminator;
 }
 mod impure {
     #[cfg(feature = "oniguruma")]

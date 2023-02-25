@@ -1,17 +1,14 @@
 // Many part of this module is based on https://github.com/BurntSushi/rust-csv/tree/master/csv-core
 // which is dual-licensed under MIT and Unlicense as of 2023-02-21
 
-use super::terminator::Terminator;
-
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum NfaState {
     // These states aren't used in the DFA, so we
     // assign them meaningless numbers.
     EndFieldTerm = 200,
     InRecordTerm = 201,
-    // End = 202,
-
-    // All states below are DFA states.
+    // All states below can be used in DFA.
+    // assign them meaningful numbers for future use.
     StartRecord = 0,
     StartField = 1,
     InField = 2,
@@ -19,26 +16,24 @@ pub enum NfaState {
     InEscapedQuote = 4,
     InDoubleEscapedQuote = 5,
     InComment = 6,
-    // All states below are "final field" states.
-    // Namely, they indicate that a field has been parsed.
     EndFieldDelim = 7,
-    // All states below are "final record" states.
-    // Namely, they indicate that a record has been parsed.
     EndRecord = 8,
     CRLF = 9,
 }
 
 /// What should be done with input bytes during an NFA transition
 #[derive(Clone, Debug, Eq, PartialEq)]
-enum NfaInputAction {
-    // Do not consume an input byte
+enum NfaType {
+    // Epsilon state of the NFA
+    // Keep interpretation of the input byte until the next state
     Epsilon,
-    // Copy input byte to a caller-provided output buffer
-    CopyToOutput,
-    // Consume but do not copy input byte (for example, seeing a field
-    // delimiter will consume an input byte but should not copy it to the
-    // output buffer.
-    Discard,
+    // Actual information that the CSV delivers
+    Content,
+    // Meta information that constructs the CSV.
+    // (for example, seeing a field
+    // delimiter is information of CSV but
+    // should not categorized as a actual content)
+    Meta,
 }
 
 #[derive(Clone, Debug)]
@@ -49,8 +44,9 @@ pub struct Parser {
     last_nfa_state: Option<NfaState>,
     /// The delimiter that separates fields.
     delimiter: char,
-    /// The terminator that separates records.
-    term: Terminator,
+    /// The delimiter that separates records.
+    lf: char, // line field
+    cr: char, // carriage return
     /// The quotation byte.
     quote: char,
     /// Whether to recognize escaped quotes.
@@ -62,14 +58,10 @@ pub struct Parser {
     /// If enabled (the default), then quotes are respected. When disabled,
     /// quotes are not treated specially.
     quoting: bool,
-    /// The current line.
+    /// The number of current record.
     record: u64,
-    /// The current field.
+    /// The number of current field.
     field: u64,
-    // /// Whether this parser has ever read anything.
-    // has_read: bool,
-    // /// The current position in the output buffer when reading a record.
-    // output_pos: usize,
 }
 
 
@@ -79,7 +71,8 @@ impl Default for Parser {
             nfa_state: NfaState::StartRecord,
             last_nfa_state: None,
             delimiter: ',',
-            term: Terminator::default(),
+            lf: '\n',
+            cr: '\r',
             quote: '"',
             escape: None,
             double_quote: true,
@@ -87,8 +80,6 @@ impl Default for Parser {
             quoting: true,
             record: 0,
             field: 0,
-            // has_read: false,
-            // output_pos: 0,
         }
     }
 }
@@ -99,39 +90,24 @@ impl Parser {
         ParserBuilder::new().build()
     }
 
-    /// Reset the parser such that it behaves as if it had never been used.
-    ///
-    /// This may be useful when reading CSV data in a random access pattern.
-    #[allow(dead_code)]
-    pub fn reset(&mut self) {
-        self.nfa_state = NfaState::StartRecord;
-        self.last_nfa_state = None;
-        self.record = 1;
-        // self.has_read = false;
-    }
-
     pub fn state(&self) -> NfaState {
         self.nfa_state
     }
 
     /// Return the current record number as measured by the number of occurrences
     /// of `\n`.
-    ///
-    /// Line numbers starts at `1` and are reset when `reset` is called.
     #[allow(dead_code)]
     pub fn record(&self) -> u64 {
         self.record
     }
 
     /// Return the current field number as measured by the number of occurrences
-    /// of `,` on the current line.
-    ///
-    /// field numbers starts at `0` and are reset when `reset` is called.
+    /// of delimiter on the current line.
     pub fn field(&self) -> u64 {
         self.field
     }
 
-    /// Return if the current position is in a field or not.
+    /// Return if the current position is on a field or not.
     pub fn is_in_field(&self) -> bool {
         self.nfa_state == NfaState::InField ||
             self.nfa_state == NfaState::InQuotedField ||
@@ -139,102 +115,95 @@ impl Parser {
             self.nfa_state == NfaState::InDoubleEscapedQuote
     }
 
-    /// Set the record number.
-    ///
-    /// This is useful after a call to `reset` where the caller knows the
-    /// line number from some additional context.
-    #[allow(dead_code)]
-    pub fn set_record(&mut self, record: u64) {
-        self.record = record;
+    fn is_term(&self, b: char) -> bool {
+        self.cr == b || self.lf == b
     }
 
     /// Compute the next NFA state given the current NFA state and the current
     /// input byte.
     ///
-    /// This returns the next NFA state along with an NfaInputAction that
-    /// indicates what should be done with the input byte (nothing for an epsilon
-    /// transition, copied to a caller provided output buffer, or discarded).
+    /// This returns the next NFA state along with an NfaType that
+    /// indicates what should be done with the input byte.
     #[inline(always)]
     fn transition_nfa(
         &self,
         state: NfaState,
         c: char,
-    ) -> (NfaState, NfaInputAction) {
+    ) -> (NfaState, NfaType) {
         use self::NfaState::*;
         match state {
-            // End => (End, NfaInputAction::Epsilon),
             StartRecord => {
-                if self.term.equals(c) {
-                    (StartRecord, NfaInputAction::Discard)
+                if self.is_term(c) {
+                    (StartRecord, NfaType::Meta)
                 } else if self.comment == Some(c) {
-                    (InComment, NfaInputAction::Discard)
+                    (InComment, NfaType::Meta)
                 } else {
-                    (StartField, NfaInputAction::Epsilon)
+                    (StartField, NfaType::Epsilon)
                 }
             }
-            EndRecord => (StartRecord, NfaInputAction::Epsilon),
+            EndRecord => (StartRecord, NfaType::Epsilon),
             StartField => {
                 if self.quoting && self.quote == c {
-                    (InQuotedField, NfaInputAction::Discard)
+                    (InQuotedField, NfaType::Meta)
                 } else if self.delimiter == c {
-                    (EndFieldDelim, NfaInputAction::Discard)
-                } else if self.term.equals(c) {
-                    (EndFieldTerm, NfaInputAction::Epsilon)
+                    (EndFieldDelim, NfaType::Meta)
+                } else if self.is_term(c) {
+                    (EndFieldTerm, NfaType::Epsilon)
                 } else {
-                    (InField, NfaInputAction::CopyToOutput)
+                    (InField, NfaType::Content)
                 }
             }
-            EndFieldDelim => (StartField, NfaInputAction::Epsilon),
-            EndFieldTerm => (InRecordTerm, NfaInputAction::Epsilon),
+            EndFieldDelim => (StartField, NfaType::Epsilon),
+            EndFieldTerm => (InRecordTerm, NfaType::Epsilon),
             InField => {
                 if self.delimiter == c {
-                    (EndFieldDelim, NfaInputAction::Discard)
-                } else if self.term.equals(c) {
-                    (EndFieldTerm, NfaInputAction::Epsilon)
+                    (EndFieldDelim, NfaType::Meta)
+                } else if self.is_term(c) {
+                    (EndFieldTerm, NfaType::Epsilon)
                 } else {
-                    (InField, NfaInputAction::CopyToOutput)
+                    (InField, NfaType::Content)
                 }
             }
             InQuotedField => {
                 if self.quoting && self.quote == c {
-                    (InDoubleEscapedQuote, NfaInputAction::Discard)
+                    (InDoubleEscapedQuote, NfaType::Meta)
                 } else if self.quoting && self.escape == Some(c) {
-                    (InEscapedQuote, NfaInputAction::Discard)
+                    (InEscapedQuote, NfaType::Meta)
                 } else {
-                    (InQuotedField, NfaInputAction::CopyToOutput)
+                    (InQuotedField, NfaType::Content)
                 }
             }
-            InEscapedQuote => (InQuotedField, NfaInputAction::CopyToOutput),
+            InEscapedQuote => (InQuotedField, NfaType::Content),
             InDoubleEscapedQuote => {
                 if self.quoting && self.double_quote && self.quote == c {
-                    (InQuotedField, NfaInputAction::CopyToOutput)
+                    (InQuotedField, NfaType::Content)
                 } else if self.delimiter == c {
-                    (EndFieldDelim, NfaInputAction::Discard)
-                } else if self.term.equals(c) {
-                    (EndFieldTerm, NfaInputAction::Epsilon)
+                    (EndFieldDelim, NfaType::Meta)
+                } else if self.is_term(c) {
+                    (EndFieldTerm, NfaType::Epsilon)
                 } else {
-                    (InField, NfaInputAction::CopyToOutput)
+                    (InField, NfaType::Content)
                 }
             }
             InComment => {
-                if '\n' == c {
-                    (StartRecord, NfaInputAction::Discard)
+                if self.lf == c {
+                    (StartRecord, NfaType::Meta)
                 } else {
-                    (InComment, NfaInputAction::Discard)
+                    (InComment, NfaType::Meta)
                 }
             }
             InRecordTerm => {
-                if self.term.is_crlf() && '\r' == c {
-                    (CRLF, NfaInputAction::Discard)
+                if self.cr == c {
+                    (CRLF, NfaType::Meta)
                 } else {
-                    (EndRecord, NfaInputAction::Discard)
+                    (EndRecord, NfaType::Meta)
                 }
             }
             CRLF => {
-                if '\n' == c {
-                    (StartRecord, NfaInputAction::Discard)
+                if self.lf == c {
+                    (StartRecord, NfaType::Meta)
                 } else {
-                    (StartRecord, NfaInputAction::Epsilon)
+                    (StartRecord, NfaType::Epsilon)
                 }
             }
         }
@@ -243,8 +212,8 @@ impl Parser {
     /// Interpret single char as a part of CSV
     ///
     /// This method is used to interpret single char as a part of CSV.
-    /// It returns None if the char is a part of CSV and error otherwise.
-    /// Parser is updated its own state according to the char.
+    /// It returns None if the char is a part of CSV and returns error otherwise.
+    /// Parser is updated its own state according to the input.
     pub fn interpret(&mut self, c: char) -> Option<std::io::Error> {
         loop {
             let (state, action) = self.transition_nfa(self.nfa_state, c);
@@ -273,7 +242,7 @@ impl Parser {
             }
             self.last_nfa_state = Some(self.nfa_state.clone());
             match action {
-                NfaInputAction::Epsilon => {},
+                NfaType::Epsilon => {},
                 _ => {
                     break;
                 }
@@ -400,5 +369,3 @@ xxx,yyy,zzz
         parser.interpret(c[i]); assert_eq!('\n', c[i]); assert_eq!(3, parser.record()); assert_eq!(3, parser.field());
     }
 }
-
-
