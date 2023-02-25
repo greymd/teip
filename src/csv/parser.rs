@@ -4,12 +4,12 @@
 use super::terminator::Terminator;
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
-enum NfaState {
+pub enum NfaState {
     // These states aren't used in the DFA, so we
     // assign them meaningless numbers.
     EndFieldTerm = 200,
     InRecordTerm = 201,
-    End = 202,
+    // End = 202,
 
     // All states below are DFA states.
     StartRecord = 0,
@@ -66,10 +66,10 @@ pub struct Parser {
     record: u64,
     /// The current field.
     field: u64,
-    /// Whether this parser has ever read anything.
-    has_read: bool,
-    /// The current position in the output buffer when reading a record.
-    output_pos: usize,
+    // /// Whether this parser has ever read anything.
+    // has_read: bool,
+    // /// The current position in the output buffer when reading a record.
+    // output_pos: usize,
 }
 
 
@@ -87,8 +87,8 @@ impl Default for Parser {
             quoting: true,
             record: 0,
             field: 0,
-            has_read: false,
-            output_pos: 0,
+            // has_read: false,
+            // output_pos: 0,
         }
     }
 }
@@ -102,17 +102,23 @@ impl Parser {
     /// Reset the parser such that it behaves as if it had never been used.
     ///
     /// This may be useful when reading CSV data in a random access pattern.
+    #[allow(dead_code)]
     pub fn reset(&mut self) {
         self.nfa_state = NfaState::StartRecord;
         self.last_nfa_state = None;
         self.record = 1;
-        self.has_read = false;
+        // self.has_read = false;
+    }
+
+    pub fn state(&self) -> NfaState {
+        self.nfa_state
     }
 
     /// Return the current record number as measured by the number of occurrences
     /// of `\n`.
     ///
     /// Line numbers starts at `1` and are reset when `reset` is called.
+    #[allow(dead_code)]
     pub fn record(&self) -> u64 {
         self.record
     }
@@ -137,26 +143,10 @@ impl Parser {
     ///
     /// This is useful after a call to `reset` where the caller knows the
     /// line number from some additional context.
+    #[allow(dead_code)]
     pub fn set_record(&mut self, record: u64) {
         self.record = record;
     }
-
-    /// Strip off a possible UTF-8 BOM at the start of a file. Quick note that
-    /// this method will fail to strip off the BOM if only part of the BOM is
-    /// buffered. Hopefully that won't happen very often.
-    fn strip_utf8_bom<'a>(&self, input: &'a [u8]) -> (&'a [u8], usize) {
-        let (input, nin) = if {
-            !self.has_read
-                && input.len() >= 3
-                && &input[0..3] == b"\xef\xbb\xbf"
-        } {
-            (&input[3..], 3)
-        } else {
-            (input, 0)
-        };
-        (input, nin)
-    }
-
 
     /// Compute the next NFA state given the current NFA state and the current
     /// input byte.
@@ -172,7 +162,7 @@ impl Parser {
     ) -> (NfaState, NfaInputAction) {
         use self::NfaState::*;
         match state {
-            End => (End, NfaInputAction::Epsilon),
+            // End => (End, NfaInputAction::Epsilon),
             StartRecord => {
                 if self.term.equals(c) {
                     (StartRecord, NfaInputAction::Discard)
@@ -311,11 +301,12 @@ impl ParserBuilder {
 
     /// Build a CSV parser from this configuration.
     pub fn build(&self) -> Parser {
-        let mut par = self.par.clone();
+        let par = self.par.clone();
         // rdr.build_dfa();
         par
     }
 
+/*
     /// The field delimiter to use when parsing CSV.
     ///
     /// The default is `b','`.
@@ -390,6 +381,7 @@ impl ParserBuilder {
     pub fn ascii(&mut self) -> &mut ParserBuilder {
         self.delimiter('\x1F').terminator(Terminator::Any('\x1E'))
     }
+*/
 }
 
 #[cfg(test)]
@@ -434,55 +426,55 @@ xxx,yyy,zzz
         let c = data.chars().collect::<Vec<char>>();
         // Check each one byte
         let mut i = 0;
-        parser.interpret(c[i]); assert_eq!('い', c[i]); i += 1; assert_eq!(1, parser.record()); assert_eq!(1, parser.field());
-        parser.interpret(c[i]); assert_eq!('ち', c[i]); i += 1; assert_eq!(1, parser.record()); assert_eq!(1, parser.field());
-        parser.interpret(c[i]); assert_eq!(',' , c[i]); i += 1; assert_eq!(1, parser.record()); assert_eq!(1, parser.field());
-        parser.interpret(c[i]); assert_eq!('に', c[i]); i += 1; assert_eq!(1, parser.record()); assert_eq!(2, parser.field());
-        parser.interpret(c[i]); assert_eq!(',' , c[i]); i += 1; assert_eq!(1, parser.record()); assert_eq!(2, parser.field());
-        parser.interpret(c[i]); assert_eq!('さ', c[i]); i += 1; assert_eq!(1, parser.record()); assert_eq!(3, parser.field());
-        parser.interpret(c[i]); assert_eq!('ん', c[i]); i += 1; assert_eq!(1, parser.record()); assert_eq!(3, parser.field());
-        parser.interpret(c[i]); assert_eq!('\n', c[i]); i += 1; assert_eq!(1, parser.record()); assert_eq!(3, parser.field());
-        parser.interpret(c[i]); assert_eq!('１', c[i]); i += 1; assert_eq!(2, parser.record()); assert_eq!(1, parser.field());
-        parser.interpret(c[i]); assert_eq!('r' , c[i]); i += 1; assert_eq!(2, parser.record()); assert_eq!(1, parser.field());
-        parser.interpret(c[i]); assert_eq!('e' , c[i]); i += 1; assert_eq!(2, parser.record()); assert_eq!(1, parser.field());
-        parser.interpret(c[i]); assert_eq!('c' , c[i]); i += 1; assert_eq!(2, parser.record()); assert_eq!(1, parser.field());
-        parser.interpret(c[i]); assert_eq!(',' , c[i]); i += 1; assert_eq!(2, parser.record()); assert_eq!(1, parser.field());
-        parser.interpret(c[i]); assert_eq!('"' , c[i]); i += 1; assert_eq!(2, parser.record()); assert_eq!(2, parser.field());
-        parser.interpret(c[i]); assert_eq!('あ', c[i]); i += 1; assert_eq!(2, parser.record()); assert_eq!(2, parser.field());
-        parser.interpret(c[i]); assert_eq!('い', c[i]); i += 1; assert_eq!(2, parser.record()); assert_eq!(2, parser.field());
-        parser.interpret(c[i]); assert_eq!('う', c[i]); i += 1; assert_eq!(2, parser.record()); assert_eq!(2, parser.field());
-        parser.interpret(c[i]); assert_eq!('\n', c[i]); i += 1; assert_eq!(2, parser.record()); assert_eq!(2, parser.field());
-        parser.interpret(c[i]); assert_eq!('え', c[i]); i += 1; assert_eq!(2, parser.record()); assert_eq!(2, parser.field());
-        parser.interpret(c[i]); assert_eq!('お', c[i]); i += 1; assert_eq!(2, parser.record()); assert_eq!(2, parser.field());
-        parser.interpret(c[i]); assert_eq!('"' , c[i]); i += 1; assert_eq!(2, parser.record()); assert_eq!(2, parser.field());
-        parser.interpret(c[i]); assert_eq!(',' , c[i]); i += 1; assert_eq!(2, parser.record()); assert_eq!(2, parser.field());
-        parser.interpret(c[i]); assert_eq!('か', c[i]); i += 1; assert_eq!(2, parser.record()); assert_eq!(3, parser.field());
-        parser.interpret(c[i]); assert_eq!('き', c[i]); i += 1; assert_eq!(2, parser.record()); assert_eq!(3, parser.field());
-        parser.interpret(c[i]); assert_eq!('く', c[i]); i += 1; assert_eq!(2, parser.record()); assert_eq!(3, parser.field());
-        parser.interpret(c[i]); assert_eq!('\n', c[i]); i += 1; assert_eq!(2, parser.record()); assert_eq!(3, parser.field());
-        parser.interpret(c[i]); assert_eq!('２', c[i]); i += 1; assert_eq!(3, parser.record()); assert_eq!(1, parser.field());
-        parser.interpret(c[i]); assert_eq!('r' , c[i]); i += 1; assert_eq!(3, parser.record()); assert_eq!(1, parser.field());
-        parser.interpret(c[i]); assert_eq!('e' , c[i]); i += 1; assert_eq!(3, parser.record()); assert_eq!(1, parser.field());
-        parser.interpret(c[i]); assert_eq!('c' , c[i]); i += 1; assert_eq!(3, parser.record()); assert_eq!(1, parser.field());
-        parser.interpret(c[i]); assert_eq!(',' , c[i]); i += 1; assert_eq!(3, parser.record()); assert_eq!(1, parser.field());
-        parser.interpret(c[i]); assert_eq!('"' , c[i]); i += 1; assert_eq!(3, parser.record()); assert_eq!(2, parser.field());
-        parser.interpret(c[i]); assert_eq!('さ', c[i]); i += 1; assert_eq!(3, parser.record()); assert_eq!(2, parser.field());
-        parser.interpret(c[i]); assert_eq!('し', c[i]); i += 1; assert_eq!(3, parser.record()); assert_eq!(2, parser.field());
-        parser.interpret(c[i]); assert_eq!('す', c[i]); i += 1; assert_eq!(3, parser.record()); assert_eq!(2, parser.field());
-        parser.interpret(c[i]); assert_eq!('\n', c[i]); i += 1; assert_eq!(3, parser.record()); assert_eq!(2, parser.field());
-        parser.interpret(c[i]); assert_eq!('せ', c[i]); i += 1; assert_eq!(3, parser.record()); assert_eq!(2, parser.field());
-        parser.interpret(c[i]); assert_eq!('そ', c[i]); i += 1; assert_eq!(3, parser.record()); assert_eq!(2, parser.field());
-        parser.interpret(c[i]); assert_eq!('"' , c[i]); i += 1; assert_eq!(3, parser.record()); assert_eq!(2, parser.field());
-        parser.interpret(c[i]); assert_eq!(',' , c[i]); i += 1; assert_eq!(3, parser.record()); assert_eq!(2, parser.field());
-        parser.interpret(c[i]); assert_eq!('"' , c[i]); i += 1; assert_eq!(3, parser.record()); assert_eq!(3, parser.field());
-        parser.interpret(c[i]); assert_eq!('た', c[i]); i += 1; assert_eq!(3, parser.record()); assert_eq!(3, parser.field());
-        parser.interpret(c[i]); assert_eq!('ち', c[i]); i += 1; assert_eq!(3, parser.record()); assert_eq!(3, parser.field());
-        parser.interpret(c[i]); assert_eq!('つ', c[i]); i += 1; assert_eq!(3, parser.record()); assert_eq!(3, parser.field());
-        parser.interpret(c[i]); assert_eq!('\n', c[i]); i += 1; assert_eq!(3, parser.record()); assert_eq!(3, parser.field());
-        parser.interpret(c[i]); assert_eq!('て', c[i]); i += 1; assert_eq!(3, parser.record()); assert_eq!(3, parser.field());
-        parser.interpret(c[i]); assert_eq!('と', c[i]); i += 1; assert_eq!(3, parser.record()); assert_eq!(3, parser.field());
-        parser.interpret(c[i]); assert_eq!('"' , c[i]); i += 1; assert_eq!(3, parser.record()); assert_eq!(3, parser.field());
-        parser.interpret(c[i]); assert_eq!('\n', c[i]); i += 1; assert_eq!(3, parser.record()); assert_eq!(3, parser.field());
+        parser.interpret(c[i]); assert_eq!('い', c[i]); assert_eq!(1, parser.record()); assert_eq!(1, parser.field()); i += 1;
+        parser.interpret(c[i]); assert_eq!('ち', c[i]); assert_eq!(1, parser.record()); assert_eq!(1, parser.field()); i += 1;
+        parser.interpret(c[i]); assert_eq!(',' , c[i]); assert_eq!(1, parser.record()); assert_eq!(1, parser.field()); i += 1;
+        parser.interpret(c[i]); assert_eq!('に', c[i]); assert_eq!(1, parser.record()); assert_eq!(2, parser.field()); i += 1;
+        parser.interpret(c[i]); assert_eq!(',' , c[i]); assert_eq!(1, parser.record()); assert_eq!(2, parser.field()); i += 1;
+        parser.interpret(c[i]); assert_eq!('さ', c[i]); assert_eq!(1, parser.record()); assert_eq!(3, parser.field()); i += 1;
+        parser.interpret(c[i]); assert_eq!('ん', c[i]); assert_eq!(1, parser.record()); assert_eq!(3, parser.field()); i += 1;
+        parser.interpret(c[i]); assert_eq!('\n', c[i]); assert_eq!(1, parser.record()); assert_eq!(3, parser.field()); i += 1;
+        parser.interpret(c[i]); assert_eq!('１', c[i]); assert_eq!(2, parser.record()); assert_eq!(1, parser.field()); i += 1;
+        parser.interpret(c[i]); assert_eq!('r' , c[i]); assert_eq!(2, parser.record()); assert_eq!(1, parser.field()); i += 1;
+        parser.interpret(c[i]); assert_eq!('e' , c[i]); assert_eq!(2, parser.record()); assert_eq!(1, parser.field()); i += 1;
+        parser.interpret(c[i]); assert_eq!('c' , c[i]); assert_eq!(2, parser.record()); assert_eq!(1, parser.field()); i += 1;
+        parser.interpret(c[i]); assert_eq!(',' , c[i]); assert_eq!(2, parser.record()); assert_eq!(1, parser.field()); i += 1;
+        parser.interpret(c[i]); assert_eq!('"' , c[i]); assert_eq!(2, parser.record()); assert_eq!(2, parser.field()); i += 1;
+        parser.interpret(c[i]); assert_eq!('あ', c[i]); assert_eq!(2, parser.record()); assert_eq!(2, parser.field()); i += 1;
+        parser.interpret(c[i]); assert_eq!('い', c[i]); assert_eq!(2, parser.record()); assert_eq!(2, parser.field()); i += 1;
+        parser.interpret(c[i]); assert_eq!('う', c[i]); assert_eq!(2, parser.record()); assert_eq!(2, parser.field()); i += 1;
+        parser.interpret(c[i]); assert_eq!('\n', c[i]); assert_eq!(2, parser.record()); assert_eq!(2, parser.field()); i += 1;
+        parser.interpret(c[i]); assert_eq!('え', c[i]); assert_eq!(2, parser.record()); assert_eq!(2, parser.field()); i += 1;
+        parser.interpret(c[i]); assert_eq!('お', c[i]); assert_eq!(2, parser.record()); assert_eq!(2, parser.field()); i += 1;
+        parser.interpret(c[i]); assert_eq!('"' , c[i]); assert_eq!(2, parser.record()); assert_eq!(2, parser.field()); i += 1;
+        parser.interpret(c[i]); assert_eq!(',' , c[i]); assert_eq!(2, parser.record()); assert_eq!(2, parser.field()); i += 1;
+        parser.interpret(c[i]); assert_eq!('か', c[i]); assert_eq!(2, parser.record()); assert_eq!(3, parser.field()); i += 1;
+        parser.interpret(c[i]); assert_eq!('き', c[i]); assert_eq!(2, parser.record()); assert_eq!(3, parser.field()); i += 1;
+        parser.interpret(c[i]); assert_eq!('く', c[i]); assert_eq!(2, parser.record()); assert_eq!(3, parser.field()); i += 1;
+        parser.interpret(c[i]); assert_eq!('\n', c[i]); assert_eq!(2, parser.record()); assert_eq!(3, parser.field()); i += 1;
+        parser.interpret(c[i]); assert_eq!('２', c[i]); assert_eq!(3, parser.record()); assert_eq!(1, parser.field()); i += 1;
+        parser.interpret(c[i]); assert_eq!('r' , c[i]); assert_eq!(3, parser.record()); assert_eq!(1, parser.field()); i += 1;
+        parser.interpret(c[i]); assert_eq!('e' , c[i]); assert_eq!(3, parser.record()); assert_eq!(1, parser.field()); i += 1;
+        parser.interpret(c[i]); assert_eq!('c' , c[i]); assert_eq!(3, parser.record()); assert_eq!(1, parser.field()); i += 1;
+        parser.interpret(c[i]); assert_eq!(',' , c[i]); assert_eq!(3, parser.record()); assert_eq!(1, parser.field()); i += 1;
+        parser.interpret(c[i]); assert_eq!('"' , c[i]); assert_eq!(3, parser.record()); assert_eq!(2, parser.field()); i += 1;
+        parser.interpret(c[i]); assert_eq!('さ', c[i]); assert_eq!(3, parser.record()); assert_eq!(2, parser.field()); i += 1;
+        parser.interpret(c[i]); assert_eq!('し', c[i]); assert_eq!(3, parser.record()); assert_eq!(2, parser.field()); i += 1;
+        parser.interpret(c[i]); assert_eq!('す', c[i]); assert_eq!(3, parser.record()); assert_eq!(2, parser.field()); i += 1;
+        parser.interpret(c[i]); assert_eq!('\n', c[i]); assert_eq!(3, parser.record()); assert_eq!(2, parser.field()); i += 1;
+        parser.interpret(c[i]); assert_eq!('せ', c[i]); assert_eq!(3, parser.record()); assert_eq!(2, parser.field()); i += 1;
+        parser.interpret(c[i]); assert_eq!('そ', c[i]); assert_eq!(3, parser.record()); assert_eq!(2, parser.field()); i += 1;
+        parser.interpret(c[i]); assert_eq!('"' , c[i]); assert_eq!(3, parser.record()); assert_eq!(2, parser.field()); i += 1;
+        parser.interpret(c[i]); assert_eq!(',' , c[i]); assert_eq!(3, parser.record()); assert_eq!(2, parser.field()); i += 1;
+        parser.interpret(c[i]); assert_eq!('"' , c[i]); assert_eq!(3, parser.record()); assert_eq!(3, parser.field()); i += 1;
+        parser.interpret(c[i]); assert_eq!('た', c[i]); assert_eq!(3, parser.record()); assert_eq!(3, parser.field()); i += 1;
+        parser.interpret(c[i]); assert_eq!('ち', c[i]); assert_eq!(3, parser.record()); assert_eq!(3, parser.field()); i += 1;
+        parser.interpret(c[i]); assert_eq!('つ', c[i]); assert_eq!(3, parser.record()); assert_eq!(3, parser.field()); i += 1;
+        parser.interpret(c[i]); assert_eq!('\n', c[i]); assert_eq!(3, parser.record()); assert_eq!(3, parser.field()); i += 1;
+        parser.interpret(c[i]); assert_eq!('て', c[i]); assert_eq!(3, parser.record()); assert_eq!(3, parser.field()); i += 1;
+        parser.interpret(c[i]); assert_eq!('と', c[i]); assert_eq!(3, parser.record()); assert_eq!(3, parser.field()); i += 1;
+        parser.interpret(c[i]); assert_eq!('"' , c[i]); assert_eq!(3, parser.record()); assert_eq!(3, parser.field()); i += 1;
+        parser.interpret(c[i]); assert_eq!('\n', c[i]); assert_eq!(3, parser.record()); assert_eq!(3, parser.field());
     }
 }
 

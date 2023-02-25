@@ -5,7 +5,6 @@ use super::{errors,errors::*};
 use super::stringutils;
 use regex::Regex;
 use super::DEFAULT_CAP;
-use std::io::Read;
 use std::io::{self, BufRead};
 
 /// Bypassing particular lines based on given list ( -l )
@@ -375,7 +374,7 @@ pub fn csv_proc(
     let mut parser = Parser::new();
     let mut str_byps = String::new();
     let mut str_keep = String::new();
-    let mut is_byps = false;
+    let mut is_byps;
     let mut last_is_byps = false;
     let mut ri = 0;
     let line_end = b'\n';
@@ -385,16 +384,13 @@ pub fn csv_proc(
         let mut buf = Vec::with_capacity(DEFAULT_CAP);
         match stdin.lock().read_until(line_end, &mut buf) {
             Ok(n) => {
-                // EOL を取り除くと、CSV
-                // パーサがレコードの区切りを認識できなくなるので除いてはいけない
-                // let eol = stringutils::trim_eol(&mut buf);
                 let line = String::from_utf8_lossy(&buf).to_string();
                 let cs = line.chars();
                 // Check each byte in the line
-                for (i, c) in cs.enumerate() {
-                    debug!("csv_proc: c={}", c);
+                for (_, c) in cs.enumerate() {
                     parser.interpret(c);
-                    if parser.is_in_field() {
+                    debug!("csv_proc: c={:?}, state={:?}", c, parser.state());
+                    if parser.is_in_field() && c != '\n' {
                         let field = parser.field() as usize;
                         // check if the field is in the range
                         if ranges[ri].high < field && (ri + 1) < ranges.len() {
@@ -420,17 +416,9 @@ pub fn csv_proc(
                     }
                     last_is_byps = is_byps;
                 }
-                if last_is_byps && !str_byps.is_empty() {
-                    ch.send_byps(str_byps.clone())?;
-                    str_byps.clear();
-                }
-                if !str_keep.is_empty() {
-                    ch.send_keep(str_keep.clone())?;
-                    str_keep.clear();
-                }
                 ri = 0;
-                // ch.send_keep(eol)?;
                 if n == 0 {
+                    // If end of file does not have line feed, this part sends the remaining chunk
                     if last_is_byps && !str_byps.is_empty() {
                         ch.send_byps(str_byps)?;
                     }
