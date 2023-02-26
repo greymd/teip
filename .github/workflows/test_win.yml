@@ -27,11 +27,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
-      - name: Prepare sed which supports UTF-8
-        run: |
-          Invoke-WebRequest https://github.com/mbuilov/sed-windows/raw/master/sed-4.9-x64.exe -UseBasicParsing -OutFile sed.exe
-          Move-Item -Force sed.exe "C:\Program Files\Git\usr\bin\seq.exe"
-        shell: powershell
       - name: Build the release target
         run: |
           rustup target add ${{ matrix.target }}

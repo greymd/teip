@@ -90,6 +90,7 @@ impl Parser {
         ParserBuilder::new().build()
     }
 
+    #[allow(dead_code)]
     pub fn state(&self) -> NfaState {
         self.nfa_state
     }
