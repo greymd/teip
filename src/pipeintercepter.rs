@@ -153,6 +153,7 @@ impl PipeIntercepter {
         cmds: Vec<String>,
         line_end: u8,
         dryrun: bool,
+        chomp: bool,
     ) -> Result<PipeIntercepter, errors::SpawnError> {
         let (tx, rx) = mpsc::channel();
         let handler = thread::spawn(move || {
@@ -175,7 +176,7 @@ impl PipeIntercepter {
                     }
                     Chunk::SHole(msg) => {
                         debug!("thread: rx.recv <= SHole:[{:?}]", msg);
-                        let result = spawnutils::exec_cmd_sync(msg, &cmds, line_end);
+                        let result = spawnutils::exec_cmd_sync(msg, &cmds, line_end, chomp);
                         writer
                             .write(result.as_bytes())
                             .unwrap_or_else(|e| exit_silently(&e.to_string()));

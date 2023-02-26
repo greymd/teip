@@ -76,7 +76,9 @@ FLAGS:
     -v               Invert the range of bypassing
     -G               -g adopts Oniguruma regular expressions
     -o               -g bypasses only matched parts
-    -s               Execute new command for each bypassed part
+    -s               Execute new command for each bypassed chunk
+    --chomp          Command spawned by -s receives standard input without trailing
+                     newlines
     -V, --version    Prints version information
     -z               Line delimiter is NUL instead of a newline
     --csv            -f uses CSV parser instead of white-space separated fields
@@ -115,6 +117,8 @@ struct Args {
     line: Option<String>,
     #[structopt(short = "s")]
     solid: bool,
+    #[structopt(long = "chomp")]
+    solid_chomp: bool,
     #[structopt(short = "v")]
     invert: bool,
     #[structopt(short = "z")]
@@ -143,6 +147,7 @@ fn main() {
     let flag_regex = args.regex.is_some();
     let flag_onig = args.onig_enabled;
     let flag_solid = args.solid;
+    let flag_solid_chomp = args.solid_chomp;
     let flag_invert = args.invert;
     let flag_char = args.char.is_some();
     let flag_lines = args.line.is_some();
@@ -254,7 +259,7 @@ fn main() {
 
     if flag_solid {
         ch =
-            PipeIntercepter::start_solid_output(cmds, line_end, flag_dryrun)
+            PipeIntercepter::start_solid_output(cmds, line_end, flag_dryrun, flag_solid_chomp)
                 .unwrap_or_else(|e| error_exit(&e.to_string()));
     } else {
         ch = PipeIntercepter::start_output(cmds, line_end, flag_dryrun)

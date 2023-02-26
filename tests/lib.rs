@@ -798,9 +798,45 @@ mod cmdtest {
     #[test]
     fn test_solid_csv_remove_newlines() {
         let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
-        cmd.args(&["--csv", "-s", "-f", "2", "--", TR_CMD, "\\n", "@"])
+        cmd.args(&["--csv", "-s", "-f", "2", "--", TR_CMD, "-d", "\\n"])
             .write_stdin("名前,作者,ノート\n１レコード目,\"あい\nうえお\",かきく\n２レコード目,\"\"\"さしす\nせそ\",\"たちつ\nてと\"\n")
             .assert()
-            .stdout("名前,作者,ノート\n１レコード目,\"あい@うえお\",かきく\n２レコード目,\"さしす@せそ\",\"たちつ\nてと\"\n");
+            .stdout("名前,作者,ノート\n１レコード目,\"あいうえお\",かきく\n２レコード目,\"\"\"さしすせそ\",\"たちつ\nてと\"\n");
+    }
+
+    #[test]
+    fn test_solid_csv_chomp() {
+        let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
+        cmd.args(&["--csv", "-s", "--chomp", "-f", "2,3", "--", TR_CMD, "\\n", "@"])
+            .write_stdin("名前,作者,ノート\n１レコード目,\"あいう\nえお\",かきく\n２レコード目,\"さしす\nせそ\",\"たちつ\nてと,\n")
+            .assert()
+            .stdout("名前,作者,ノート\n１レコード目,\"あいう@えお\",かきく\n２レコード目,\"さしす@せそ\",\"たちつ@てと,");
+    }
+
+    #[test]
+    fn test_solid_csv_nochomp() {
+        let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
+        cmd.args(&["--csv", "-s", "-f", "2,3", "--", TR_CMD, "\\n", "@"])
+            .write_stdin("名前,作者,ノート\n１レコード目,\"あいう\nえお\",かきく\n２レコード目,\"さしす\nせそ\",\"たちつ\nてと,\n")
+            .assert()
+            .stdout("名前,作者@,ノート@\n１レコード目,\"あいう@えお\"@,かきく@\n２レコード目,\"さしす@せそ\"@,\"たちつ@てと,@@");
+    }
+
+    #[test]
+    fn test_solid_nochomp() {
+        let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
+        cmd.args(&["-s", "-o", "-g", "\\d+", "--", TR_CMD, "\\n", "@"])
+            .write_stdin("AAA111BBB\nCCC222DDD\nEEE333FFF")
+            .assert()
+            .stdout("AAA111@BBB\nCCC222@DDD\nEEE333@FFF");
+    }
+
+    #[test]
+    fn test_solid_chomp() {
+        let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
+        cmd.args(&["-s", "--chomp", "-o", "-g", "\\d+", "--", TR_CMD, "\\n", "@"])
+            .write_stdin("AAA111BBB\nCCC222DDD\nEEE333FFF")
+            .assert()
+            .stdout("AAA111BBB\nCCC222DDD\nEEE333FFF");
     }
 }
