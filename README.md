@@ -16,19 +16,19 @@
   <img src="https://raw.githubusercontent.com/wiki/greymd/teip/img/teip_intro.png" alt="Git Animation for Introduction" width="50%" />
 </p>
 
-* Replace 'WORLD' to 'EARTH' on line including 'HELLO'
+* Replace 'WORLD' to 'EARTH' on lines containing 'HELLO'
 
 ```bash
 $ cat file | teip -g HELLO -- sed 's/WORLD/EARTH/'
 ```
 
-* Edit 2nd column in the CSV file:
+* Edit 2nd field of the CSV file:
 
 ```bash
 $ cat file.csv | teip --csv -f 2 -- sed 's/./@/g'
 ```
 
-* Edit 2nd, 3rd and 4th fields on '|' separated file
+* Edit 2nd, 3rd and 4th fields of '|' separated file
 
 ```bash
 $ cat file | teip -d '|' -f 2-4 -- sed 's/./@/g'
@@ -40,7 +40,7 @@ $ cat file | teip -d '|' -f 2-4 -- sed 's/./@/g'
 $ cat /var/log/secure | teip -c 1-15 -- date -f- +%s
 ```
 
-* Edit the line containing 'hello' and the three lines before and after it
+* Edit lines containing 'hello' and the three lines before and after it
 
 ```bash
 $ cat access.log | teip -e 'grep -n -C 3 hello' -- sed 's/./@/g'
@@ -158,7 +158,7 @@ PS C:\> cargo install teip --features oniguruma
 ```
 USAGE:
   teip -g <pattern> [-oGsvz] [--] [<command>...]
-  teip -f <list> [-d <delimiter> | -D <pattern>] [-svz] [--] [<command>...]
+  teip -f <list> [-d <delimiter> | -D <pattern> | --csv] [-svz] [--] [<command>...]
   teip -c <list> [-svz] [--] [<command>...]
   teip -l <list> [-svz] [--] [<command>...]
   teip -e <string> [-svz] [--] [<command>...]
@@ -179,9 +179,13 @@ FLAGS:
     -v               Invert the range of bypassing
     -G               -g adopts Oniguruma regular expressions
     -o               -g bypasses only matched parts
-    -s               Execute new command for each bypassed part
+    -s               Execute new command for each bypassed chunk
+    --chomp          Command spawned by -s receives standard input without trailing
+                     newlines
     -V, --version    Prints version information
     -z               Line delimiter is NUL instead of a newline
+    --csv            -f specifies field numbers of CSV which follows RFC 4180 instead
+                     of white-space separated fields
 ```
 
 ## Getting Started
