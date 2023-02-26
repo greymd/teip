@@ -274,7 +274,7 @@ EXAMPLES
 Edit 2nd, 3rd, and 4th columns in the CSV file
 
 ```
-$ cat file.csv | teip -f 2-4 -d , -- sed 's/./@/g'
+$ cat file.csv | teip --csv -f 2-4 -- sed 's/./@/g'
 ```
 
 Convert timestamps in /var/log/secure to UNIX time

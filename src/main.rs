@@ -85,12 +85,16 @@ FLAGS:
                      of white-space separated fields
 
 EXAMPLES:
-  Edit 2nd, 3rd, and 4th columns in the CSV file
-    $ cat file.csv | teip -f 2-4 -d , -- sed 's/./@/g'
-  Convert timestamps in /var/log/secure to UNIX time
+  Replace 'WORLD' to 'EARTH' on line including 'HELLO' in input:
+    $ cat file | teip -g HELLO -- sed 's/WORLD/EARTH/'
+  Edit '|' separated fields of input:
+    $ cat file.csv | teip -d '|' -f 2 -- sed 's/./@/g'
+  Edit 2nd and 3rd columns in the CSV file:
+    $ cat file.csv | teip --csv -f 2,3 -- sed 's/./@/g'
+  Convert timestamps in /var/log/secure to UNIX time:
     $ cat /var/log/secure | teip -c 1-15 -- date -f- +%s
-  Edit the line containing 'hello' and the three lines before and after it
-    $ cat access.log | teip -e 'grep -n -C 3 hello' -- sed 's/./@/g'
+  Edit the line containing 'HELLO' and the three lines before and after it:
+    $ cat access.log | teip -e 'grep -n -C 3 HELLO' -- sed 's/./@/g'
 
 Full documentation at:<https://github.com/greymd/teip>",
 )]
