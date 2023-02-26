@@ -749,4 +749,58 @@ mod cmdtest {
         .assert()
         .stdout("  2\t @@@ @@@ \t  @@@\n");
     }
+
+    #[test]
+    fn test_solid_csv() {
+        let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
+        cmd.args(&["--csv", "-s", "-f", "2", "--", SED_CMD, "s/./@/g"])
+            .write_stdin("名前,作者,ノート\n１レコード目,\"あいう\nえお\",かきく\n２レコード目,\"さしす\nせそ\",\"たちつ\nてと\"\n")
+            .assert()
+            .stdout("名前,@@,ノート\n１レコード目,@@@@\n@@@,かきく\n２レコード目,@@@@\n@@@,\"たちつ\nてと\"\n");
+    }
+
+    #[test]
+    fn test_solid_csv_end_nolf() {
+        let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
+        cmd.args(&["--csv", "-s", "-f", "3", "--", SED_CMD, "s/./@/g"])
+            .write_stdin("名前,作者,ノート\n１レコード目,\"あいう\nえお\",かきく\n２レコード目,\"さしす\nせそ\",\"たちつ\nてと\"")
+            .assert()
+            .stdout("名前,作者,@@@\n１レコード目,\"あいう\nえお\",@@@\n２レコード目,\"さしす\nせそ\",@@@@\n@@@");
+    }
+
+    #[test]
+    fn test_solid_csv_non_delim_comma() {
+        let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
+        cmd.args(&["--csv", "-s", "-f", "1", "--", SED_CMD, "s/./@/g"])
+            .write_stdin("\"名,前\",作者,ノート\n１レコード目,\"あいう\nえお\",かきく\n\"２レコード,目\",\"さしす\nせそ\",\"たちつ\nてと\"")
+            .assert()
+            .stdout("@@@@@,作者,ノート\n@@@@@@,\"あいう\nえお\",かきく\n@@@@@@@@@,\"さしす\nせそ\",\"たちつ\nてと\"");
+    }
+
+    #[test]
+    fn test_solid_csv_double_quotation() {
+        let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
+        cmd.args(&["--csv", "-s", "-f", "2", "--", SED_CMD, "s/./@/g"])
+            .write_stdin("名前,\"作\"\"者\",ノート\n１レコード目,\"あ\"\"いう\"\"\nえお\",かきく\n２レコード目,\"\"\"さしす\n\"\"せそ\",\"たちつ\nてと\"\n")
+            .assert()
+            .stdout("名前,@@@@@@,ノート\n１レコード目,@@@@@@@@\n@@@,かきく\n２レコード目,@@@@@@\n@@@@@,\"たちつ\nてと\"\n");
+    }
+
+    #[test]
+    fn test_solid_csv_crlf() {
+        let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
+        cmd.args(&["--csv", "-s", "-f", "3", "--", TR_CMD, "\\r", "@"])
+            .write_stdin("AAA,BBB,CCC\r\n1AAA,\"1BBB\r\nBB\",1CCC\r\n2AAA,2BBB,\"2CCC\r\nCC\"\r\n")
+            .assert()
+                 .stdout("AAA,BBB,CCC\r\n1AAA,\"1BBB\r\nBB\",1CCC\r\n2AAA,2BBB,\"2CCC@\nCC\"\r\n");
+    }
+
+    #[test]
+    fn test_solid_csv_remove_newlines() {
+        let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
+        cmd.args(&["--csv", "-s", "-f", "2", "--", TR_CMD, "\\n", "@"])
+            .write_stdin("名前,作者,ノート\n１レコード目,\"あい\nうえお\",かきく\n２レコード目,\"\"\"さしす\nせそ\",\"たちつ\nてと\"\n")
+            .assert()
+            .stdout("名前,作者,ノート\n１レコード目,\"あい@うえお\",かきく\n２レコード目,\"さしす@せそ\",\"たちつ\nてと\"\n");
+    }
 }

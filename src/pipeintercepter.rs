@@ -214,6 +214,7 @@ impl PipeIntercepter {
             // If pipe is exhausted, throw error.
             return Err(errors::PipeReceiveError::EndOfFd);
         }
+        // Remove line_end from buf.
         trim_eol(&mut buf);
         Ok(String::from_utf8_lossy(&buf).to_string())
     }
@@ -248,7 +249,7 @@ impl PipeIntercepter {
                 .map_err(|e| errors::ChunkSendError::Channel(e))?;
             Ok(())
         } else {
-            debug!("tx.send => Piped");
+            debug!("tx.send => Hole");
             self.tx
                 .send(Chunk::Hole)
                 .map_err(|e| errors::ChunkSendError::Channel(e))?;

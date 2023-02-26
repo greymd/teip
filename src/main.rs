@@ -312,7 +312,7 @@ fn main() {
             procs::exoffload_proc(&mut ch, exoffload_pipeline, flag_invert, line_end)
                     .unwrap_or_else(|e| error_exit(&e.to_string()));
         } else if flag_csv {
-            procs::csv_proc(&mut ch, &field_list, line_end)
+            procs::csv_proc(&mut ch, &field_list, line_end, flag_solid)
                     .unwrap_or_else(|e| error_exit(&e.to_string()));
         }
     }

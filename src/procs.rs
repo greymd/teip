@@ -369,6 +369,7 @@ pub fn csv_proc(
     ch: &mut PipeIntercepter,
     ranges: &Vec<list::ranges::Range>,
     line_end: u8,
+    flag_solid: bool,
     ) -> Result<(), errors::ChunkSendError> {
     use super::csv::parser::Parser;
     use log::debug;
@@ -391,7 +392,7 @@ pub fn csv_proc(
                 for (_, c) in cs.enumerate() {
                     parser.interpret(c);
                     debug!("csv_proc: c={:?}, state={:?}", c, parser.state());
-                    if parser.is_in_field() && c != line_end_char {
+                    if parser.is_in_field() && ( flag_solid || c != line_end_char ) {
                         let field = parser.field() as usize;
                         // check if the field is in the range
                         if ranges[ri].high < field && (ri + 1) < ranges.len() {
@@ -435,5 +436,3 @@ pub fn csv_proc(
     }
     Ok(())
 }
-
-
