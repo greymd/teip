@@ -33,6 +33,11 @@ jobs:
           choco install llvm
           cargo build --features oniguruma --release --verbose --target x86_64-pc-windows-msvc
           # => target\x86_64-pc-windows-msvc\release\teip.exe will be created
+      - name: Prepare sed which supports UTF-8
+        run: |
+          Invoke-WebRequest https://github.com/mbuilov/sed-windows/raw/master/sed-4.9-x64.exe -UseBasicParsing -OutFile sed.exe
+          mv sed.exe C:\Program\ Files\Git\usr\bin\seq.exe
+        shell: powershell
       - name: Run tests
         timeout-minutes: 10
         run: cargo test --verbose --features oniguruma
