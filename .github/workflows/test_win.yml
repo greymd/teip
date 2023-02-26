@@ -30,7 +30,7 @@ jobs:
       - name: Prepare sed which supports UTF-8
         run: |
           Invoke-WebRequest https://github.com/mbuilov/sed-windows/raw/master/sed-4.9-x64.exe -UseBasicParsing -OutFile sed.exe
-          mv /y sed.exe "C:\Program Files\Git\usr\bin\seq.exe"
+          Move-Item -Force sed.exe "C:\Program Files\Git\usr\bin\seq.exe"
         shell: powershell
       - name: Build the release target
         run: |
