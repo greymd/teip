@@ -81,8 +81,8 @@ FLAGS:
                      newlines
     -V, --version    Prints version information
     -z               Line delimiter is NUL instead of a newline
-    --csv            -f specifies field numbers of CSV which follows RFC 4180 instead
-                     of white-space separated fields
+    --csv            -f interprets <list> as field number of a CSV according to
+                     RFC 4180, instead of white-space separated fields
 
 EXAMPLES:
   Replace 'WORLD' to 'EARTH' on line including 'HELLO' in input:

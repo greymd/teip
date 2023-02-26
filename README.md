@@ -184,8 +184,8 @@ FLAGS:
                      newlines
     -V, --version    Prints version information
     -z               Line delimiter is NUL instead of a newline
-    --csv            -f specifies field numbers of CSV which follows RFC 4180 instead
-                     of white-space separated fields
+    --csv            -f interprets <list> as field number of a CSV according to
+                     RFC 4180, instead of white-space separated fields
 ```
 
 ## Getting Started
@@ -344,6 +344,49 @@ $ echo "1970-01-02 03:04:05" | teip -f 2-5 -D '[-: ]'
 
 The regular expression of TAB character (`\t`) can also be specified with the `-D` option, but `-d` has slightly better performance.
 Regarding available notations of the regular expression, refer to [regular expression of Rust](https://docs.rs/regex/1.3.7/regex/).
+
+## Practical CSV processing
+
+If you want to process a complex CSV file, such as the one below, which has columns surrounded by double quotes, use the `-f` option with the `--csv` option.
+
+```csv
+Name,Address,zipcode
+Sola Harewatar,"Doreami Road 123
+Sorashido city",12877
+Yui Nagomi,"Nagomi Street 456, Nagomitei, Oishina town",26930-0312
+"Conectol Motimotit Hooklala Glycogen Comex II a.k.a ""Kome kome""","Cooking dam",513123
+```
+
+With `--csv`, teip will parse the input as a CSV file according to [RFC4180](https://www.rfc-editor.org/rfc/rfc4180). Thus, you can use `-f` to specify column numbers for CSV files with complex structures.
+
+For example, the CSV just mentioned above will have a "hole" as shown below.
+
+```
+$ cat tests/sample.csv | teip --csv -f2 
+Name,[Address],zipcode
+Sola Harewatar,["Doreami Road 123]
+[Sorashido city"],12877
+Yui Nagomi,["Nagomi Street 456, Nagomitei, Oishina town"],26930-0312
+"Conectol Motimotit Hooklala Glycogen Comex II a.k.a ""Kome kome""",["Cooking dam"],513123
+```
+
+Because `-f2` was specified, there is a hole in the second column of each row.
+
+```
+$ cat tests/sample.csv  | teip --csv -f2 -- sed 's/[^"]/@/g'
+Name,@@@@@@@,zipcode
+Sola Harewatar,"@@@@@@@@@@@@@@@@
+@@@@@@@@@@@@@@",12877
+Yui Nagomi,"@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@",26930-0312
+"Conectol Motimotit Hooklala Glycogen Comex II a.k.a ""Kome kome""","@@@@@@@@@@@",513123
+```
+
+Note the following behavior
+
+* Double quotation `"` surrounding fields are also included in the holes.
+* Escaped double quotes `""` are treated as is; two double quotes `""` are given as input to the targeted command.
+* Fields containing newlines will have multiple holes, separated by newlines, instead of a single hole.
+  * However, if the `-s` option is used, it is treated as a single hole, including line breaks.
 
 ## Matching with Regular Expression
 
