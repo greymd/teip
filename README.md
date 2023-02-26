@@ -28,10 +28,10 @@ $ cat file | teip -g HELLO -- sed 's/WORLD/EARTH/'
 $ cat file.csv | teip --csv -f 2 -- sed 's/./@/g'
 ```
 
-* Edit 2nd, 3rd and 4th fields of '|' separated file
+* Edit 2nd, 3rd and 4th fields of TSV file
 
 ```bash
-$ cat file | teip -d '|' -f 2-4 -- sed 's/./@/g'
+$ cat file.tsv | teip -D '\t' -f 2-4 -- sed 's/./@/g'
 ```
 
 * Convert timestamps in /var/log/secure to UNIX time
@@ -197,7 +197,7 @@ $ echo "100 200 300 400" | teip -f 3
 ```
 
 The result is almost the same as the input but "300" is highlighted and surrounded by `[...]`.
-Because `-f 3` selects the 3rd field of space-separated input.
+Because `-f 3` specifies the 3rd field of space-separated input.
 
 ```bash
 100 200 [300] 400
@@ -287,8 +287,8 @@ $ echo "100 200 300 400" | teip -f 1- -- sed 's/./@/g'
 
 ## Select range by character
 
-The `-c` option allows you to select a range by character-base.
-The below example is selecting 1st, 3rd, 5th, 7th characters and apply the `sed` command to them.
+The `-c` option allows you to specify a range by character-base.
+The below example is specifing 1st, 3rd, 5th, 7th characters and apply the `sed` command to them.
 
 ```bash
 $ echo ABCDEFG | teip -c 1,3,5,7
@@ -342,12 +342,18 @@ $ echo "1970-01-02 03:04:05" | teip -f 2-5 -D '[-: ]'
 1970-[01]-[02] [03]:[04]:05
 ```
 
-The regular expression of TAB character (`\t`) can also be specified with the `-D` option, but `-d` has slightly better performance.
+The regular expression of TAB character (`\t`) can also be specified with the `-D` option.
+
+```
+$ printf "100\t200\t300\t400\n" | teip -f 3 -D '\t' -- sed 's/./@/g'
+100     200     @@@     400
+```
+
 Regarding available notations of the regular expression, refer to [regular expression of Rust](https://docs.rs/regex/1.3.7/regex/).
 
-## Practical CSV processing
+## Complex CSV processing
 
-If you want to process a complex CSV file, such as the one below, which has columns surrounded by double quotes, use the `-f` option with the `--csv` option.
+If you want to process a complex CSV file, such as the one below, which has columns surrounded by double quotes, use the `-f` option together with the `--csv` option.
 
 ```csv
 Name,Address,zipcode
@@ -371,6 +377,7 @@ Yui Nagomi,["Nagomi Street 456, Nagomitei, Oishina town"],26930-0312
 ```
 
 Because `-f2` was specified, there is a hole in the second column of each row.
+The following command is an example of rewriting all characters in the second column to "@".
 
 ```
 $ cat tests/sample.csv  | teip --csv -f2 -- sed 's/[^"]/@/g'
@@ -381,16 +388,16 @@ Yui Nagomi,"@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@",26930-0312
 "Conectol Motimotit Hooklala Glycogen Comex II a.k.a ""Kome kome""","@@@@@@@@@@@",513123
 ```
 
-Note the following behavior
+Note for `--csv` option:
 
 * Double quotation `"` surrounding fields are also included in the holes.
 * Escaped double quotes `""` are treated as is; two double quotes `""` are given as input to the targeted command.
 * Fields containing newlines will have multiple holes, separated by newlines, instead of a single hole.
-  * However, if the `-s` option is used, it is treated as a single hole, including line breaks.
+  * However, if the `-s` or `-z` option is used, it is treated as a single hole, including line breaks.
 
 ## Matching with Regular Expression
 
-You can also select particular lines that match a regular expression with `-g`.
+You can also use `-g` to select a specific line matching a regular expression as the hole location.
 
 ```bash
 $ echo -e "ABC1\nEFG2\nHIJ3" | teip -g '[GJ]\d'
@@ -399,8 +406,8 @@ ABC1
 [HIJ3]
 ```
 
-By default, whole the line including the given pattern is selected like the `grep` command.
-With `-o` option, only matched parts are selected.
+By default, the entire line containing the pattern is the range of holes.
+With the -o option, the range of holes will be only at matched range.
 
 ```bash
 $ echo -e "ABC1\nEFG2\nHIJ3" | teip -og '[GJ]\d'
@@ -423,138 +430,9 @@ ABC@@@EFG@@@
 
 This feature is quite versatile and can be useful for handling the file that has no fixed form like logs, markdown, etc.
 
-However, you should pay attention to use it.
+## What commands are appropriate?
 
-The below example is almost the same as above one but `\d+` is replaced with `\d`.
-
-```bash
-$ echo ABC100EFG200 | teip -og '\d' -- sed 's/.*/@@@/g'
-ABC@@@@@@@@@EFG@@@@@@@@@
-```
-
-Although the selected characters are the same, the result is different.
-
-It is necessary to know how `teip` organizes "chunks" in order to understand this behavior.
-
-## Chunking
-
-`teip` divides the standard input into multiple chunks.
-A chunk that does not match the pattern will be displayed on the standard output as it is. On the other hand, the matched chunk is passed to the standard input of a targeted command.
-After that, the matched chunk is replaced with the result of the targeted command.
-
-In the next example, the standard input is divided into four chunks as follows.
-
-```bash
-echo ABC100EFG200 | teip -og '\d+' -- sed 's/.*/@@@/g'
-```
-
-```
-ABC => Chunk(1)
-100 => Chunk(2) -- Matched
-EFG => Chunk(3)
-200 => Chunk(4) -- Matched
-```
-
-By default, the matched chunks are combined by line breaks and used as the new standard input for the targeted command.
-Imagine that `teip` executes the following command in its process.
-
-```bash
-$ printf "100\n200\n" | sed 's/.*/@@@/g'
-@@@ # => Result of Chunk(2)
-@@@ # => Result of Chunk(4)
-```
-
-(It is not technically accurate but you can now see why `$1` is used not `$3` in one of the examples in "Getting Started")
-
-After that, matched chunks are replaced with each line of result.
-
-```
-ABC => Chunk(1)
-@@@ => Chunk(2) -- Replaced
-EFG => Chunk(3)
-@@@ => Chunk(4) -- Replaced
-```
-
-Finally, all the chunks are concatenated and the following result is printed.
-
-```
-ABC@@@EFG@@@
-```
-
-Practically, the above process is performed asynchronously.
-Chunks being printed sequentially as they become available.
-
-Back to the story, the reason why a lot of `@` are printed in the example below is that the input is broken up into many chunks.
-
-```bash
-$ echo ABC100EFG200 | teip -og '\d'
-ABC[1][0][0]EFG[2][0][0]
-```
-
-`teip` recognizes input matched with the entire regular expression as a single chunk.
-`\d` matches a single digit, and it results in many chunks.
-
-```
-ABC => Chunk(1)
-1   => Chunk(2) -- Matched
-0   => Chunk(3) -- Matched
-0   => Chunk(4) -- Matched
-EFG => Chunk(5)
-2   => Chunk(6) -- Matched
-0   => Chunk(7) -- Matched
-0   => Chunk(8) -- Matched
-```
-
-Therefore, `sed` loads many newline characters.
-
-```bash
-$ printf "1\n0\n0\n2\n0\n0\n" | sed 's/.*/@@@/g'
-@@@ # => Result of Chunk(2)
-@@@ # => Result of Chunk(3)
-@@@ # => Result of Chunk(4)
-@@@ # => Result of Chunk(6)
-@@@ # => Result of Chunk(7)
-@@@ # => Result of Chunk(8)
-```
-
-The chunks of the final form are like the following.
-
-```
-ABC => Chunk(1)
-@@@ => Chunk(2) -- Replaced
-@@@ => Chunk(3) -- Replaced
-@@@ => Chunk(4) -- Replaced
-EFG => Chunk(5)
-@@@ => Chunk(6) -- Replaced
-@@@ => Chunk(7) -- Replaced
-@@@ => Chunk(8) -- Replaced
-```
-
-And, here is the final result.
-
-```
-ABC@@@@@@@@@EFG@@@@@@@@@
-```
-
-The concept of chunking is also used for other options.
-For example, if you use `-f` to specify a range of `A-B`, each field will be a separate chunk.
-Also, the field delimiter is always an unmatched chunk.
-
-```bash
-$ echo "AA,BB,CC" | teip -f 2-3 -d,
-AA,[BB],[CC]
-```
-
-With the `-c` option, adjacent characters are treated as the same chunk even if they are separated by `,`.
-
-```bash
-$ echo "ABCDEFGHI" | teip -c1,2,3,7-9
-[ABC]DEF[GHI]
-```
-
-## What command can be used?
-
-As explained, `teip` replaces chunks on a row-by-row basis.
+`teip` bypasses the string in the hole line by line so that each hole is one line of input.
 Therefore, a targeted command must follow the below rule.
 
 * **A targeted command must print a single line of result for each line of input.**
@@ -583,7 +461,7 @@ $ echo $?
 1
 ```
 
-`teip` could not get the result corresponding to the chunk of D, E, and F.
+`teip` could not get the result corresponding to the hole of D, E, and F.
 That is why the above example fails.
 
 If an inconsistency occurs, `teip` will exit with the error message.
@@ -595,13 +473,13 @@ Also, the exit status will be 1.
 
 If you want to use a command that does not satisfy the condition, **"A targeted command must print a single line of result for each line of input"**, enable "Solid mode" which is available with the `-s` option.
 
-Solid mode spawns the targeted command for each matched chunk and executes it each time.
+Solid mode spawns the targeted command for each hole and executes it each time.
 
 ```bash
 $ echo ABCDEF | teip -s -og . -- grep '[ABC]'
 ```
 
-In the above example, understand the following commands are executed in `teip`'s procedure.
+In the above example, understand the following commands are executed in `teip`'s internal procedure.
 
 ```bash
 $ echo A | grep '[ABC]' # => A
@@ -613,7 +491,7 @@ $ echo F | grep '[ABC]' # => Empty
 ```
 
 The empty result is replaced with an empty string.
-Therefore, D, E, and F chunks are replaced with empty as expected.
+Therefore, D, E, and F are replaced with empty as expected.
 
 ```bash
 $ echo ABCDEF | teip -s -og . -- grep '[ABC]'
@@ -623,7 +501,7 @@ $ echo $?
 0
 ```
 
-However, this option is not suitable for processing a large file because it may significantly degrade performance instead of consolidating the results.
+However, this option is not suitable for processing large files because of its high processing overhead, which can significantly degrade performance.
 
 ### Overlay `teip`s
 
@@ -640,7 +518,7 @@ $ echo "AAA@@@@@AAA@@@@@AAA" | teip -og '@.*@' -- teip -og 'A+' -- tr A _
 AAA@@@@@___@@@@@AAA
 ```
 
-In other words, you can connect the multiple features of `teip` with AND conditions for more complex range selection.
+In other words, by connecting multiple functions of `teip` with AND conditions, it is possible to drill holes in a more complex range.
 Furthermore, it works asynchronously and in multi-processes, similar to the shell pipeline.
 It will hardly degrade performance unless the machine faces the limits of parallelism.
 
@@ -678,8 +556,8 @@ In the above example, the `sed` loads four newline characters and prints `@@@` f
 
 ### Invert match (`-v`)
 
-The `-v` option allows you to invert the selected range.
-When the `-f` or `-c` option is used, the complement of the selected field is selected instead.
+The `-v` option allows you to invert the range of holes.
+When the `-f` or `-c` option is used with `-v`, holes to be made in the complement of the specified field instead.
 
 ```bash
 $ echo 1 2 3 4 5 | teip -v -f 1,3,5 -- sed 's/./_/'
@@ -689,7 +567,7 @@ $ echo 1 2 3 4 5 | teip -v -f 1,3,5 -- sed 's/./_/'
 Of course, it can also be used for the `-og` option.
 
 ```bash
-$ printf 'AAA\n123\nBBB\n' | teip -vr '\d+' -- sed 's/./@/g'
+$ printf 'AAA\n123\nBBB\n' | teip -vg '\d+' -- sed 's/./@/g'
 @@@
 123
 @@@
