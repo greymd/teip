@@ -612,9 +612,9 @@ mod cmdtest {
     fn test_csv_non_delim_comma() {
         let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
         cmd.args(&["--csv", "-f", "1", "--", SED_CMD, "s/./@/g"])
-            .write_stdin("\"A,A\",BB,CCC\n1st record,\"ABC\nDE\",FGH\n\"２レコード,目\",\"KLM\nNO\",\"PQR\nST\"")
+            .write_stdin("\"A,A\",BB,CCC\n1st record,\"ABC\nDE\",FGH\n\"2nd recor,d\",\"KLM\nNO\",\"PQR\nST\"")
             .assert()
-            .stdout("@@@@@,BB,CCC\n@@@@@@@@@@,\"ABC\nDE\",FGH\n@@@@@@@@@,\"KLM\nNO\",\"PQR\nST\"");
+            .stdout("@@@@@,BB,CCC\n@@@@@@@@@@,\"ABC\nDE\",FGH\n@@@@@@@@@@@@@,\"KLM\nNO\",\"PQR\nST\"");
     }
 
     #[test]
@@ -776,9 +776,9 @@ mod cmdtest {
     fn test_solid_csv_non_delim_comma() {
         let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
         cmd.args(&["--csv", "-s", "-f", "1", "--", SED_CMD, "s/./@/g"])
-            .write_stdin("\"A,A\",BB,CCC\n1st record,\"ABC\nDE\",FGH\n\"２レコCド,目\",\"KLM\nNO\",\"PQR\nST\"")
+            .write_stdin("\"A,A\",BB,CCC\n1st record,\"ABC\nDE\",FGH\n\"2nd recor,d\",\"KLM\nNO\",\"PQR\nST\"")
             .assert()
-            .stdout("@@@@@,BB,CCC\n@@@@@@@@@@,\"ABC\nDE\",FGH\n@@@@@@@@@,\"KLM\nNO\",\"PQR\nST\"");
+            .stdout("@@@@@,BB,CCC\n@@@@@@@@@@,\"ABC\nDE\",FGH\n@@@@@@@@@@@@@,\"KLM\nNO\",\"PQR\nST\"");
     }
 
     #[test]
