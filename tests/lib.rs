@@ -591,7 +591,9 @@ mod cmdtest {
     #[test]
     fn test_csv() {
         let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
-        cmd.args(&["--csv", "-f", "2", "--", SED_CMD, "s/./@/g"])
+        // test for UTF-8 as well to test the CSV parser
+        // Do not use "sed" here because it does not support UTF-8 on Windows environment on GitHub.
+        cmd.args(&["--csv", "-f", "2", "--", PERL_CMD, "-Mutf8", "-C", "-pe", "s/./@/g"])
             .write_stdin("名前,作者,ノート\n１レコード目,\"あいう\nえお\",かきく\n２レコード目,\"さしす\nせそ\",\"たちつ\nてと\"\n")
             .assert()
             .stdout("名前,@@,ノート\n１レコード目,@@@@\n@@@,かきく\n２レコード目,@@@@\n@@@,\"たちつ\nてと\"\n");
@@ -600,7 +602,7 @@ mod cmdtest {
     #[test]
     fn test_csv_end_nolf() {
         let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
-        cmd.args(&["--csv", "-f", "3", "--", SED_CMD, "s/./@/g"])
+        cmd.args(&["--csv", "-f", "3", "--", PERL_CMD, "-Mutf8", "-C", "-pe", "s/./@/g"])
             .write_stdin("名前,作者,ノート\n１レコード目,\"あいう\nえお\",かきく\n２レコード目,\"さしす\nせそ\",\"たちつ\nてと\"")
             .assert()
             .stdout("名前,作者,@@@\n１レコード目,\"あいう\nえお\",@@@\n２レコード目,\"さしす\nせそ\",@@@@\n@@@");
@@ -609,7 +611,7 @@ mod cmdtest {
     #[test]
     fn test_csv_non_delim_comma() {
         let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
-        cmd.args(&["--csv", "-f", "1", "--", SED_CMD, "s/./@/g"])
+        cmd.args(&["--csv", "-f", "1", "--", PERL_CMD, "-Mutf8", "-C", "-pe", "s/./@/g"])
             .write_stdin("\"名,前\",作者,ノート\n１レコード目,\"あいう\nえお\",かきく\n\"２レコード,目\",\"さしす\nせそ\",\"たちつ\nてと\"")
             .assert()
             .stdout("@@@@@,作者,ノート\n@@@@@@,\"あいう\nえお\",かきく\n@@@@@@@@@,\"さしす\nせそ\",\"たちつ\nてと\"");
@@ -618,7 +620,7 @@ mod cmdtest {
     #[test]
     fn test_csv_double_quotation() {
         let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
-        cmd.args(&["--csv", "-f", "2", "--", SED_CMD, "s/./@/g"])
+        cmd.args(&["--csv", "-f", "2", "--", PERL_CMD, "-Mutf8", "-C", "-pe", "s/./@/g"])
             .write_stdin("名前,\"作\"\"者\",ノート\n１レコード目,\"あ\"\"いう\"\"\nえお\",かきく\n２レコード目,\"\"\"さしす\n\"\"せそ\",\"たちつ\nてと\"\n")
             .assert()
             .stdout("名前,@@@@@@,ノート\n１レコード目,@@@@@@@@\n@@@,かきく\n２レコード目,@@@@@@\n@@@@@,\"たちつ\nてと\"\n");
@@ -762,7 +764,7 @@ mod cmdtest {
     #[test]
     fn test_solid_csv_end_nolf() {
         let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
-        cmd.args(&["--csv", "-s", "-f", "3", "--", SED_CMD, "s/./@/g"])
+        cmd.args(&["--csv", "-s", "-f", "3", "--", PERL_CMD, "-Mutf8", "-C", "-pe", "s/./@/g"])
             .write_stdin("名前,作者,ノート\n１レコード目,\"あいう\nえお\",かきく\n２レコード目,\"さしす\nせそ\",\"たちつ\nてと\"")
             .assert()
             .stdout("名前,作者,@@@\n１レコード目,\"あいう\nえお\",@@@\n２レコード目,\"さしす\nせそ\",@@@@\n@@@");
@@ -771,7 +773,7 @@ mod cmdtest {
     #[test]
     fn test_solid_csv_non_delim_comma() {
         let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
-        cmd.args(&["--csv", "-s", "-f", "1", "--", SED_CMD, "s/./@/g"])
+        cmd.args(&["--csv", "-s", "-f", "1", "--", PERL_CMD, "-Mutf8", "-C", "-pe", "s/./@/g"])
             .write_stdin("\"名,前\",作者,ノート\n１レコード目,\"あいう\nえお\",かきく\n\"２レコード,目\",\"さしす\nせそ\",\"たちつ\nてと\"")
             .assert()
             .stdout("@@@@@,作者,ノート\n@@@@@@,\"あいう\nえお\",かきく\n@@@@@@@@@,\"さしす\nせそ\",\"たちつ\nてと\"");
@@ -780,7 +782,7 @@ mod cmdtest {
     #[test]
     fn test_solid_csv_double_quotation() {
         let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
-        cmd.args(&["--csv", "-s", "-f", "2", "--", SED_CMD, "s/./@/g"])
+        cmd.args(&["--csv", "-s", "-f", "2", "--", PERL_CMD, "-Mutf8", "-C", "-pe", "s/./@/g"])
             .write_stdin("名前,\"作\"\"者\",ノート\n１レコード目,\"あ\"\"いう\"\"\nえお\",かきく\n２レコード目,\"\"\"さしす\n\"\"せそ\",\"たちつ\nてと\"\n")
             .assert()
             .stdout("名前,@@@@@@,ノート\n１レコード目,@@@@@@@@\n@@@,かきく\n２レコード目,@@@@@@\n@@@@@,\"たちつ\nてと\"\n");
