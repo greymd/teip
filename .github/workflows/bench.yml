@@ -38,6 +38,10 @@ jobs:
             cmd: teip -Gog '.*sshd' < test_secure
           - name: convert_date
             cmd: teip -c1-15 -- date -f- +%s < test_secure
+          - name: csv
+            cmd: teip --csv -f 2 -- tr '[:print:]' '@' < test.csv
+            # same as: awk '{gsub(".","@",$2);print}' FS=, OFS=, < test.csv
+
     steps:
     - uses: actions/checkout@v2
 
@@ -57,6 +61,8 @@ jobs:
         sudo dpkg -i ./hyperfine_1.9.0_amd64.deb
         wget https://github.com/greymd/test_files/raw/v1.0.0/logs/test_secure.gz
         gzip -d ./test_secure.gz
+        wget https://github.com/greymd/test_files/raw/v1.0.0/xsv/1000000_Sales_Records.csv.gz
+        zcat 1000000_Sales_Records.csv.gz | awk '{print}' > test.csv # Filtered by AWK to add trailing newline
 
     - name: Benchmark for a large file
       run: |

@@ -48,3 +48,4 @@ jobs:
         run: |
           cargo test --verbose --features oniguruma
           bash tests/test_large_file.sh
+          bash tests/test_long_line.sh
