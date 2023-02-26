@@ -81,7 +81,8 @@ FLAGS:
                      newlines
     -V, --version    Prints version information
     -z               Line delimiter is NUL instead of a newline
-    --csv            -f uses CSV parser instead of white-space separated fields
+    --csv            -f specifies field numbers of CSV which follows RFC 4180 instead
+                     of white-space separated fields
 
 EXAMPLES:
   Edit 2nd, 3rd, and 4th columns in the CSV file
