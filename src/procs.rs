@@ -372,7 +372,6 @@ pub fn csv_proc(
     flag_solid: bool,
     ) -> Result<(), errors::ChunkSendError> {
     use super::csv::parser::Parser;
-    use log::debug;
     let mut parser = Parser::new();
     let mut str_byps = String::new();
     let mut str_keep = String::new();
@@ -381,7 +380,6 @@ pub fn csv_proc(
     let mut last_is_byps = false;
     let mut ri = 0;
     let stdin = io::stdin();
-    debug!("ranges={:?}", ranges);
     loop {
         let mut buf = Vec::with_capacity(DEFAULT_CAP);
         match stdin.lock().read_until(line_end, &mut buf) {
@@ -391,7 +389,6 @@ pub fn csv_proc(
                 // Check each byte in the line
                 for (_, c) in cs.enumerate() {
                     parser.interpret(c);
-                    debug!("csv_proc: c={:?}, state={:?}", c, parser.state());
                     if parser.is_in_field() && ( flag_solid || c != line_end_char ) {
                         let field = parser.field() as usize;
                         // check if the field is in the range
