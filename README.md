@@ -16,10 +16,22 @@
   <img src="https://raw.githubusercontent.com/wiki/greymd/teip/img/teip_intro.png" alt="Git Animation for Introduction" width="50%" />
 </p>
 
-* Edit 4th and 6th columns in the CSV file
+* Replace 'WORLD' to 'EARTH' on line including 'HELLO'
 
 ```bash
-$ cat file.csv | teip -d, -f 4,6 -- sed 's/./@/g'
+$ cat file | teip -g HELLO -- sed 's/WORLD/EARTH/'
+```
+
+* Edit 2nd column in the CSV file:
+
+```bash
+$ cat file.csv | teip --csv -f 2 -- sed 's/./@/g'
+```
+
+* Edit 2nd, 3rd and 4th fields on '|' separated file
+
+```bash
+$ cat file | teip -d '|' -f 2-4 -- sed 's/./@/g'
 ```
 
 * Convert timestamps in /var/log/secure to UNIX time

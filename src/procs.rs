@@ -255,7 +255,7 @@ pub fn field_proc(
 ///  DDD
 ///  [EEE]
 ///  ``````````````````````````````````````````````````````````````````
-///                                   
+///
 ///                          [ stdin ] "AAA\nBBB\nCCC\n..."
 ///                              │
 ///                              │
@@ -358,6 +358,78 @@ pub fn exoffload_proc(
             }
         }
         ch.send_keep(eol)?;
+    }
+    Ok(())
+}
+
+/// Process CSV align with RFC 4180 (--csv)
+///
+/// This function is called from main() when --csv option is specified.
+pub fn csv_proc(
+    ch: &mut PipeIntercepter,
+    ranges: &Vec<list::ranges::Range>,
+    line_end: u8,
+    flag_solid: bool,
+    ) -> Result<(), errors::ChunkSendError> {
+    use super::csv::parser::Parser;
+    let mut parser = Parser::new();
+    let mut str_byps = String::new();
+    let mut str_keep = String::new();
+    let mut is_byps;
+    let line_end_char = line_end as char;
+    let mut last_is_byps = false;
+    let mut ri = 0;
+    let stdin = io::stdin();
+    loop {
+        let mut buf = Vec::with_capacity(DEFAULT_CAP);
+        match stdin.lock().read_until(line_end, &mut buf) {
+            Ok(n) => {
+                let line = String::from_utf8_lossy(&buf).to_string();
+                let cs = line.chars();
+                // Check each byte in the line
+                for (_, c) in cs.enumerate() {
+                    parser.interpret(c);
+                    if parser.is_in_field() && ( flag_solid || c != line_end_char ) {
+                        let field = parser.field() as usize;
+                        // check if the field is in the range
+                        if ranges[ri].high < field && (ri + 1) < ranges.len() {
+                            ri += 1;
+                        }
+                        if ranges[ri].low <= field && field <= ranges[ri].high {
+                            is_byps = true;
+                            str_byps.push(c);
+                        } else {
+                            is_byps = false;
+                            str_keep.push(c);
+                        }
+                    } else {
+                        is_byps = false;
+                        str_keep.push(c);
+                    }
+                    if is_byps && !last_is_byps {
+                        ch.send_keep(str_keep.to_string())?;
+                        str_keep.clear();
+                    } else if !is_byps && last_is_byps {
+                        ch.send_byps(str_byps.to_string())?;
+                        str_byps.clear();
+                    }
+                    last_is_byps = is_byps;
+                }
+                ri = 0;
+                if n == 0 {
+                    // If end of file does not have line feed, this part sends the remaining chunk
+                    if last_is_byps && !str_byps.is_empty() {
+                        ch.send_byps(str_byps)?;
+                    }
+                    if !str_keep.is_empty() {
+                        ch.send_keep(str_keep)?;
+                    }
+                    ch.send_eof()?;
+                    break;
+                }
+            }
+            Err(e) => msg_error(&e.to_string()),
+        }
     }
     Ok(())
 }

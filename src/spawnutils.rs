@@ -41,7 +41,7 @@ pub fn exec_cmd(
 }
 
 /// Execute single command and return the stdout of the command as String synchronously
-pub fn exec_cmd_sync(input: String, cmds: &Vec<String>, line_end: u8) -> String {
+pub fn exec_cmd_sync(input: String, cmds: &Vec<String>, line_end: u8, chomp: bool) -> String {
     debug!("thread: exec_cmd_sync: {:?}", &cmds);
     let mut child = Command::new(&cmds[0])
         .args(&cmds[1..])
@@ -52,8 +52,17 @@ pub fn exec_cmd_sync(input: String, cmds: &Vec<String>, line_end: u8) -> String 
     {
         let stdin = child.stdin.as_mut().expect("Failed to open stdin");
         let mut vec = Vec::new();
-        vec.extend_from_slice(input.as_bytes());
-        vec.extend_from_slice(&[line_end]);
+        if chomp {
+            vec.extend_from_slice(input.as_bytes());
+            // remove trailing new lines
+            while vec.last() == Some(&line_end) {
+                vec.pop();
+            }
+        } else {
+            vec.extend_from_slice(input.as_bytes());
+            // ADD NEW LINE: Add trailing new lines to unify the behavior with exec_cmd
+            vec.extend_from_slice(&[line_end]);
+        }
         stdin
             .write_all(vec.as_slice())
             .expect("Failed to write to stdin");
@@ -62,8 +71,13 @@ pub fn exec_cmd_sync(input: String, cmds: &Vec<String>, line_end: u8) -> String 
         .wait_with_output()
         .expect("Failed to read stdout")
         .stdout;
-    if output.ends_with(&[line_end]) {
-        output.pop();
+    if !chomp {
+        // Remove training new line.
+        // In the vast majority of cases,
+        // this new line is likely added by this function (see ADD NEW LINE)
+        if output.ends_with(&[line_end]) {
+            output.pop();
+        }
     }
     String::from_utf8_lossy(&output).to_string()
 }
