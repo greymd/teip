@@ -1,7 +1,7 @@
 <h1 align="center">
   <br />
   <img src="https://raw.githubusercontent.com/wiki/greymd/teip/img/logo.png" width="208" />
-  <h4 align="center">Highly efficient "Masking tape" for Shell</h4>
+  <h4 align="center">Masking tape to help commands "do one thing well"</h4>
 </h1>
 <p align="center">
   <a href="https://github.com/greymd/teip/releases/latest"><img src="https://img.shields.io/github/release/greymd/teip.svg" alt="Latest version" /></a>
@@ -25,13 +25,13 @@ $ cat file | teip -g HELLO -- sed 's/WORLD/EARTH/'
 * Edit 2nd field of the CSV file:
 
 ```bash
-$ cat file.csv | teip --csv -f 2 -- sed 's/./@/g'
+$ cat file.csv | teip --csv -f 2 -- tr a-z A-Z
 ```
 
 * Edit 2nd, 3rd and 4th fields of TSV file
 
 ```bash
-$ cat file.tsv | teip -D '\t' -f 2-4 -- sed 's/./@/g'
+$ cat file.tsv | teip -D '\t' -f 2-4 -- tr a-z A-Z
 ```
 
 * Convert timestamps in /var/log/secure to UNIX time
@@ -59,7 +59,8 @@ See detail on <a href="https://github.com/greymd/teip/wiki/Benchmark">wiki > Ben
 
 # Features
 
-* Bypassing a partial range of standard input to any command whatever you want
+* Help the command "do one thing well"
+  - Bypassing a partial range of standard input to any command whatever you want
   - The targeted command just handles bypassed parts of the standard input
   - Flexible methods for selecting a range (Select like AWK, `cut` or `grep`)
 
