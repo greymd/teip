@@ -82,38 +82,38 @@ $ brew install greymd/tools/teip
 
 <!-- deb_x86_64_start -->
 ```bash
-$ wget https://github.com/greymd/teip/releases/download/v2.0.0/teip-2.0.0.x86_64-unknown-linux-musl.deb
+$ wget https://github.com/greymd/teip/releases/download/v2.1.0/teip-2.1.0.x86_64-unknown-linux-musl.deb
 $ sudo dpkg -i ./teip*.deb
 ```
 <!-- deb_x86_64_end -->
-<!-- deb_x86_64_sha256 -->SHA256: dad8c44a69a8fc8406937354cd7a0ffd76679d8fb36025905ab21a8de4d1877c
+<!-- deb_x86_64_sha256 -->SHA256: 53e40a0161e6b46870118492fe302cb033ff59ff941af3dee70148e4f425f96f
 
 ### With `dnf` on Fedora, CentOS, RHEL, etc (x86_64)
 
 <!-- rpm_x86_64_start -->
 ```bash
-$ sudo dnf install https://github.com/greymd/teip/releases/download/v2.0.0/teip-2.0.0.x86_64-unknown-linux-musl.rpm
+$ sudo dnf install https://github.com/greymd/teip/releases/download/v2.1.0/teip-2.1.0.x86_64-unknown-linux-musl.rpm
 ```
 <!-- rpm_x86_64_end -->
-<!-- rpm_x86_64_sha256 -->SHA256: 79230c3e6d16112937967590dd730d918fa2dea02fb1e999d9f9778f625cb51e
+<!-- rpm_x86_64_sha256 -->SHA256: 0e9ed140488c01d91d614383d1c5b20733266a9ab089f58724b85873b823972a
 
 ### With `yum` on CentOS7, RHEL7, etc (x86_64)
 
 <!-- rpm_x86_64_start -->
 ```bash
-$ sudo yum install https://github.com/greymd/teip/releases/download/v2.0.0/teip-2.0.0.x86_64-unknown-linux-musl.rpm
+$ sudo yum install https://github.com/greymd/teip/releases/download/v2.1.0/teip-2.1.0.x86_64-unknown-linux-musl.rpm
 ```
 <!-- rpm_x86_64_end -->
-<!-- rpm_x86_64_sha256 -->SHA256: 79230c3e6d16112937967590dd730d918fa2dea02fb1e999d9f9778f625cb51e
+<!-- rpm_x86_64_sha256 -->SHA256: 0e9ed140488c01d91d614383d1c5b20733266a9ab089f58724b85873b823972a
 
 ### On Windows (x86_64)
 
 `teip` command will be available on PowerShell after installing with the executable file distributed from below URL.
 
 <!-- ins.x86_64_start -->
-https://github.com/greymd/teip/releases/download/v2.0.0/teip_installer-2.0.0-x86_64-pc-windows-msvc.exe
+https://github.com/greymd/teip/releases/download/v2.1.0/teip_installer-2.1.0-x86_64-pc-windows-msvc.exe
 <!-- ins.x86_64_end -->
-<!-- ins.x86_64_sha256 -->SHA256: 93548BBF27826803900ACFEFCEBDB65392D6BDCAF68BBA2D64C151A485B3A483
+<!-- ins.x86_64_sha256 -->SHA256: 
 
 **Attention:**
 You may get some warning messages during the installation because this installer is not signed.
