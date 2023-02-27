@@ -46,6 +46,18 @@ lazy_static! {
         Ok(v) => v,
         Err(_) => "\x1b[36m[\x1b[0m\x1b[01;31m{}\x1b[0m\x1b[36m]\x1b[0m".to_string(),
     };
+    static ref GREP_PATH: String = match env::var("TEIP_GREP_PATH") {
+        Ok(v) => v,
+        Err(_) => "grep".to_string(),
+    };
+    static ref SED_PATH: String = match env::var("TEIP_SED_PATH") {
+        Ok(v) => v,
+        Err(_) => "sed".to_string(),
+    };
+    static ref AWK_PATH: String = match env::var("TEIP_AWK_PATH") {
+        Ok(v) => v,
+        Err(_) => "awk".to_string(),
+    };
     static ref HL: Vec<&'static str> = DEFAULT_HIGHLIGHT.split("{}").collect();
 }
 
@@ -70,11 +82,13 @@ OPTIONS:
     -l <list>        Bypassing these lines
     -f <list>        Bypassing these white-space separated fields
     -g <pattern>     Bypassing lines that match the regular expression <pattern>
+    -E <pattern>     Behaves like -g but interprets <pattern> as Oniguruma regular
+                     expression
 
 FLAGS:
     -h, --help       Prints help information
     -v               Invert the range of bypassing
-    -G               -g adopts Oniguruma regular expressions
+    -G               [Deprecated] -g adopts Oniguruma regular expressions, use -E instead
     -o               -g bypasses only matched parts
     -s               Execute new command for each bypassed chunk
     --chomp          Command spawned by -s receives standard input without trailing
@@ -83,6 +97,14 @@ FLAGS:
     -z               Line delimiter is NUL instead of a newline
     --csv            -f interprets <list> as field number of a CSV according to
                      RFC 4180, instead of white-space separated fields
+    -A <number>      [Experiment] -g bypasses <number> lines after the matched line
+                     alias of -e 'grep -A <number> <pattern>'
+    -B <number>      [Experiment] -g bypasses <number> lines before the matched line
+                     alias of -e 'grep -B <number> <pattern>'
+    -C <number>      [Experiment] -g bypasses <number> lines before and after the matched line
+                     alias of -e 'grep -C <number> <pattern>'
+    --sed <pattern>  [Experiment] alias of -e 'sed -n \"<pattern>=\"'
+    --awk <pattern>  [Experiment] alias of -e 'awk \"<pattern>{print NR}\"'
 
 EXAMPLES:
   Replace 'WORLD' to 'EARTH' on line including 'HELLO' in input:
@@ -106,6 +128,8 @@ struct Args {
     only_matched: bool,
     #[structopt(short = "G")]
     onig_enabled: bool,
+    // #[structopt(short = "E")]
+    // onig_regex: Option<String>,
     #[structopt(short = "f")]
     list: Option<String>,
     #[structopt(short = "d")]
@@ -130,6 +154,16 @@ struct Args {
     zero: bool,
     #[structopt(short = "e")]
     exoffload_pipeline: Option<String>,
+    #[structopt(short = "A")]
+    after: Option<usize>,
+    #[structopt(short = "B")]
+    before: Option<usize>,
+    #[structopt(short = "C")]
+    center: Option<usize>,
+    #[structopt(long = "sed")]
+    sed: Option<String>,
+    #[structopt(long = "awk")]
+    awk: Option<String>,
     #[structopt(name = "command")]
     commands: Vec<String>,
 }
@@ -149,7 +183,7 @@ fn main() {
     let flag_zero = args.zero;
     let cmds = args.commands;
     let flag_only = args.only_matched;
-    let flag_regex = args.regex.is_some();
+    let mut flag_regex = args.regex.is_some();
     let flag_onig = args.onig_enabled;
     let flag_solid = args.solid;
     let flag_solid_chomp = args.solid_chomp;
@@ -161,8 +195,8 @@ fn main() {
     let flag_csv = args.csv;
     let delimiter = args.delimiter.as_ref().map(|s| s.as_str()).unwrap_or("");
     let flag_regex_delimiter = args.regexp_delimiter.is_some();
-    let flag_exoffload = args.exoffload_pipeline.is_some();
-    let exoffload_pipeline = args.exoffload_pipeline.as_ref().map(|s| s.as_str()).unwrap_or("");
+    let mut flag_exoffload = args.exoffload_pipeline.is_some();
+    let mut exoffload_pipeline = args.exoffload_pipeline.as_ref().map(|s| s.as_str()).unwrap_or("");
 
     let mut regex_mode = String::new();
     let mut regex = Regex::new("").unwrap();
@@ -174,6 +208,39 @@ fn main() {
     let regex_delimiter;
     if args.u {
         u();
+    }
+
+    // If any of -A, -B, -C is specified, set -e option and set regex flag off
+    let mut grep_args = vec![GREP_PATH.to_string()];
+    let pipeline;
+    if ( args.after.is_some() || args.before.is_some() || args.center.is_some() ) && flag_regex {
+        if let Some(n) = args.after {
+            grep_args.push("-A".to_string());
+            grep_args.push(n.to_string());
+        } else if let Some(n) = args.before {
+            grep_args.push("-B".to_string());
+            grep_args.push(n.to_string());
+        } else if let Some(n) = args.center {
+            grep_args.push("-C".to_string());
+            grep_args.push(n.to_string());
+        }
+        if let Some(ref pattern) = args.regex {
+            grep_args.push(pattern.to_string());
+        }
+        flag_exoffload = true;
+        flag_regex = false;
+        pipeline = grep_args.join(" ");
+        exoffload_pipeline = &pipeline;
+    } else if let Some(ref pattern) = args.sed {
+        // --sed option
+        flag_exoffload = true;
+        pipeline = format!("{} -n '{}='", SED_PATH.as_str(), pattern);
+        exoffload_pipeline = &pipeline;
+    } else if let Some(ref pattern) = args.awk {
+        // --awk option
+        flag_exoffload = true;
+        pipeline = format!("{} '{}{{print NR}}'", AWK_PATH.as_str(), pattern);
+        exoffload_pipeline = &pipeline;
     }
 
     // If any mandatory flags is not enabled, show help and exit.
