@@ -5,6 +5,5 @@ tags
 .DS_Store
 [._]*.s[a-w][a-z]
 [._]s[a-w][a-z]
-Cargo.lock
 tests/test_secure
 tests/test_secure.gz
