@@ -507,50 +507,6 @@ $ echo $?
 However, this option is not suitable for processing large files because of its high processing overhead, which can significantly degrade performance.
 
 
-#### Solid mode with `--chomp` 
-
-A targeted command in solid mode always accepts input with a line field (`\x0A`) at the end.
-This is because `teip` assumes the use of commands that return a single line of result in response to a single line of input.
-Therefore, even if there is no line break in the hole, a line break is given to treat it as a single line of input.
-
-However, there are situations where this behavior is inconvenient.
-For example, when using commands whose behavior changes depending on the presence or absence of line field.
-
-```
-$ echo AAABBBCCC | teip -og BBB -s
-AAA[BBB]CCC
-$ echo AAABBBCCC | teip -og BBB -s -- tr '\n' '@'
-AAABBB@CCC
-```
-
-The above is an example where the targeted command is a "tr command that converts line field (\x0A) to @".
-"BBB" does not contain a newline, but the result is "BBB@", because implicitly added line breaks have been processed.
-To prevent this behavior, use the `--chomp` option.
-This option gives the targeted command pure input with no newlines added.
-
-```
-$ echo AAABBBCCC | teip -og BBB -s --chomp -- tr '\n' '@'
-AAABBBCCC
-```
-
-For example, it is useful when using commands that interpret and process input as binary like `tr`.
-Below is an example of "removing newlines from the second column of a CSV that contains newlines.
-
-```
-$ cat tests/sample.csv
-Name,Address,zipcode
-Sola Harewatar,"Doreami Road 123
-Sorashido city",12877
-```
-
-The result is.
-
-```
-$ cat tests/sample.csv | teip --csv -f 2 -s --chomp -- tr '\n' '@'
-Name,Address,zipcode
-Sola Harewatar,"Doreami Road 123@Sorashido city",12877
-```
-
 ### Overlay `teip`s
 
 Any command can be used with `teip`, surprisingly, even if it is **`teip` itself**.
@@ -801,6 +757,52 @@ $ cat test.html | teip -z -og '<body>.*</body>' -- grep -a BBB
 </head>
   <div>BBB</div>
 </html>
+```
+
+### Solid mode with `--chomp` 
+
+If `-s` option does not work as expected, `--chomp` may be helpful.
+
+A targeted command in solid mode always accepts input with a line field (`\x0A`) at the end.
+This is because `teip` assumes the use of commands that return a single line of result in response to a single line of input.
+Therefore, even if there is no line break in the hole, a line break is given to treat it as a single line of input.
+
+However, there are situations where this behavior is inconvenient.
+For example, when using commands whose behavior changes depending on the presence or absence of line field.
+
+```
+$ echo AAABBBCCC | teip -og BBB -s
+AAA[BBB]CCC
+$ echo AAABBBCCC | teip -og BBB -s -- tr '\n' '@'
+AAABBB@CCC
+```
+
+The above is an example where the targeted command is a "tr command that converts line field (\x0A) to @".
+"BBB" does not contain a newline, but the result is "BBB@", because implicitly added line breaks have been processed.
+To prevent this behavior, use the `--chomp` option.
+This option gives the targeted command pure input with no newlines added.
+
+```
+$ echo AAABBBCCC | teip -og BBB -s --chomp -- tr '\n' '@'
+AAABBBCCC
+```
+
+For example, it is useful when using commands that interpret and process input as binary like `tr`.
+Below is an example of "removing newlines from the second column of a CSV that contains newlines.
+
+```
+$ cat tests/sample.csv
+Name,Address,zipcode
+Sola Harewatar,"Doreami Road 123
+Sorashido city",12877
+```
+
+The result is.
+
+```
+$ cat tests/sample.csv | teip --csv -f 2 -s --chomp -- tr '\n' '@'
+Name,Address,zipcode
+Sola Harewatar,"Doreami Road 123@Sorashido city",12877
 ```
 
 # Environment variables
