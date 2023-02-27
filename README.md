@@ -507,7 +507,7 @@ $ echo $?
 However, this option is not suitable for processing large files because of its high processing overhead, which can significantly degrade performance.
 
 
-#### Solid mode `--chomp` 
+#### Solid mode with `--chomp` 
 
 A targeted command in solid mode always accepts input with a line field (`\x0A`) at the end.
 This is because `teip` assumes the use of commands that return a single line of result in response to a single line of input.
