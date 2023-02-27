@@ -204,7 +204,7 @@ Because `-f 3` specifies the 3rd field of space-separated input.
 100 200 [300] 400
 ```
 
-Understand that the area enclosed in `[...]` is like a hole on the masking-tape.
+Understand that the area enclosed in `[...]` is a **hole** on the masking tape.
 
 <img src="https://raw.githubusercontent.com/wiki/greymd/teip/img/teip_hole.png" width="300" />
 
@@ -468,6 +468,8 @@ That is why the above example fails.
 If an inconsistency occurs, `teip` will exit with the error message.
 Also, the exit status will be 1.
 
+To learn more about `teip`'s behavior, see [Wiki > Chunking](https://github.com/greymd/teip/wiki/Chunking).
+
 ## Advanced usage
 
 ### Solid mode
@@ -504,6 +506,51 @@ $ echo $?
 
 However, this option is not suitable for processing large files because of its high processing overhead, which can significantly degrade performance.
 
+
+#### Solid mode `--chomp` 
+
+A targeted command in solid mode always accepts input with a line field (`\x0A`) at the end.
+This is because `teip` assumes the use of commands that return a single line of result in response to a single line of input.
+Therefore, even if there is no line break in the hole, a line break is given to treat it as a single line of input.
+
+However, there are situations where this behavior is inconvenient.
+For example, when using commands whose behavior changes depending on the presence or absence of line field.
+
+```
+$ echo AAABBBCCC | teip -og BBB -s
+AAA[BBB]CCC
+$ echo AAABBBCCC | teip -og BBB -s -- tr '\n' '@'
+AAABBB@CCC
+```
+
+The above is an example where the targeted command is a "tr command that converts line field (\x0A) to @".
+"BBB" does not contain a newline, but the result is "BBB@", because implicitly added line breaks have been processed.
+To prevent this behavior, use the `--chomp` option.
+This option gives the targeted command pure input with no newlines added.
+
+```
+$ echo AAABBBCCC | teip -og BBB -s --chomp -- tr '\n' '@'
+AAABBBCCC
+```
+
+For example, it is useful when using commands that interpret and process input as binary like `tr`.
+Below is an example of "removing newlines from the second column of a CSV that contains newlines.
+
+```
+$ cat tests/sample.csv
+Name,Address,zipcode
+Sola Harewatar,"Doreami Road 123
+Sorashido city",12877
+```
+
+The result is.
+
+```
+$ cat tests/sample.csv | teip --csv -f 2 -s --chomp -- tr '\n' '@'
+Name,Address,zipcode
+Sola Harewatar,"Doreami Road 123@Sorashido city",12877
+```
+
 ### Overlay `teip`s
 
 Any command can be used with `teip`, surprisingly, even if it is **`teip` itself**.
@@ -537,9 +584,9 @@ ABC[123]DEF456
 
 Those techniques are helpful to reduce the number of "Overlay".
 
-### Empty chunk
+### Empty hole
 
-If a blank field exists when the `-f` option is used, the blank is not ignored and treated as an empty chunk.
+If a blank field exists when the `-f` option is used, the blank is not ignored and treated as an empty hole.
 
 ```bash
 $ echo ',,,' | teip -d , -f 1-
@@ -713,7 +760,7 @@ $ printf '111,\n222,33\n3\0\n444,55\n5,666\n' | teip -z -f3 -d,
 ```
 
 With this option, the standard input is interpreted per a NUL character rather than per a newline character.
-You should also pay attention to that matched chunks are concatenated with the NUL character instead of a newline character in `teip`'s procedure.
+You should also pay attention to that strings in the hole are concatenated with the NUL character instead of a newline character in `teip`'s procedure.
 
 In other words, if you use a targeted command that cannot handle NUL characters (and cannot print NUL-separated results), the final result can be unintended.
 
@@ -765,7 +812,7 @@ Add the statement to your default shell's startup file (i.e `.bashrc`, `.zshrc`)
 
 **DEFAULT VALUE:** `\x1b[36m[\x1b[0m\x1b[01;31m{}\x1b[0m\x1b[36m]\x1b[0m`
 
-The default format for highlighting matched chunk.
+The default format for highlighting hole.
 It must include at least one `{}` as a placeholder.
 
 Example:
@@ -793,7 +840,7 @@ See this [post](https://dev.to/greymd/teip-masking-tape-for-shell-is-what-we-nee
 
 # License
 
-## Modules imported from other repositories
+## Modules imported/referenced from other repositories
 
 Thank you so much for helpful modules!
 
@@ -801,6 +848,10 @@ Thank you so much for helpful modules!
   - One of the module used in `cut` command of [uutils/coreutils](https://github.com/uutils/coreutils)
   - Original souce codes are distributed under MIT license
   - The license file is on the same directory
+
+* ./src/csv/parser.rs
+  - Many parts of the source code are referenced from [BurntSushi/rust-csv](https://github.com/BurntSushi/rust-csv).
+  - Original source codes are distributed under dual-licensed under MIT and Unlicense
 
 ## Source code
 The scripts are available as open source under the terms of the [MIT License](http://opensource.org/licenses/MIT).
