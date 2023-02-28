@@ -891,7 +891,7 @@ B
 
 #### `--sed <pattern>`
 
-This is an alias of `-e 'sed -n "<pattern>=".
+This is an alias of `-e 'sed -n "<pattern>="`.
 
 ```
 $ cat AtoG.txt | teip --sed '/B/,/E/'
