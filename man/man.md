@@ -2,48 +2,52 @@
 Use md2man (https://github.com/sunaku/md2man) to generate the man file like this.
 $ md2man-roff man.md > teip.1
 -->
-TEIP 1 "APR 2022" "User Commands" ""
+TEIP 1 "FEB 2023" "User Commands" ""
 =======================================
 
 NAME
 ----
 
-teip - Highly efficient "Masking tape" for standard input
+teip - Masking tape to help commands "do one thing well"
 
 SYNOPSIS
 --------
 
 `teip` -g <*pattern*> [-oGsvz] [--] [<*command*>...]
 
-`teip` -f <*list*> [-d <*delimiter*> | -D <*pattern*>] [-svz] [--] [<*command*>...]
+`teip` -f <*list*> [-d <*delimiter*> | -D <*pattern*> | --csv] [-svz] [--] [<*command*>...]
 
 `teip` -c <*list*> [-svz] [--] [<*command*>...]
+
+`teip` -l <*list*> [-svz] [--] [<*command*>...]
+
+`teip` -e <*string*> [-svz] [--] [<*command*>...]
 
 `teip` --help | --version
 
 DESCRIPTION
 -----------
-Only a selected part of standard input is passed to any command for execution.
+Bypassing a partial range of standard input to any command whatever you want
 
 OPTIONS
 -------
 `--help`
   Display this help and exit
 
-`--version`
+`-V`, `--version`
   Show version and exit
 
 `-g` <*pattern*>
-  Select lines that match the regular expression <*pattern*>
+  Bypassing lines that match the regular expression <*pattern*>
 
 `-o`
-  -g selects only matched parts
+  -g bypasses only matched parts
 
 `-G`
   -g adopts Oniguruma regular expressions
 
 `-f` <*list*>
-  Select only these white-space separated fields
+  Bypassing these white-space separated fields
 
 `-d` <*delimiter*>
   Use <*delimiter*> for field delimiter of -f
@@ -57,8 +61,17 @@ OPTIONS
 `-e` <*string*>
   Execute <*string*> on another process that will receive identical standard input as the teip, and numbers given by the result are used as line numbers for bypassing
 
+`-l` <*list*>
+  Bypassing these lines
+
+`--csv`
+  -f interprets <list> as field number of a CSV according to RFC 4180, instead of white-space separated fields
+
 `-s`
-  Execute command for each selected part
+  Execute new command for each bypassed chunk
+
+`--chomp`
+  Command spawned by -s receives standard input without trailing newlines
 
 `-v`
   Invert the sense of selecting
@@ -271,10 +284,23 @@ Therefore, pipe `|` and other symbols can be used as it is.
 EXAMPLES
 -------
 
-Edit 2nd, 3rd, and 4th columns in the CSV file
+
+Replace 'WORLD' to 'EARTH' on lines containing 'HELLO'
 
 ```
-$ cat file.csv | teip --csv -f 2-4 -- sed 's/./@/g'
+$ cat file | teip -g HELLO -- sed 's/WORLD/EARTH/'
+```
+
+Edit 2nd field of the CSV file
+
+```
+$ cat file.csv | teip --csv -f 2 -- tr a-z A-Z
+```
+
+Edit 2nd, 3rd and 4th fields of TSV file
+
+```
+$ cat file.tsv | teip -D '\t' -f 2-4 -- tr a-z A-Z
 ```
 
 Convert timestamps in /var/log/secure to UNIX time
@@ -283,11 +309,12 @@ Convert timestamps in /var/log/secure to UNIX time
 $ cat /var/log/secure | teip -c 1-15 -- date -f- +%s
 ```
 
-Edit the line containing 'hello' and the three lines before and after it
+Edit lines containing 'hello' and the three lines before and after it
 
 ```
 $ cat access.log | teip -e 'grep -n -C 3 hello' -- sed 's/./@/g'
 ```
+
 
 SEE ALSO
 --------
@@ -304,7 +331,10 @@ https://docs.rs/regex/
 ### Regular expression (Oniguruma)
 https://github.com/kkos/oniguruma/blob/master/doc/RE
 
+### RFC 4180: Common Format and MIME Type for Comma-Separated Values (CSV) Files
+https://www.rfc-editor.org/rfc/rfc4180
+
 AUTHOR AND COPYRIGHT
 ------
 
-Copyright (c) 2022 Yamada, Yasuhiro <yamada@gr3.ie> Released under the MIT License.
+Copyright (c) 2023 Yamada, Yasuhiro <yamada@gr3.ie> Released under the MIT License.

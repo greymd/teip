@@ -1,12 +1,12 @@
-.TH TEIP 1 "APR 2022" "User Commands" ""
+.TH TEIP 1 "FEB 2023" "User Commands" ""
 .SH NAME
 .PP
-teip \- Highly efficient "Masking tape" for standard input
+teip \- Masking tape to help commands "do one thing well"
 .SH SYNOPSIS
 .PP
 \fB\fCteip\fR \-g <\fIpattern\fP> [\-oGsvz] [\-\-] [<\fIcommand\fP>...]
 .PP
-\fB\fCteip\fR \-f <\fIlist\fP> [\-d <\fIdelimiter\fP> | \-D <\fIpattern\fP>] [\-svz] [\-\-] [<\fIcommand\fP>...]
+\fB\fCteip\fR \-f <\fIlist\fP> [\-d <\fIdelimiter\fP> | \-D <\fIpattern\fP> | \-\-csv] [\-svz] [\-\-] [<\fIcommand\fP>...]
 .PP
 \fB\fCteip\fR \-c <\fIlist\fP> [\-svz] [\-\-] [<\fIcommand\fP>...]
 .PP
@@ -19,7 +19,7 @@ Only a selected part of standard input is passed to any command for execution.
 \fB\fC\-\-help\fR
 Display this help and exit
 .TP
-\fB\fC\-\-version\fR
+\fB\fC\-V\fR, \fB\fC\-\-version\fR
 Show version and exit
 .TP
 \fB\fC\-g\fR <\fIpattern\fP>
@@ -46,8 +46,14 @@ Select only these characters
 \fB\fC\-e\fR <\fIstring\fP>
 Execute <\fIstring\fP> on another process that will receive identical standard input as the teip, and numbers given by the result are used as line numbers for bypassing
 .TP
+\fB\fC\-\-csv\fR
+\-f interprets <list> as field number of a CSV according to RFC 4180, instead of white\-space separated fields
+.TP
 \fB\fC\-s\fR
 Execute command for each selected part
+.TP
+\fB\fC\-\-chomp\fR
+Command spawned by \-s receives standard input without trailing newlines
 .TP
 \fB\fC\-v\fR
 Invert the sense of selecting
@@ -299,11 +305,27 @@ The \fB\fC\-e\fR argument is a single string.
 Therefore, pipe \fB\fC|\fR and other symbols can be used as it is.
 .SH EXAMPLES
 .PP
-Edit 2nd, 3rd, and 4th columns in the CSV file
+Replace 'WORLD' to 'EARTH' on lines containing 'HELLO'
 .PP
 .RS
 .nf
-$ cat file.csv | teip \-f 2\-4 \-d , \-\- sed 's/./@/g'
+$ cat file | teip \-g HELLO \-\- sed 's/WORLD/EARTH/'
+.fi
+.RE
+.PP
+Edit 2nd field of the CSV file
+.PP
+.RS
+.nf
+$ cat file.csv | teip \-\-csv \-f 2 \-\- tr a\-z A\-Z
+.fi
+.RE
+.PP
+Edit 2nd, 3rd and 4th fields of TSV file
+.PP
+.RS
+.nf
+$ cat file.tsv | teip \-D '\\t' \-f 2\-4 \-\- tr a\-z A\-Z
 .fi
 .RE
 .PP
@@ -315,7 +337,7 @@ $ cat /var/log/secure | teip \-c 1\-15 \-\- date \-f\- +%s
 .fi
 .RE
 .PP
-Edit the line containing 'hello' and the three lines before and after it
+Edit lines containing 'hello' and the three lines before and after it
 .PP
 .RS
 .nf
@@ -335,6 +357,9 @@ $ cat access.log | teip \-e 'grep \-n \-C 3 hello' \-\- sed 's/./@/g'
 .SS Regular expression (Oniguruma)
 .PP
 \[la]https://github.com/kkos/oniguruma/blob/master/doc/RE\[ra]
+.SS RFC 4180: Common Format and MIME Type for Comma\-Separated Values (CSV) Files
+.PP
+\[la]https://www.rfc-editor.org/rfc/rfc4180\[ra]
 .SH AUTHOR AND COPYRIGHT
 .PP
-Copyright (c) 2022 Yamada, Yasuhiro \[la]yamada@gr3.ie\[ra] Released under the MIT License.
+Copyright (c) 2023 Yamada, Yasuhiro \[la]yamada@gr3.ie\[ra] Released under the MIT License.

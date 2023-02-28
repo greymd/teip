@@ -22,7 +22,7 @@
 $ cat file | teip -g HELLO -- sed 's/WORLD/EARTH/'
 ```
 
-* Edit 2nd field of the CSV file:
+* Edit 2nd field of the CSV file
 
 ```bash
 $ cat file.csv | teip --csv -f 2 -- tr a-z A-Z
