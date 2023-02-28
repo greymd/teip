@@ -97,14 +97,14 @@ FLAGS:
     -z               Line delimiter is NUL instead of a newline
     --csv            -f interprets <list> as field number of a CSV according to
                      RFC 4180, instead of white-space separated fields
-    -A <number>      [Experiment] -g bypasses <number> lines after the matched line
+    -A <number>      [Experimental] -g bypasses <number> lines after the matched line
                      alias of -e 'grep -A <number> <pattern>'
-    -B <number>      [Experiment] -g bypasses <number> lines before the matched line
+    -B <number>      [Experimental] -g bypasses <number> lines before the matched line
                      alias of -e 'grep -B <number> <pattern>'
-    -C <number>      [Experiment] -g bypasses <number> lines before and after the matched line
+    -C <number>      [Experimental] -g bypasses <number> lines before and after the matched line
                      alias of -e 'grep -C <number> <pattern>'
-    --sed <pattern>  [Experiment] alias of -e 'sed -n \"<pattern>=\"'
-    --awk <pattern>  [Experiment] alias of -e 'awk \"<pattern>{print NR}\"'
+    --sed <pattern>  [Experimental] alias of -e 'sed -n \"<pattern>=\"'
+    --awk <pattern>  [Experimental] alias of -e 'awk \"<pattern>{print NR}\"'
 
 EXAMPLES:
   Replace 'WORLD' to 'EARTH' on line including 'HELLO' in input:
@@ -128,8 +128,8 @@ struct Args {
     only_matched: bool,
     #[structopt(short = "G")]
     onig_enabled: bool,
-    // #[structopt(short = "E")]
-    // onig_regex: Option<String>,
+    #[structopt(short = "E")]
+    regex_onig: Option<String>,
     #[structopt(short = "f")]
     list: Option<String>,
     #[structopt(short = "d")]
@@ -172,7 +172,7 @@ fn main() {
     env_logger::init();
 
     // ***** Parse options and prepare configures *****
-    let args: Args = Args::from_args();
+    let mut args: Args = Args::from_args();
 
     debug!("{:?}", args);
 
@@ -184,7 +184,7 @@ fn main() {
     let cmds = args.commands;
     let flag_only = args.only_matched;
     let mut flag_regex = args.regex.is_some();
-    let flag_onig = args.onig_enabled;
+    let mut flag_onig = args.regex_onig.is_some();
     let flag_solid = args.solid;
     let flag_solid_chomp = args.solid_chomp;
     let flag_invert = args.invert;
@@ -199,8 +199,8 @@ fn main() {
     let mut exoffload_pipeline = args.exoffload_pipeline.as_ref().map(|s| s.as_str()).unwrap_or("");
 
     let mut regex_mode = String::new();
-    let mut regex = Regex::new("").unwrap();
-    let mut regex_onig = onig::new_regex();
+    let mut regex_compiled = Regex::new("").unwrap();
+    let mut regex_onig_compiled = onig::new_regex();
     let mut line_end = b'\n';
     let mut process_each_line = true; // true if single hole is always coveres entire line
     let mut ch: PipeIntercepter;
@@ -211,6 +211,9 @@ fn main() {
     }
 
     // If any of -A, -B, -C is specified, set -e option and set regex flag off
+    //   "-A 1 -g pattern" => "-e 'grep -A 1 pattern'"
+    //   "-B 1 -g pattern" => "-e 'grep -B 1 pattern'"
+    //   "-C 1 -g pattern" => "-e 'grep -C 1 pattern'"
     let mut grep_args = vec![GREP_PATH.to_string()];
     let pipeline;
     if ( args.after.is_some() || args.before.is_some() || args.center.is_some() ) && flag_regex {
@@ -243,9 +246,18 @@ fn main() {
         exoffload_pipeline = &pipeline;
     }
 
+    // Make -G works to keep backword compatibility
+    // -G -g pattern => -E pattern
+    if args.onig_enabled {
+        flag_onig = true;
+        flag_regex = false;
+        args.regex_onig = args.regex.clone();
+    }
+
     // If any mandatory flags is not enabled, show help and exit.
     if !( flag_exoffload ||
           flag_regex     ||
+          flag_onig      ||
           flag_field     ||
           flag_char      ||
           flag_lines )
@@ -295,18 +307,20 @@ fn main() {
         line_end = b'\0';
     }
 
-    if !flag_onig {
+    if flag_regex {
         // Use default regex engine
-        regex =
+        regex_compiled =
             Regex::new(&(regex_mode.to_owned() + args.regex.as_ref().unwrap_or(&"".to_owned())))
                 .unwrap_or_else(|e| error_exit(&e.to_string()));
-    } else {
+    }
+
+    if flag_onig {
         // If -G option is specified, change regex engine
         if flag_zero {
-            regex_onig =
-                onig::new_option_multiline_regex(args.regex.as_ref().unwrap_or(&"".to_owned()));
+            regex_onig_compiled =
+                onig::new_option_multiline_regex(args.regex_onig.as_ref().unwrap_or(&"".to_owned()));
         } else {
-            regex_onig = onig::new_option_none_regex(args.regex.as_ref().unwrap_or(&"".to_owned()));
+            regex_onig_compiled = onig::new_option_none_regex(args.regex_onig.as_ref().unwrap_or(&"".to_owned()));
         }
     }
 
@@ -353,13 +367,11 @@ fn main() {
             };
             let eol = stringutils::trim_eol(&mut buf);
             if flag_regex {
-                if flag_onig {
-                    onig::regex_onig_proc(&mut ch, &buf, &regex_onig, flag_invert)
-                        .unwrap_or_else(|e| error_exit(&e.to_string()));
-                } else {
-                    procs::regex_proc(&mut ch, &buf, &regex, flag_invert)
-                        .unwrap_or_else(|e| error_exit(&e.to_string()));
-                }
+                procs::regex_proc(&mut ch, &buf, &regex_compiled, flag_invert)
+                    .unwrap_or_else(|e| error_exit(&e.to_string()));
+            } else if flag_onig {
+                onig::regex_onig_proc(&mut ch, &buf, &regex_onig_compiled, flag_invert)
+                    .unwrap_or_else(|e| error_exit(&e.to_string()));
             } else if flag_char {
                 procs::char_proc(&mut ch, &buf, &char_list)
                     .unwrap_or_else(|e| error_exit(&e.to_string()));
@@ -379,10 +391,10 @@ fn main() {
                 .unwrap_or_else(|e| error_exit(&e.to_string()));
         } else if flag_regex {
             if flag_onig {
-                onig::regex_onig_line_proc(&mut ch, &regex_onig, flag_invert, line_end)
+                onig::regex_onig_line_proc(&mut ch, &regex_onig_compiled, flag_invert, line_end)
                     .unwrap_or_else(|e| error_exit(&e.to_string()));
             } else {
-                procs::regex_line_proc(&mut ch, &regex, flag_invert, line_end)
+                procs::regex_line_proc(&mut ch, &regex_compiled, flag_invert, line_end)
                     .unwrap_or_else(|e| error_exit(&e.to_string()));
             }
         } else if flag_exoffload {
