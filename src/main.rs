@@ -76,7 +76,8 @@ lazy_static! {
 OPTIONS:
     -g <pattern>        Bypassing lines that match the regular expression <pattern>
         -o              -g bypasses only matched parts
-        -G              [Deprecated] use -E instead. -g adopts Oniguruma regular expressions.
+        -G              [Deprecated] Use -E instead. -g interprets Oniguruma
+                        regular expressions.
     -E <pattern>        Behaves like -g but interprets <pattern> as Oniguruma regular
                         expression
     -c <list>           Bypassing these characters
@@ -101,9 +102,9 @@ FLAGS:
 
 EXPERIMENTAL OPTIONS:
     -g <pattern>
-        -A <number>     Alias of -e 'grep -A <number> <pattern>'
-        -B <number>     Alias of -e 'grep -B <number> <pattern>'
-        -C <number>     Alias of -e 'grep -C <number> <pattern>'
+        -A <number>     Alias of -e 'grep -n -A <number> <pattern>'
+        -B <number>     Alias of -e 'grep -n -B <number> <pattern>'
+        -C <number>     Alias of -e 'grep -n -C <number> <pattern>'
     --sed <pattern>     Alias of -e 'sed -n \"<pattern>=\"'
     --awk <pattern>     Alias of -e 'awk \"<pattern>{print NR}\"'
 
@@ -215,7 +216,7 @@ fn main() {
     //   "-A 1 -g pattern" => "-e 'grep -A 1 pattern'"
     //   "-B 1 -g pattern" => "-e 'grep -B 1 pattern'"
     //   "-C 1 -g pattern" => "-e 'grep -C 1 pattern'"
-    let mut grep_args = vec![GREP_PATH.to_string()];
+    let mut grep_args = vec![GREP_PATH.to_string(), "-n".to_string()];
     let pipeline;
     if ( args.after.is_some() || args.before.is_some() || args.center.is_some() ) && flag_regex {
         if let Some(n) = args.after {
