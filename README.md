@@ -158,35 +158,46 @@ PS C:\> cargo install teip --features oniguruma
 
 ```
 USAGE:
-  teip -g <pattern> [-oGsvz] [--] [<command>...]
-  teip -f <list> [-d <delimiter> | -D <pattern> | --csv] [-svz] [--] [<command>...]
+  teip -g <pattern> [-osvz] [--] [<command>...]
+  teip -E <pattern> [-osvz] [--] [<command>...]
   teip -c <list> [-svz] [--] [<command>...]
   teip -l <list> [-svz] [--] [<command>...]
+  teip -f <list> [-d <delimiter> | -D <pattern> | --csv] [-svz] [--] [<command>...]
   teip -e <string> [-svz] [--] [<command>...]
 
 OPTIONS:
-    -c <list>        Bypassing these characters
-    -d <delimiter>   Use <delimiter> for field delimiter of -f
-    -D <pattern>     Use regular expression <pattern> for field delimiter of -f
-    -e <string>      Execute <string> on another process that will receive identical
-                     standard input as the teip, and numbers given by the result
-                     are used as line numbers for bypassing
-    -l <list>        Bypassing these lines
-    -f <list>        Bypassing these white-space separated fields
-    -g <pattern>     Bypassing lines that match the regular expression <pattern>
+    -g <pattern>        Bypassing lines that match the regular expression <pattern>
+        -o              -g bypasses only matched parts
+        -G              [Deprecated] use -E instead. -g adopts Oniguruma regular expressions.
+    -E <pattern>        Behaves like -g but interprets <pattern> as Oniguruma regular
+                        expression
+    -c <list>           Bypassing these characters
+    -l <list>           Bypassing these lines
+    -f <list>           Bypassing these white-space separated fields
+        -d <delimiter>  Use <delimiter> for field delimiter of -f
+        -D <pattern>    Use regular expression <pattern> for field delimiter of -f
+        --csv           -f interprets <list> as field number of a CSV according to
+                        RFC 4180, instead of white-space separated fields
+    -e <string>         Execute <string> on another process that will receive identical
+                        standard input as the teip, and numbers given by the result
+                        are used as line numbers for bypassing
 
 FLAGS:
-    -h, --help       Prints help information
-    -v               Invert the range of bypassing
-    -G               -g adopts Oniguruma regular expressions
-    -o               -g bypasses only matched parts
-    -s               Execute new command for each bypassed chunk
-    --chomp          Command spawned by -s receives standard input without trailing
-                     newlines
-    -V, --version    Prints version information
-    -z               Line delimiter is NUL instead of a newline
-    --csv            -f interprets <list> as field number of a CSV according to
-                     RFC 4180, instead of white-space separated fields
+    -h, --help          Prints help information
+    -V, --version       Prints version information
+    -s                  Execute new command for each bypassed chunk
+      --chomp           Command spawned by -s receives standard input without trailing
+                        newlines
+    -v                  Invert the range of bypassing
+    -z                  Line delimiter is NUL instead of a newline
+
+EXPERIMENTAL OPTIONS:
+    -g <pattern>
+        -A <number>     Alias of -e 'grep -A <number> <pattern>'
+        -B <number>     Alias of -e 'grep -B <number> <pattern>'
+        -C <number>     Alias of -e 'grep -C <number> <pattern>'
+    --sed <pattern>     Alias of -e 'sed -n "<pattern>="'
+    --awk <pattern>     Alias of -e 'awk "<pattern>{print NR}"'
 ```
 
 ## Getting Started
