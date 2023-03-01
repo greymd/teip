@@ -158,7 +158,7 @@ PS C:\> cargo install teip --features oniguruma
 
 ```
 USAGE:
-  teip -g <pattern> [-osvz] [--] [<command>...]
+  teip -g <pattern> [-Gosvz] [--] [<command>...]
   teip -c <list> [-svz] [--] [<command>...]
   teip -l <list> [-svz] [--] [<command>...]
   teip -f <list> [-d <delimiter> | -D <pattern> | --csv] [-svz] [--] [<command>...]
@@ -183,12 +183,12 @@ FLAGS:
     -h, --help          Prints help information
     -V, --version       Prints version information
     -s                  Execute new command for each bypassed chunk
-      --chomp           Command spawned by -s receives standard input without trailing
+        --chomp         Command spawned by -s receives standard input without trailing
                         newlines
     -v                  Invert the range of bypassing
     -z                  Line delimiter is NUL instead of a newline
 
-EXPERIMENTAL OPTIONS:
+ALIASES:
     -g <pattern>
         -A <number>     Alias of -e 'grep -n -A <number> <pattern>'
         -B <number>     Alias of -e 'grep -n -B <number> <pattern>'

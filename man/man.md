@@ -79,6 +79,27 @@ OPTIONS
 `-z`
   NUL is used as line delimiter instead of the newline
 
+-A <*number*>
+  Use  together with `-g <pattern>`.
+  Alias of `-e 'grep -n -A <number> <pattern>'`
+
+-B <*number*>
+  Use  together with `-g <pattern>`.
+  Alias of `-e 'grep -n -B <number> <pattern>'`
+
+-C <*number*>
+  Use  together with `-g <pattern>`.
+  Alias of `-e 'grep -n -C <number> <pattern>'`
+
+--sed <*pattern*>
+  Alias of `-e 'sed -n "<pattern>="'`
+  See also sed(1)
+
+--awk <*pattern*>
+  Alias of `-e 'awk "<pattern>{print NR}"'`
+  See also awk(1)
+
+
 ### *command*
 
 *command* is the command and its arguments that `teip` executes.
@@ -320,7 +341,7 @@ SEE ALSO
 --------
 
 ### Manual pages
-cut(1)
+cut(1), sed(1), awk(1), grep(1)
 
 ### Full documentation
 <https://github.com/greymd/teip>

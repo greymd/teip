@@ -66,7 +66,7 @@ lazy_static! {
     about = "Bypassing a partial range of standard input to an arbitrary command",
     usage = "teip [OPTIONS] [FLAGS] [--] [<command>...]",
     help = "USAGE:
-  teip -g <pattern> [-osvz] [--] [<command>...]
+  teip -g <pattern> [-Gosvz] [--] [<command>...]
   teip -c <list> [-svz] [--] [<command>...]
   teip -l <list> [-svz] [--] [<command>...]
   teip -f <list> [-d <delimiter> | -D <pattern> | --csv] [-svz] [--] [<command>...]
@@ -91,12 +91,12 @@ FLAGS:
     -h, --help          Prints help information
     -V, --version       Prints version information
     -s                  Execute new command for each bypassed chunk
-      --chomp           Command spawned by -s receives standard input without trailing
+        --chomp         Command spawned by -s receives standard input without trailing
                         newlines
     -v                  Invert the range of bypassing
     -z                  Line delimiter is NUL instead of a newline
 
-EXPERIMENTAL OPTIONS:
+ALIASES:
     -g <pattern>
         -A <number>     Alias of -e 'grep -n -A <number> <pattern>'
         -B <number>     Alias of -e 'grep -n -B <number> <pattern>'
@@ -108,13 +108,9 @@ EXAMPLES:
   Replace 'WORLD' to 'EARTH' on line including 'HELLO' in input:
     $ cat file | teip -g HELLO -- sed 's/WORLD/EARTH/'
   Edit '|' separated fields of input:
-    $ cat file.csv | teip -d '|' -f 2 -- sed 's/./@/g'
-  Edit 2nd and 3rd columns in the CSV file:
-    $ cat file.csv | teip --csv -f 2,3 -- sed 's/./@/g'
+    $ cat file.csv | teip -f 2 --d '|' -- sed 's/./@/g'
   Convert timestamps in /var/log/secure to UNIX time:
     $ cat /var/log/secure | teip -c 1-15 -- date -f- +%s
-  Edit the line containing 'HELLO' and the three lines before and after it:
-    $ cat access.log | teip -e 'grep -n -C 3 HELLO' -- sed 's/./@/g'
 
 Full documentation at:<https://github.com/greymd/teip>",
 )]

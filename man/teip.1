@@ -10,10 +10,14 @@ teip \- Masking tape to help commands "do one thing well"
 .PP
 \fB\fCteip\fR \-c <\fIlist\fP> [\-svz] [\-\-] [<\fIcommand\fP>...]
 .PP
+\fB\fCteip\fR \-l <\fIlist\fP> [\-svz] [\-\-] [<\fIcommand\fP>...]
+.PP
+\fB\fCteip\fR \-e <\fIstring\fP> [\-svz] [\-\-] [<\fIcommand\fP>...]
+.PP
 \fB\fCteip\fR \-\-help | \-\-version
 .SH DESCRIPTION
 .PP
-Only a selected part of standard input is passed to any command for execution.
+Bypassing a partial range of standard input to any command whatever you want
 .SH OPTIONS
 .TP
 \fB\fC\-\-help\fR
@@ -23,16 +27,16 @@ Display this help and exit
 Show version and exit
 .TP
 \fB\fC\-g\fR <\fIpattern\fP>
-Select lines that match the regular expression <\fIpattern\fP>
+Bypassing lines that match the regular expression <\fIpattern\fP>
 .TP
 \fB\fC\-o\fR
-\-g selects only matched parts
+\-g bypasses only matched parts
 .TP
 \fB\fC\-G\fR
 \-g adopts Oniguruma regular expressions
 .TP
 \fB\fC\-f\fR <\fIlist\fP>
-Select only these white\-space separated fields
+Bypassing these white\-space separated fields
 .TP
 \fB\fC\-d\fR <\fIdelimiter\fP>
 Use <\fIdelimiter\fP> for field delimiter of \-f
@@ -46,11 +50,14 @@ Select only these characters
 \fB\fC\-e\fR <\fIstring\fP>
 Execute <\fIstring\fP> on another process that will receive identical standard input as the teip, and numbers given by the result are used as line numbers for bypassing
 .TP
+\fB\fC\-l\fR <\fIlist\fP>
+Bypassing these lines
+.TP
 \fB\fC\-\-csv\fR
 \-f interprets <list> as field number of a CSV according to RFC 4180, instead of white\-space separated fields
 .TP
 \fB\fC\-s\fR
-Execute command for each selected part
+Execute new command for each bypassed chunk
 .TP
 \fB\fC\-\-chomp\fR
 Command spawned by \-s receives standard input without trailing newlines
@@ -60,6 +67,28 @@ Invert the sense of selecting
 .TP
 \fB\fC\-z\fR
 NUL is used as line delimiter instead of the newline
+.TP
+\-A <\fInumber\fP>
+Use  together with \fB\fC\-g <pattern>\fR\&.
+Alias of \fB\fC\-e 'grep \-n \-A <number> <pattern>'\fR
+.TP
+\-B <\fInumber\fP>
+Use  together with \fB\fC\-g <pattern>\fR\&.
+Alias of \fB\fC\-e 'grep \-n \-B <number> <pattern>'\fR
+.TP
+\-C <\fInumber\fP>
+Use  together with \fB\fC\-g <pattern>\fR\&.
+Alias of \fB\fC\-e 'grep \-n \-C <number> <pattern>'\fR
+.TP
+\-\-sed <\fIpattern\fP>
+Alias of \fB\fC\-e 'sed \-n "<pattern>="'\fR
+See also 
+.BR sed (1)
+.TP
+\-\-awk <\fIpattern\fP>
+Alias of \fB\fC\-e 'awk "<pattern>{print NR}"'\fR
+See also 
+.BR awk (1)
 .SS \fIcommand\fP
 .PP
 \fIcommand\fP is the command and its arguments that \fB\fCteip\fR executes.
@@ -347,7 +376,10 @@ $ cat access.log | teip \-e 'grep \-n \-C 3 hello' \-\- sed 's/./@/g'
 .SH SEE ALSO
 .SS Manual pages
 .PP
-.BR cut (1)
+.BR cut (1), 
+.BR sed (1), 
+.BR awk (1), 
+.BR grep (1)
 .SS Full documentation
 .PP
 \[la]https://github.com/greymd/teip\[ra]
