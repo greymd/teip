@@ -67,7 +67,6 @@ lazy_static! {
     usage = "teip [OPTIONS] [FLAGS] [--] [<command>...]",
     help = "USAGE:
   teip -g <pattern> [-osvz] [--] [<command>...]
-  teip -E <pattern> [-osvz] [--] [<command>...]
   teip -c <list> [-svz] [--] [<command>...]
   teip -l <list> [-svz] [--] [<command>...]
   teip -f <list> [-d <delimiter> | -D <pattern> | --csv] [-svz] [--] [<command>...]
@@ -76,10 +75,7 @@ lazy_static! {
 OPTIONS:
     -g <pattern>        Bypassing lines that match the regular expression <pattern>
         -o              -g bypasses only matched parts
-        -G              [Deprecated] Use -E instead. -g interprets Oniguruma
-                        regular expressions.
-    -E <pattern>        Behaves like -g but interprets <pattern> as Oniguruma regular
-                        expression
+        -G              -g interprets Oniguruma regular expressions.
     -c <list>           Bypassing these characters
     -l <list>           Bypassing these lines
     -f <list>           Bypassing these white-space separated fields
@@ -130,8 +126,6 @@ struct Args {
     only_matched: bool,
     #[structopt(short = "G")]
     onig_enabled: bool,
-    #[structopt(short = "E")]
-    regex_onig: Option<String>,
     #[structopt(short = "f")]
     list: Option<String>,
     #[structopt(short = "d")]
@@ -174,7 +168,7 @@ fn main() {
     env_logger::init();
 
     // ***** Parse options and prepare configures *****
-    let mut args: Args = Args::from_args();
+    let args: Args = Args::from_args();
 
     debug!("{:?}", args);
 
@@ -186,7 +180,7 @@ fn main() {
     let cmds = args.commands;
     let flag_only = args.only_matched;
     let mut flag_regex = args.regex.is_some();
-    let mut flag_onig = args.regex_onig.is_some();
+    let flag_onig = args.onig_enabled;
     let flag_solid = args.solid;
     let flag_solid_chomp = args.solid_chomp;
     let flag_invert = args.invert;
@@ -202,7 +196,8 @@ fn main() {
 
     let mut regex_mode = String::new();
     let mut regex_compiled = Regex::new("").unwrap();
-    let mut regex_onig_compiled = onig::new_regex();
+    let mut onig_regex_raw = &String::new();
+    let mut onig_regex_compiled = onig::new_regex();
     let mut line_end = b'\n';
     let mut process_each_line = true; // true if single hole is always coveres entire line
     let mut ch: PipeIntercepter;
@@ -248,12 +243,10 @@ fn main() {
         exoffload_pipeline = &pipeline;
     }
 
-    // Make -G works to keep backword compatibility
-    // -G -g pattern => -E pattern
-    if args.onig_enabled {
-        flag_onig = true;
+    // -G switches regex mode
+    if flag_onig && flag_regex {
         flag_regex = false;
-        args.regex_onig = args.regex.clone();
+        onig_regex_raw = args.regex.as_ref().unwrap();
     }
 
     // If any mandatory flags is not enabled, show help and exit.
@@ -319,10 +312,10 @@ fn main() {
     if flag_onig {
         // If -G option is specified, change regex engine
         if flag_zero {
-            regex_onig_compiled =
-                onig::new_option_multiline_regex(args.regex_onig.as_ref().unwrap_or(&"".to_owned()));
+            onig_regex_compiled =
+                onig::new_option_multiline_regex(onig_regex_raw);
         } else {
-            regex_onig_compiled = onig::new_option_none_regex(args.regex_onig.as_ref().unwrap_or(&"".to_owned()));
+            onig_regex_compiled = onig::new_option_none_regex(onig_regex_raw);
         }
     }
 
@@ -372,7 +365,7 @@ fn main() {
                 procs::regex_proc(&mut ch, &buf, &regex_compiled, flag_invert)
                     .unwrap_or_else(|e| error_exit(&e.to_string()));
             } else if flag_onig {
-                onig::regex_onig_proc(&mut ch, &buf, &regex_onig_compiled, flag_invert)
+                onig::regex_onig_proc(&mut ch, &buf, &onig_regex_compiled, flag_invert)
                     .unwrap_or_else(|e| error_exit(&e.to_string()));
             } else if flag_char {
                 procs::char_proc(&mut ch, &buf, &char_list)
@@ -393,7 +386,7 @@ fn main() {
                 .unwrap_or_else(|e| error_exit(&e.to_string()));
         } else if flag_regex {
             if flag_onig {
-                onig::regex_onig_line_proc(&mut ch, &regex_onig_compiled, flag_invert, line_end)
+                onig::regex_onig_line_proc(&mut ch, &onig_regex_compiled, flag_invert, line_end)
                     .unwrap_or_else(|e| error_exit(&e.to_string()));
             } else {
                 procs::regex_line_proc(&mut ch, &regex_compiled, flag_invert, line_end)

@@ -159,7 +159,6 @@ PS C:\> cargo install teip --features oniguruma
 ```
 USAGE:
   teip -g <pattern> [-osvz] [--] [<command>...]
-  teip -E <pattern> [-osvz] [--] [<command>...]
   teip -c <list> [-svz] [--] [<command>...]
   teip -l <list> [-svz] [--] [<command>...]
   teip -f <list> [-d <delimiter> | -D <pattern> | --csv] [-svz] [--] [<command>...]
@@ -168,9 +167,7 @@ USAGE:
 OPTIONS:
     -g <pattern>        Bypassing lines that match the regular expression <pattern>
         -o              -g bypasses only matched parts
-        -G              [Deprecated] use -E instead. -g adopts Oniguruma regular expressions.
-    -E <pattern>        Behaves like -g but interprets <pattern> as Oniguruma regular
-                        expression
+        -G              -g interprets Oniguruma regular expressions.
     -c <list>           Bypassing these characters
     -l <list>           Bypassing these lines
     -f <list>           Bypassing these white-space separated fields
@@ -600,20 +597,17 @@ In other words, by connecting multiple functions of `teip` with AND conditions, 
 Furthermore, it works asynchronously and in multi-processes, similar to the shell pipeline.
 It will hardly degrade performance unless the machine faces the limits of parallelism.
 
-### Oniguruma regular expressior (`-E`)
+### Oniguruma regular expressior (`-g`)
 
-If `-E` is similar to `-g`, but the given pattern is interpreted as [Oniguruma regular expression](https://github.com/kkos/oniguruma/blob/master/doc/RE). For example, "keep" and "look-ahead" syntax can be used.
+If `-G` option is given together with `-g`, the regular expressin is interpreted as [Oniguruma regular expression](https://github.com/kkos/oniguruma/blob/master/doc/RE). For example, "keep" and "look-ahead" syntax can be used.
 
 ```bash
-$ echo 'ABC123DEF456' | teip -oE 'DEF\K\d+'
+$ echo 'ABC123DEF456' | teip -G -og 'DEF\K\d+'
 ABC123DEF[456]
 
-$ echo 'ABC123DEF456' | teip -oE '\d+(?=D)'
+$ echo 'ABC123DEF456' | teip -G -og '\d+(?=D)'
 ABC[123]DEF456
 ```
-
-Note that in previous versions, this feature was available by using the `-g` and `-G` options together.
-The `-G` option can be used for backward compatibility, but should not be used, as it may become obsolete in the future.
 
 ### Empty hole
 
