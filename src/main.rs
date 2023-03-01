@@ -46,6 +46,18 @@ lazy_static! {
         Ok(v) => v,
         Err(_) => "\x1b[36m[\x1b[0m\x1b[01;31m{}\x1b[0m\x1b[36m]\x1b[0m".to_string(),
     };
+    static ref GREP_PATH: String = match env::var("TEIP_GREP_PATH") {
+        Ok(v) => v,
+        Err(_) => "grep".to_string(),
+    };
+    static ref SED_PATH: String = match env::var("TEIP_SED_PATH") {
+        Ok(v) => v,
+        Err(_) => "sed".to_string(),
+    };
+    static ref AWK_PATH: String = match env::var("TEIP_AWK_PATH") {
+        Ok(v) => v,
+        Err(_) => "awk".to_string(),
+    };
     static ref HL: Vec<&'static str> = DEFAULT_HIGHLIGHT.split("{}").collect();
 }
 
@@ -54,47 +66,51 @@ lazy_static! {
     about = "Bypassing a partial range of standard input to an arbitrary command",
     usage = "teip [OPTIONS] [FLAGS] [--] [<command>...]",
     help = "USAGE:
-  teip -g <pattern> [-oGsvz] [--] [<command>...]
-  teip -f <list> [-d <delimiter> | -D <pattern> | --csv] [-svz] [--] [<command>...]
+  teip -g <pattern> [-Gosvz] [--] [<command>...]
   teip -c <list> [-svz] [--] [<command>...]
   teip -l <list> [-svz] [--] [<command>...]
+  teip -f <list> [-d <delimiter> | -D <pattern> | --csv] [-svz] [--] [<command>...]
   teip -e <string> [-svz] [--] [<command>...]
 
 OPTIONS:
-    -c <list>        Bypassing these characters
-    -d <delimiter>   Use <delimiter> for field delimiter of -f
-    -D <pattern>     Use regular expression <pattern> for field delimiter of -f
-    -e <string>      Execute <string> on another process that will receive identical
-                     standard input as the teip, and numbers given by the result
-                     are used as line numbers for bypassing
-    -l <list>        Bypassing these lines
-    -f <list>        Bypassing these white-space separated fields
-    -g <pattern>     Bypassing lines that match the regular expression <pattern>
+    -g <pattern>        Bypassing lines that match the regular expression <pattern>
+        -o              -g bypasses only matched parts
+        -G              -g interprets Oniguruma regular expressions.
+    -c <list>           Bypassing these characters
+    -l <list>           Bypassing these lines
+    -f <list>           Bypassing these white-space separated fields
+        -d <delimiter>  Use <delimiter> for field delimiter of -f
+        -D <pattern>    Use regular expression <pattern> for field delimiter of -f
+        --csv           -f interprets <list> as field number of a CSV according to
+                        RFC 4180, instead of white-space separated fields
+    -e <string>         Execute <string> on another process that will receive identical
+                        standard input as the teip, and numbers given by the result
+                        are used as line numbers for bypassing
 
 FLAGS:
-    -h, --help       Prints help information
-    -v               Invert the range of bypassing
-    -G               -g adopts Oniguruma regular expressions
-    -o               -g bypasses only matched parts
-    -s               Execute new command for each bypassed chunk
-    --chomp          Command spawned by -s receives standard input without trailing
-                     newlines
-    -V, --version    Prints version information
-    -z               Line delimiter is NUL instead of a newline
-    --csv            -f interprets <list> as field number of a CSV according to
-                     RFC 4180, instead of white-space separated fields
+    -h, --help          Prints help information
+    -V, --version       Prints version information
+    -s                  Execute new command for each bypassed chunk
+        --chomp         Command spawned by -s receives standard input without trailing
+                        newlines
+    -v                  Invert the range of bypassing
+    -z                  Line delimiter is NUL instead of a newline
+
+ALIASES:
+    -g <pattern>
+        -A <number>     Alias of -e 'grep -n -A <number> <pattern>'
+        -B <number>     Alias of -e 'grep -n -B <number> <pattern>'
+        -C <number>     Alias of -e 'grep -n -C <number> <pattern>'
+    --sed <pattern>     Alias of -e 'sed -n \"<pattern>=\"'
+    --awk <pattern>     Alias of -e 'awk \"<pattern>{print NR}\"'
 
 EXAMPLES:
   Replace 'WORLD' to 'EARTH' on line including 'HELLO' in input:
     $ cat file | teip -g HELLO -- sed 's/WORLD/EARTH/'
   Edit '|' separated fields of input:
-    $ cat file.csv | teip -d '|' -f 2 -- sed 's/./@/g'
-  Edit 2nd and 3rd columns in the CSV file:
-    $ cat file.csv | teip --csv -f 2,3 -- sed 's/./@/g'
+    $ cat file.csv | teip -f 2 --d '|' -- sed 's/./@/g'
   Convert timestamps in /var/log/secure to UNIX time:
     $ cat /var/log/secure | teip -c 1-15 -- date -f- +%s
-  Edit the line containing 'HELLO' and the three lines before and after it:
-    $ cat access.log | teip -e 'grep -n -C 3 HELLO' -- sed 's/./@/g'
 
 Full documentation at:<https://github.com/greymd/teip>",
 )]
@@ -130,6 +146,16 @@ struct Args {
     zero: bool,
     #[structopt(short = "e")]
     exoffload_pipeline: Option<String>,
+    #[structopt(short = "A")]
+    after: Option<usize>,
+    #[structopt(short = "B")]
+    before: Option<usize>,
+    #[structopt(short = "C")]
+    center: Option<usize>,
+    #[structopt(long = "sed")]
+    sed: Option<String>,
+    #[structopt(long = "awk")]
+    awk: Option<String>,
     #[structopt(name = "command")]
     commands: Vec<String>,
 }
@@ -149,7 +175,7 @@ fn main() {
     let flag_zero = args.zero;
     let cmds = args.commands;
     let flag_only = args.only_matched;
-    let flag_regex = args.regex.is_some();
+    let mut flag_regex = args.regex.is_some();
     let flag_onig = args.onig_enabled;
     let flag_solid = args.solid;
     let flag_solid_chomp = args.solid_chomp;
@@ -161,12 +187,13 @@ fn main() {
     let flag_csv = args.csv;
     let delimiter = args.delimiter.as_ref().map(|s| s.as_str()).unwrap_or("");
     let flag_regex_delimiter = args.regexp_delimiter.is_some();
-    let flag_exoffload = args.exoffload_pipeline.is_some();
-    let exoffload_pipeline = args.exoffload_pipeline.as_ref().map(|s| s.as_str()).unwrap_or("");
+    let mut flag_exoffload = args.exoffload_pipeline.is_some();
+    let mut exoffload_pipeline = args.exoffload_pipeline.as_ref().map(|s| s.as_str()).unwrap_or("");
 
     let mut regex_mode = String::new();
-    let mut regex = Regex::new("").unwrap();
-    let mut regex_onig = onig::new_regex();
+    let mut regex_compiled = Regex::new("").unwrap();
+    let mut onig_regex_raw = &String::new();
+    let mut onig_regex_compiled = onig::new_regex();
     let mut line_end = b'\n';
     let mut process_each_line = true; // true if single hole is always coveres entire line
     let mut ch: PipeIntercepter;
@@ -176,9 +203,52 @@ fn main() {
         u();
     }
 
+    // If any of -A, -B, -C is specified, set -e option and set regex flag off
+    //   "-A 1 -g pattern" => "-e 'grep -A 1 pattern'"
+    //   "-B 1 -g pattern" => "-e 'grep -B 1 pattern'"
+    //   "-C 1 -g pattern" => "-e 'grep -C 1 pattern'"
+    let mut grep_args = vec![GREP_PATH.to_string(), "-n".to_string()];
+    let pipeline;
+    if ( args.after.is_some() || args.before.is_some() || args.center.is_some() ) && flag_regex {
+        if let Some(n) = args.after {
+            grep_args.push("-A".to_string());
+            grep_args.push(n.to_string());
+        } else if let Some(n) = args.before {
+            grep_args.push("-B".to_string());
+            grep_args.push(n.to_string());
+        } else if let Some(n) = args.center {
+            grep_args.push("-C".to_string());
+            grep_args.push(n.to_string());
+        }
+        if let Some(ref pattern) = args.regex {
+            grep_args.push(pattern.to_string());
+        }
+        flag_exoffload = true;
+        flag_regex = false;
+        pipeline = grep_args.join(" ");
+        exoffload_pipeline = &pipeline;
+    } else if let Some(ref pattern) = args.sed {
+        // --sed option
+        flag_exoffload = true;
+        pipeline = format!("{} -n '{}='", SED_PATH.as_str(), pattern);
+        exoffload_pipeline = &pipeline;
+    } else if let Some(ref pattern) = args.awk {
+        // --awk option
+        flag_exoffload = true;
+        pipeline = format!("{} '{}{{print NR}}'", AWK_PATH.as_str(), pattern);
+        exoffload_pipeline = &pipeline;
+    }
+
+    // -G switches regex mode
+    if flag_onig && flag_regex {
+        flag_regex = false;
+        onig_regex_raw = args.regex.as_ref().unwrap();
+    }
+
     // If any mandatory flags is not enabled, show help and exit.
     if !( flag_exoffload ||
           flag_regex     ||
+          flag_onig      ||
           flag_field     ||
           flag_char      ||
           flag_lines )
@@ -228,18 +298,20 @@ fn main() {
         line_end = b'\0';
     }
 
-    if !flag_onig {
+    if flag_regex {
         // Use default regex engine
-        regex =
+        regex_compiled =
             Regex::new(&(regex_mode.to_owned() + args.regex.as_ref().unwrap_or(&"".to_owned())))
                 .unwrap_or_else(|e| error_exit(&e.to_string()));
-    } else {
+    }
+
+    if flag_onig {
         // If -G option is specified, change regex engine
         if flag_zero {
-            regex_onig =
-                onig::new_option_multiline_regex(args.regex.as_ref().unwrap_or(&"".to_owned()));
+            onig_regex_compiled =
+                onig::new_option_multiline_regex(onig_regex_raw);
         } else {
-            regex_onig = onig::new_option_none_regex(args.regex.as_ref().unwrap_or(&"".to_owned()));
+            onig_regex_compiled = onig::new_option_none_regex(onig_regex_raw);
         }
     }
 
@@ -286,13 +358,11 @@ fn main() {
             };
             let eol = stringutils::trim_eol(&mut buf);
             if flag_regex {
-                if flag_onig {
-                    onig::regex_onig_proc(&mut ch, &buf, &regex_onig, flag_invert)
-                        .unwrap_or_else(|e| error_exit(&e.to_string()));
-                } else {
-                    procs::regex_proc(&mut ch, &buf, &regex, flag_invert)
-                        .unwrap_or_else(|e| error_exit(&e.to_string()));
-                }
+                procs::regex_proc(&mut ch, &buf, &regex_compiled, flag_invert)
+                    .unwrap_or_else(|e| error_exit(&e.to_string()));
+            } else if flag_onig {
+                onig::regex_onig_proc(&mut ch, &buf, &onig_regex_compiled, flag_invert)
+                    .unwrap_or_else(|e| error_exit(&e.to_string()));
             } else if flag_char {
                 procs::char_proc(&mut ch, &buf, &char_list)
                     .unwrap_or_else(|e| error_exit(&e.to_string()));
@@ -312,10 +382,10 @@ fn main() {
                 .unwrap_or_else(|e| error_exit(&e.to_string()));
         } else if flag_regex {
             if flag_onig {
-                onig::regex_onig_line_proc(&mut ch, &regex_onig, flag_invert, line_end)
+                onig::regex_onig_line_proc(&mut ch, &onig_regex_compiled, flag_invert, line_end)
                     .unwrap_or_else(|e| error_exit(&e.to_string()));
             } else {
-                procs::regex_line_proc(&mut ch, &regex, flag_invert, line_end)
+                procs::regex_line_proc(&mut ch, &regex_compiled, flag_invert, line_end)
                     .unwrap_or_else(|e| error_exit(&e.to_string()));
             }
         } else if flag_exoffload {

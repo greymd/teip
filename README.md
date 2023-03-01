@@ -158,35 +158,43 @@ PS C:\> cargo install teip --features oniguruma
 
 ```
 USAGE:
-  teip -g <pattern> [-oGsvz] [--] [<command>...]
-  teip -f <list> [-d <delimiter> | -D <pattern> | --csv] [-svz] [--] [<command>...]
+  teip -g <pattern> [-Gosvz] [--] [<command>...]
   teip -c <list> [-svz] [--] [<command>...]
   teip -l <list> [-svz] [--] [<command>...]
+  teip -f <list> [-d <delimiter> | -D <pattern> | --csv] [-svz] [--] [<command>...]
   teip -e <string> [-svz] [--] [<command>...]
 
 OPTIONS:
-    -c <list>        Bypassing these characters
-    -d <delimiter>   Use <delimiter> for field delimiter of -f
-    -D <pattern>     Use regular expression <pattern> for field delimiter of -f
-    -e <string>      Execute <string> on another process that will receive identical
-                     standard input as the teip, and numbers given by the result
-                     are used as line numbers for bypassing
-    -l <list>        Bypassing these lines
-    -f <list>        Bypassing these white-space separated fields
-    -g <pattern>     Bypassing lines that match the regular expression <pattern>
+    -g <pattern>        Bypassing lines that match the regular expression <pattern>
+        -o              -g bypasses only matched parts
+        -G              -g interprets Oniguruma regular expressions.
+    -c <list>           Bypassing these characters
+    -l <list>           Bypassing these lines
+    -f <list>           Bypassing these white-space separated fields
+        -d <delimiter>  Use <delimiter> for field delimiter of -f
+        -D <pattern>    Use regular expression <pattern> for field delimiter of -f
+        --csv           -f interprets <list> as field number of a CSV according to
+                        RFC 4180, instead of white-space separated fields
+    -e <string>         Execute <string> on another process that will receive identical
+                        standard input as the teip, and numbers given by the result
+                        are used as line numbers for bypassing
 
 FLAGS:
-    -h, --help       Prints help information
-    -v               Invert the range of bypassing
-    -G               -g adopts Oniguruma regular expressions
-    -o               -g bypasses only matched parts
-    -s               Execute new command for each bypassed chunk
-    --chomp          Command spawned by -s receives standard input without trailing
-                     newlines
-    -V, --version    Prints version information
-    -z               Line delimiter is NUL instead of a newline
-    --csv            -f interprets <list> as field number of a CSV according to
-                     RFC 4180, instead of white-space separated fields
+    -h, --help          Prints help information
+    -V, --version       Prints version information
+    -s                  Execute new command for each bypassed chunk
+        --chomp         Command spawned by -s receives standard input without trailing
+                        newlines
+    -v                  Invert the range of bypassing
+    -z                  Line delimiter is NUL instead of a newline
+
+ALIASES:
+    -g <pattern>
+        -A <number>     Alias of -e 'grep -n -A <number> <pattern>'
+        -B <number>     Alias of -e 'grep -n -B <number> <pattern>'
+        -C <number>     Alias of -e 'grep -n -C <number> <pattern>'
+    --sed <pattern>     Alias of -e 'sed -n "<pattern>="'
+    --awk <pattern>     Alias of -e 'awk "<pattern>{print NR}"'
 ```
 
 ## Getting Started
@@ -472,7 +480,7 @@ To learn more about `teip`'s behavior, see [Wiki > Chunking](https://github.com/
 
 ## Advanced usage
 
-### Solid mode
+### Solid mode (`-s`)
 
 If you want to use a command that does not satisfy the condition, **"A targeted command must print a single line of result for each line of input"**, enable "Solid mode" which is available with the `-s` option.
 
@@ -506,6 +514,69 @@ $ echo $?
 
 However, this option is not suitable for processing large files because of its high processing overhead, which can significantly degrade performance.
 
+#### Solid mode with `--chomp` 
+
+If `-s` option does not work as expected, `--chomp` may be helpful.
+
+A targeted command in solid mode always accepts input with a line field (`\x0A`) at the end.
+This is because `teip` assumes the use of commands that return a single line of result in response to a single line of input.
+Therefore, even if there is no line break in the hole, a line break is given to treat it as a single line of input.
+
+However, there are situations where this behavior is inconvenient.
+For example, when using commands whose behavior changes depending on the presence or absence of line field.
+
+```
+$ echo AAABBBCCC | teip -og BBB -s
+AAA[BBB]CCC
+$ echo AAABBBCCC | teip -og BBB -s -- tr '\n' '@'
+AAABBB@CCC
+```
+
+The above is an example where the targeted command is a "tr command that converts line field (\x0A) to @".
+"BBB" does not contain a newline, but the result is "BBB@", because implicitly added line breaks have been processed.
+To prevent this behavior, use the `--chomp` option.
+This option gives the targeted command pure input with no newlines added.
+
+```
+$ echo AAABBBCCC | teip -og BBB -s --chomp -- tr '\n' '@'
+AAABBBCCC
+```
+
+For example, it is useful when using commands that interpret and process input as binary like `tr`.
+Below is an example of "removing newlines from the second column of a CSV that contains newlines.
+
+```
+$ cat tests/sample.csv
+Name,Address,zipcode
+Sola Harewatar,"Doreami Road 123
+Sorashido city",12877
+```
+
+The result is.
+
+```
+$ cat tests/sample.csv | teip --csv -f 2 -s --chomp -- tr '\n' '@'
+Name,Address,zipcode
+Sola Harewatar,"Doreami Road 123@Sorashido city",12877
+```
+
+### Line number (`-l`)
+
+You can specify a line number and drill holes only in that line.
+  
+```bash
+$ echo -e "ABC\nDEF\nGHI" | teip -l 2
+ABC
+[DEF]
+GHI
+```
+
+```bash
+$ echo -e "ABC\nDEF\nGHI" | teip -l 1,3
+[ABC]
+DEF
+[GHI]
+```
 
 ### Overlay `teip`s
 
@@ -537,8 +608,6 @@ ABC123DEF[456]
 $ echo 'ABC123DEF456' | teip -G -og '\d+(?=D)'
 ABC[123]DEF456
 ```
-
-Those techniques are helpful to reduce the number of "Overlay".
 
 ### Empty hole
 
@@ -575,6 +644,65 @@ $ printf 'AAA\n123\nBBB\n' | teip -vg '\d+' -- sed 's/./@/g'
 @@@
 123
 @@@
+```
+
+### Zero-terminated mode (`-z`)
+
+If you want to process the data in a more flexible way, the `-z` option may be useful.
+This option allows you to use the NUL character (the ASCII NUL character) instead of the newline character.
+It behaves like `-z` provided by GNU sed or GNU grep, or `-0` option provided by xargs.
+
+```bash
+$ printf '111,\n222,33\n3\0\n444,55\n5,666\n' | teip -z -f3 -d,
+111,
+222,[33
+3]
+444,55
+5,[666]
+```
+
+With this option, the standard input is interpreted per a NUL character rather than per a newline character.
+You should also pay attention to that strings in the hole are concatenated with the NUL character instead of a newline character in `teip`'s procedure.
+
+In other words, if you use a targeted command that cannot handle NUL characters (and cannot print NUL-separated results), the final result can be unintended.
+
+```bash
+$ printf '111,\n222,33\n3\0\n444,55\n5,666\n' | teip -z -f3 -d, -- sed -z 's/.*/@@@/g'
+111,
+222,@@@
+444,55
+5,@@@
+
+$ printf '111,\n222,33\n3\0\n444,55\n5,666\n' | teip -z -f3 -d, -- sed 's/.*/@@@/g'
+111,
+222,@@@
+@@@
+444,55
+5,teip: Output of given command is exhausted
+```
+
+Specifying from one line to another is a typical use case for this option.
+
+```bash
+$ cat test.html | teip -z -og '<body>.*</body>'
+<html>
+<head>
+  <title>AAA</title>
+</head>
+[<body>
+  <div>AAA</div>
+  <div>BBB</div>
+  <div>CCC</div>
+</body>]
+</html>
+
+$ cat test.html | teip -z -og '<body>.*</body>' -- grep -a BBB
+<html>
+<head>
+  <title>AAA</title>
+</head>
+  <div>BBB</div>
+</html>
 ```
 
 ### External execution for match offloading (`-e`)
@@ -700,110 +828,113 @@ CCC
 The `-e` argument is a single string.
 Therefore, pipe `|` and other symbols can be used as it is.
 
-### NUL as line delimiter (`-z`)
+### Experimental options (`-A`, `-B`, `-C`, `--awk`, `--sed`)
 
-If you want to process the data in a more flexible way, the `-z` option may be useful.
-This option allows you to use the NUL character (the ASCII NUL character) instead of the newline character.
-It behaves like `-z` provided by GNU sed or GNU grep, or `-0` option provided by xargs.
+There are several **experimental options** which are alias of `-e` and specific string.
+These options may be discontinued in the future since they are just experimental ones.
+Do not use them in the script or something that is not a one-off.
 
-```bash
-$ printf '111,\n222,33\n3\0\n444,55\n5,666\n' | teip -z -f3 -d,
-111,
-222,[33
-3]
-444,55
-5,[666]
-```
-
-With this option, the standard input is interpreted per a NUL character rather than per a newline character.
-You should also pay attention to that strings in the hole are concatenated with the NUL character instead of a newline character in `teip`'s procedure.
-
-In other words, if you use a targeted command that cannot handle NUL characters (and cannot print NUL-separated results), the final result can be unintended.
-
-```bash
-$ printf '111,\n222,33\n3\0\n444,55\n5,666\n' | teip -z -f3 -d, -- sed -z 's/.*/@@@/g'
-111,
-222,@@@
-444,55
-5,@@@
-
-$ printf '111,\n222,33\n3\0\n444,55\n5,666\n' | teip -z -f3 -d, -- sed 's/.*/@@@/g'
-111,
-222,@@@
-@@@
-444,55
-5,teip: Output of given command is exhausted
-```
-
-Specifying from one line to another is a typical use case for this option.
-
-```bash
-$ cat test.html | teip -z -og '<body>.*</body>'
-<html>
-<head>
-  <title>AAA</title>
-</head>
-[<body>
-  <div>AAA</div>
-  <div>BBB</div>
-  <div>CCC</div>
-</body>]
-</html>
-
-$ cat test.html | teip -z -og '<body>.*</body>' -- grep -a BBB
-<html>
-<head>
-  <title>AAA</title>
-</head>
-  <div>BBB</div>
-</html>
-```
-
-### Solid mode with `--chomp` 
-
-If `-s` option does not work as expected, `--chomp` may be helpful.
-
-A targeted command in solid mode always accepts input with a line field (`\x0A`) at the end.
-This is because `teip` assumes the use of commands that return a single line of result in response to a single line of input.
-Therefore, even if there is no line break in the hole, a line break is given to treat it as a single line of input.
-
-However, there are situations where this behavior is inconvenient.
-For example, when using commands whose behavior changes depending on the presence or absence of line field.
+#### `-A <number>`
+This is an alias of `-e 'grep -n -A <number> <pattern>'`.
+If it is used together with `-g <pattern>` option, it makes holes in row matching `<pattern>` and `<number>` rows after the row.
 
 ```
-$ echo AAABBBCCC | teip -og BBB -s
-AAA[BBB]CCC
-$ echo AAABBBCCC | teip -og BBB -s -- tr '\n' '@'
-AAABBB@CCC
+$ cat AtoG.txt | teip -g B -A 2
+A
+[B]
+[C]
+[D]
+E
+F
+G
 ```
 
-The above is an example where the targeted command is a "tr command that converts line field (\x0A) to @".
-"BBB" does not contain a newline, but the result is "BBB@", because implicitly added line breaks have been processed.
-To prevent this behavior, use the `--chomp` option.
-This option gives the targeted command pure input with no newlines added.
+
+#### `-B <number>`
+
+This is an alias of `-e 'grep -n -B <number> <pattern>'`
+If it is used together with `-g <pattern>` option, it makes holes in row matching `<pattern>` and `<number>` rows before the row.
 
 ```
-$ echo AAABBBCCC | teip -og BBB -s --chomp -- tr '\n' '@'
-AAABBBCCC
+$ cat AtoG.txt | teip -g E -B 2
+A
+B
+[C]
+[D]
+[E]
+F
+G
 ```
 
-For example, it is useful when using commands that interpret and process input as binary like `tr`.
-Below is an example of "removing newlines from the second column of a CSV that contains newlines.
+
+
+#### `-C <number>`
+This is an alias of `-e 'grep -n -C <number> <pattern>'`.
+If it is used together with `-g <pattern>` option, it makes holes in row matching `<pattern>` and `<number>` rows before and after the row.
 
 ```
-$ cat tests/sample.csv
-Name,Address,zipcode
-Sola Harewatar,"Doreami Road 123
-Sorashido city",12877
+$ cat AtoG.txt | teip -g E -C 2
+A
+B
+[C]
+[D]
+[E]
+[F]
+[G]
 ```
 
-The result is.
+#### `--sed <pattern>`
+
+This is an alias of `-e 'sed -n "<pattern>="`.
 
 ```
-$ cat tests/sample.csv | teip --csv -f 2 -s --chomp -- tr '\n' '@'
-Name,Address,zipcode
-Sola Harewatar,"Doreami Road 123@Sorashido city",12877
+$ cat AtoG.txt | teip --sed '/B/,/E/'
+A
+[B]
+[C]
+[D]
+[E]
+F
+G
 ```
+
+```
+$ cat AtoG.txt | teip --sed '1~3'
+[A]
+B
+C
+[D]
+E
+F
+[G]
+```
+
+#### `--awk <pattern>`
+
+This is an alias of `-e 'awk "<pattern>{print NR}"`.
+
+```
+$ cat AtoG.txt | teip --awk '/B/,/E/'
+A
+[B]
+[C]
+[D]
+[E]
+F
+G
+```
+
+```
+$ cat AtoG.txt | teip --awk 'NR%3==0'
+A
+B
+[C]
+D
+E
+[F]
+G
+```
+
 
 # Environment variables
 
@@ -829,6 +960,38 @@ ABAB  ### Same color as grep
 ```
 
 [ANSI Escape Sequences](https://gist.github.com/fnky/458719343aabd01cfb17a3a4f7296797) and [ANSI-C Quoting](https://www.gnu.org/software/bash/manual/html_node/ANSI_002dC-Quoting.html) are helpful to customize this value.
+
+### `TEIP_GREP_PATH`
+
+**DEFAULT VALUE:** `grep`
+
+The path to `grep` command used by `-A`, `-B`, `-C` options.
+For example, if you want to use `ggrep` instead of `grep`, set this variable to `ggrep`.
+
+```
+$ export TEIP_GREP_PATH=/opt/homebrew/bin/ggrep
+$ echo -e 'AAA\nBBB\nCCC\nDDD\nEEE\nFFF' | teip -g CCC -A 2
+AAA
+BBB
+[CCC]
+[DDD]
+[EEE]
+FFF
+```
+
+### `TEIP_SED_PATH`
+
+**DEFAULT VALUE:** `sed`
+
+The path to `sed` command used by `--sed` option.
+For example, if you want to use `gsed` instead of `sed`, set this variable to `gsed`.
+
+### `TEIP_AWK_PATH`
+
+**DEFAULT VALUE:** `awk`
+
+The path to `awk` command used by `--awk` option.
+For example, if you want to use `gawk` instead of `awk`, set this variable to `gawk`.
 
 # Background
 
