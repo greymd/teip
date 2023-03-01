@@ -193,9 +193,9 @@ FLAGS:
 
 EXPERIMENTAL OPTIONS:
     -g <pattern>
-        -A <number>     Alias of -e 'grep -A <number> <pattern>'
-        -B <number>     Alias of -e 'grep -B <number> <pattern>'
-        -C <number>     Alias of -e 'grep -C <number> <pattern>'
+        -A <number>     Alias of -e 'grep -n -A <number> <pattern>'
+        -B <number>     Alias of -e 'grep -n -B <number> <pattern>'
+        -C <number>     Alias of -e 'grep -n -C <number> <pattern>'
     --sed <pattern>     Alias of -e 'sed -n "<pattern>="'
     --awk <pattern>     Alias of -e 'awk "<pattern>{print NR}"'
 ```
