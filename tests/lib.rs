@@ -322,7 +322,6 @@ mod cmdtest {
     fn test_onig_null_invert() {
         let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
         // Use perl -0 instead of sed -z because BSD does not support it.
-        // Deprecated
         cmd.args(&["-zv", "-Gog", "^...", TR_CMD, "[:alnum:]", "@"])
             .write_stdin("ABC123EFG\0HIJKLM456")
             .assert()
