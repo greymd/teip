@@ -597,7 +597,7 @@ In other words, by connecting multiple functions of `teip` with AND conditions, 
 Furthermore, it works asynchronously and in multi-processes, similar to the shell pipeline.
 It will hardly degrade performance unless the machine faces the limits of parallelism.
 
-### Oniguruma regular expressior (`-g`)
+### Oniguruma regular expressior (`-G`)
 
 If `-G` option is given together with `-g`, the regular expressin is interpreted as [Oniguruma regular expression](https://github.com/kkos/oniguruma/blob/master/doc/RE). For example, "keep" and "look-ahead" syntax can be used.
 
