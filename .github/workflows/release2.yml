@@ -1,9 +1,14 @@
 name: Release
 
+env:
+  CICD_INTERMEDIATES_DIR: "_cicd-intermediates"
+
 on:
   push:
+    branches:
+      - feature/arm_build
     tags:
-      - 'stop-v*.*.*' # release pending for testing
+      - 'v*.*.*-test'
 
 jobs:
   build:
@@ -26,24 +31,30 @@ jobs:
             ext: tar.gz
 
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
       - name: Set envs
         id: vars
         run: |
           echo ver=${GITHUB_REF/refs\/tags\/v/} >> ${GITHUB_OUTPUT}
+          echo "PROJECT_NAME=$(sed -n 's/^name = "\(.*\)"/\1/p' Cargo.toml | head -n1)" >> $GITHUB_ENV
+          echo "PROJECT_VERSION=$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -n1)" >> $GITHUB_ENV
+          echo "PROJECT_MAINTAINER=$(sed -n 's/^authors = \["\(.*\)"\]/\1/p' Cargo.toml)" >> $GITHUB_ENV
+          echo "PROJECT_HOMEPAGE=$(sed -n 's/^homepage = "\(.*\)"/\1/p' Cargo.toml)" >> $GITHUB_ENV
 
-      - name: Checkout code
-        uses: actions/checkout@v2
+      - name: Install prerequisites
+        shell: bash
+        run: |
+          case ${{ matrix.target }} in
+            arm-unknown-linux-*) sudo apt-get -y update ; sudo apt-get -y install gcc-arm-linux-gnueabihf ;;
+            aarch64-unknown-linux-gnu) sudo apt-get -y update ; sudo apt-get -y install gcc-aarch64-linux-gnu ;;
+          esac
 
-      - name: Install musl-gcc if required
+      - name: Install prerequisites for musl
         if: contains(matrix.target, 'musl')
         run: |
           sudo apt-get install musl-tools
-
-      - name: Compile for musl
-        if: contains(matrix.target, 'musl')
-        run: |
-          rustup target add ${{ matrix.target }}
-          CFLAGS="-fPIE" CC="musl-gcc -static" cargo build --verbose --features oniguruma --release --target ${{ matrix.target }}
 
       - name: Compile
         if: "! contains(matrix.target, 'musl')"
@@ -51,17 +62,25 @@ jobs:
           rustup target add ${{ matrix.target }}
           cargo build --verbose --features oniguruma --release --target ${{ matrix.target }}
 
-      - name: Build packages
+      - name: Compile for musl
+        if: contains(matrix.target, 'musl')
         run: |
-          _TAR=teip-${{ steps.vars.outputs.ver }}.${{ matrix.target }}.tar.gz
+          rustup target add ${{ matrix.target }}
+          CFLAGS="-fPIE" CC="musl-gcc -static" cargo build --verbose --features oniguruma --release --target ${{ matrix.target }}
+
+      - name: Packing
+        id: pack
+        run: |
           mkdir -p package/bin
           mv target/${{ matrix.target }}/release/teip package/bin
           mkdir -p package/man
           cp man/teip.1 package/man
           cp -r completion package/
-          ## sed -i is not used due to difference between macOS and Linux
-          perl -i -pe s/___VERSION___/${{ steps.vars.outputs.ver }}/ ./package/.tar2package.yml
-          tar zcvf "$_TAR" -C "$PWD/package" completion bin man .tar2package.yml
+
+      - name: Create tarball
+        run: |
+          _TAR=teip-${{ steps.vars.outputs.ver }}.${{ matrix.target }}.tar.gz
+          tar zcvf "$_TAR" -C "$PWD/package" completion bin man
 
       - name: Build rpm
         id: rpm
@@ -71,13 +90,96 @@ jobs:
           docker run -i "greymd/tar2rpm:1.0.1" < "$_TAR" > teip-${{ steps.vars.outputs.ver }}.${{ matrix.target }}.rpm
           echo sha256=$( sha256sum teip-${{ steps.vars.outputs.ver }}.${{ matrix.target }}.rpm | awk '{print $1}' ) >> ${GITHUB_OUTPUT}
 
-      - name: Build deb
+      - name: Create Debian package
         id: deb
         if: matrix.ext == 'deb'
         run: |
           _TAR=teip-${{ steps.vars.outputs.ver }}.${{ matrix.target }}.tar.gz
-          docker run -i "greymd/tar2deb:1.0.1" < "$_TAR" > teip-${{ steps.vars.outputs.ver }}.${{ matrix.target }}.deb
-          echo sha256=$( sha256sum teip-${{ steps.vars.outputs.ver }}.${{ matrix.target }}.deb | awk '{print $1}' ) >> ${GITHUB_OUTPUT}
+          COPYRIGHT_YEARS="2020 - "$(date "+%Y")
+          DPKG_STAGING="${{ env.CICD_INTERMEDIATES_DIR }}/debian-package"
+          DPKG_DIR="${DPKG_STAGING}/dpkg"
+          mkdir -p "${DPKG_DIR}"
+
+          DPKG_BASENAME=${PROJECT_NAME}
+          DPKG_VERSION=${PROJECT_VERSION}
+
+          unset DPKG_ARCH
+          case ${{ matrix.target }} in
+            aarch64-*-linux-*) DPKG_ARCH=arm64 ;;
+            arm-*-linux-*hf) DPKG_ARCH=armhf ;;
+            i686-*-linux-*) DPKG_ARCH=i686 ;;
+            x86_64-*-linux-*) DPKG_ARCH=amd64 ;;
+            *) DPKG_ARCH=notset ;;
+          esac;
+
+          DPKG_NAME="teip-${{ steps.vars.outputs.ver }}.${{ matrix.target }}.deb"
+          echo name=${DPKG_NAME} >> ${GITHUB_OUTPUT}
+          BIN_PATH=package/bin/teip
+          BIN_NAME=${{ env.PROJECT_NAME }}
+
+          # Binary
+          install -Dm755 "$BIN_PATH" "${DPKG_DIR}/usr/bin/${BIN_NAME}"
+
+          # Man page
+          install -Dm644 package/man/teip.1 "${DPKG_DIR}/usr/share/man/man1/${PROJECT_NAME}.1"
+          gzip -n --best "${DPKG_DIR}/usr/share/man/man1/${PROJECT_NAME}.1"
+
+          # Autocompletion files
+          install -Dm644 package/completion/zsh/_teip "${DPKG_DIR}/usr/share/zsh/vendor-completions/_${PROJECT_NAME}"
+
+          # README and LICENSE
+          install -Dm644 "README.md" "${DPKG_DIR}/usr/share/doc/${DPKG_BASENAME}/README.md"
+          install -Dm644 "LICENSE" "${DPKG_DIR}/usr/share/doc/${DPKG_BASENAME}/LICENSE"
+          cat > "${DPKG_DIR}/usr/share/doc/${DPKG_BASENAME}/copyright" <<EOF
+          Format: http://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+          Upstream-Name: ${PROJECT_NAME}
+          Source: ${PROJECT_HOMEPAGE}
+          Files: *
+          Copyright: ${PROJECT_MAINTAINER}
+          Copyright: $COPYRIGHT_YEARS ${PROJECT_MAINTAINER}
+          License: MIT
+            Permission is hereby granted, free of charge, to any
+            person obtaining a copy of this software and associated
+            documentation files (the "Software"), to deal in the
+            Software without restriction, including without
+            limitation the rights to use, copy, modify, merge,
+            publish, distribute, sublicense, and/or sell copies of
+            the Software, and to permit persons to whom the Software
+            is furnished to do so, subject to the following
+            conditions:
+            .
+            The above copyright notice and this permission notice
+            shall be included in all copies or substantial portions
+            of the Software.
+            .
+            THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF
+            ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED
+            TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+            PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT
+            SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+            CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+            OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR
+            IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+            DEALINGS IN THE SOFTWARE.
+          EOF
+
+          mkdir -p "${DPKG_DIR}/DEBIAN"
+          cat > "${DPKG_DIR}/DEBIAN/control" <<EOF
+          Package: ${DPKG_BASENAME}
+          Version: ${DPKG_VERSION}
+          Section: utils
+          Priority: optional
+          Maintainer: ${PROJECT_MAINTAINER}
+          Homepage: ${PROJECT_HOMEPAGE}
+          Architecture: ${DPKG_ARCH}
+          Provides: ${PROJECT_NAME}
+          Conflicts: ${DPKG_CONFLICTS}
+          Description: Masking tape to help commands "do one thing well"
+            Bypassing a partial range of standard input to any command
+            whatever you want
+          EOF
+          mv "${DPKG_STAGING}/${DPKG_NAME}" "${DPKG_NAME}"
+          echo sha256=$( sha256sum "${DPKG_NAME}" | awk '{print $1}' ) >> ${GITHUB_OUTPUT}
 
       - name: Upload binaries to release
         uses: svenstaro/upload-release-action@v1-release
