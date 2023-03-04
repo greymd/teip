@@ -58,18 +58,16 @@ jobs:
           # For aarch64 settings
           if [[ "${{ matrix.target }}" =~ ^aarch64-unknown-linux ]]; then
             mkdir -p $HOME/.cargo
-            echo "[target.aarch64-unknown-linux-gnu]" >> $HOME/.cargo/config
+            echo "[target.aarch64-unknown-linux-musl]" >> $HOME/.cargo/config
             echo 'linker = "aarch64-linux-gnu-gcc"' >> $HOME/.cargo/config
             sed 2iREALGCC=aarch64-linux-gnu-gcc /usr/bin/musl-gcc | sudo tee /usr/bin/aarch64-linux-musl-gcc
             chmod +x /usr/bin/aarch64-linux-musl-gcc
           fi
 
       - name: Build aarch64 Docker image
+        if: matrix.target == 'aarch64-unknown-linux-musl'
         run: |
-          sudo apt-get update && sudo apt-get install -y \
-            rpm \
-            qemu-user-static \
-            docker-ce
+          sudo apt-get update && sudo apt-get install -y qemu-user-static
           docker build -t aarch64-rpm-builder -f .github/dockerfiles/Dockerfile.aarch64 .
 
      #- name: Install prerequisites for musl
@@ -102,16 +100,16 @@ jobs:
       - name: Create tarball
         run: |
           _TAR=teip-${{ steps.vars.outputs.ver }}.${{ matrix.target }}.tar.gz
-          RPM_PACK=teip-${{ steps.vars.outputs.ver }}
-          cp -al "package/" "${RPM_PACK}/"
-          tar zcvf "${RPM_PACK}.tar.gz" -C "$PWD" ${RPM_PACK}
+          tar zcvf "$_TAR" -C "$PWD/package" completion bin man
 
       - name: Build rpm
         id: rpm
         if: matrix.ext == 'rpm'
         run: |
           _TAR=teip-${{ steps.vars.outputs.ver }}.${{ matrix.target }}.tar.gz
-          docker run -i "greymd/tar2rpm:1.0.1" < "$_TAR" > teip-${{ steps.vars.outputs.ver }}.${{ matrix.target }}.rpm
+          RPM_PACK=teip-${{ steps.vars.outputs.ver }}
+          cp -al "package/" "${RPM_PACK}/"
+          tar zcvf "${RPM_PACK}.tar.gz" -C "$PWD" ${RPM_PACK}
           echo sha256=$( sha256sum teip-${{ steps.vars.outputs.ver }}.${{ matrix.target }}.rpm | awk '{print $1}' ) >> ${GITHUB_OUTPUT}
 
       - name: Create Debian package
