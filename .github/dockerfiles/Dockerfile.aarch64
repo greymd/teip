@@ -1,0 +1,2 @@
+FROM arm64v8/centos:7
+RUN yum install -y rpm-build redhat-rpm-config rpmdevtools

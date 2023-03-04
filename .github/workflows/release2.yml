@@ -52,7 +52,7 @@ jobs:
         run: |
           case ${{ matrix.target }} in
             arm-unknown-linux-*) sudo apt-get -y update ; sudo apt-get -y install gcc-arm-linux-gnueabihf ;;
-            aarch64-unknown-linux-*) sudo apt-get -y update ; sudo apt-get -y install gcc-aarch64-linux-gnu ;;
+            aarch64-unknown-linux-*) sudo apt-get -y update ; sudo apt-get -y install musl-tools gcc-aarch64-linux-gnu ;;
           esac
 
           # For aarch64 settings
@@ -63,11 +63,14 @@ jobs:
             sed 2iREALGCC=aarch64-linux-gnu-gcc /usr/bin/musl-gcc | sudo tee /usr/bin/aarch64-linux-musl-gcc
             chmod +x /usr/bin/aarch64-linux-musl-gcc
           fi
-
-      - name: Install prerequisites for musl
-        if: contains(matrix.target, 'musl')
+      - name: Build aarch64 Docker image
         run: |
-          sudo apt-get install musl-tools
+          docker build -t aarch64-rpm-builder -f .github/dockerfiles/Dockerfile.aarch64 .
+
+     #- name: Install prerequisites for musl
+     #  if: contains(matrix.target, 'musl')
+     #  run: |
+     #    sudo apt-get install musl-tools
 
       - name: Compile
         # if: "! contains(matrix.target, 'musl')"
