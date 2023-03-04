@@ -61,7 +61,7 @@ jobs:
             echo "[target.aarch64-unknown-linux-musl]" >> $HOME/.cargo/config
             echo 'linker = "aarch64-linux-gnu-gcc"' >> $HOME/.cargo/config
             sed 2iREALGCC=aarch64-linux-gnu-gcc /usr/bin/musl-gcc | sudo tee /usr/bin/aarch64-linux-musl-gcc
-            chmod +x /usr/bin/aarch64-linux-musl-gcc
+            sudo chmod +x /usr/bin/aarch64-linux-musl-gcc
           fi
 
       - name: Build aarch64 Docker image
