@@ -76,10 +76,10 @@ jobs:
      #    sudo apt-get install musl-tools
 
       - name: Compile
+        if: "! contains(matrix.target, 'musl')" && "! contains(matrix.target, 'x86_64')"
         run: |
           rustup target add ${{ matrix.target }}
           cargo build --verbose --features oniguruma --release --target ${{ matrix.target }}
-        # if: "! contains(matrix.target, 'musl')"
 
      - name: Compile for musl
        if: contains(matrix.target, 'musl') && contains(matrix.target, 'x86_64')
