@@ -75,11 +75,11 @@ jobs:
           rustup target add ${{ matrix.target }}
           cargo build --verbose --features oniguruma --release --target ${{ matrix.target }}
 
-     - name: Compile for musl
-       if: contains(matrix.target, 'musl') && contains(matrix.target, 'x86_64')
-       run: |
-         rustup target add ${{ matrix.target }}
-         CFLAGS="-fPIE" CC="musl-gcc -static" cargo build --verbose --features oniguruma --release --target ${{ matrix.target }}
+      - name: Compile for musl
+        if: contains(matrix.target, 'musl') && contains(matrix.target, 'x86_64')
+        run: |
+          rustup target add ${{ matrix.target }}
+          CFLAGS="-fPIE" CC="musl-gcc -static" cargo build --verbose --features oniguruma --release --target ${{ matrix.target }}
 
       - name: Packing
         id: pack
