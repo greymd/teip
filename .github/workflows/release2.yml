@@ -24,10 +24,10 @@ jobs:
           - target: x86_64-unknown-linux-musl
             os: ubuntu-latest
             ext: deb
-          - target: aarch64-unknown-linux-gnu
+          - target: aarch64-unknown-linux-musl
             os: ubuntu-latest
             ext: deb
-          - target: aarch64-unknown-linux-gnu
+          - target: aarch64-unknown-linux-musl
             os: ubuntu-latest
             ext: tar.gz
           - target: x86_64-apple-darwin
@@ -52,13 +52,16 @@ jobs:
         run: |
           case ${{ matrix.target }} in
             arm-unknown-linux-*) sudo apt-get -y update ; sudo apt-get -y install gcc-arm-linux-gnueabihf ;;
-            aarch64-unknown-linux-gnu) sudo apt-get -y update ; sudo apt-get -y install gcc-aarch64-linux-gnu ;;
+            aarch64-unknown-linux-*) sudo apt-get -y update ; sudo apt-get -y install gcc-aarch64-linux-gnu ;;
           esac
 
-          if [[ "${{ matrix.target}}" == "aarch64-unknown-linux-gnu" ]]; then
+          # For aarch64 settings
+          if [[ "${{ matrix.target }}" =~ ^aarch64-unknown-linux ]]; then
             mkdir -p $HOME/.cargo
             echo "[target.aarch64-unknown-linux-gnu]" >> $HOME/.cargo/config
             echo 'linker = "aarch64-linux-gnu-gcc"' >> $HOME/.cargo/config
+            sed 2iREALGCC=aarch64-linux-gnu-gcc /usr/bin/musl-gcc | sudo tee /usr/bin/aarch64-linux-musl-gcc
+            chmod +x /usr/bin/aarch64-linux-musl-gcc
           fi
 
       - name: Install prerequisites for musl
@@ -67,16 +70,17 @@ jobs:
           sudo apt-get install musl-tools
 
       - name: Compile
-        if: "! contains(matrix.target, 'musl')"
+        # if: "! contains(matrix.target, 'musl')"
         run: |
           rustup target add ${{ matrix.target }}
           cargo build --verbose --features oniguruma --release --target ${{ matrix.target }}
 
-      - name: Compile for musl
-        if: contains(matrix.target, 'musl')
-        run: |
-          rustup target add ${{ matrix.target }}
-          CFLAGS="-fPIE" CC="musl-gcc -static" cargo build --verbose --features oniguruma --release --target ${{ matrix.target }}
+     #- name: Compile for musl
+     #  if: contains(matrix.target, 'musl')
+     #  run: |
+     #    rustup target add ${{ matrix.target }}
+     #    # CFLAGS="-fPIE" CC="musl-gcc -static" cargo build --verbose --features oniguruma --release --target ${{ matrix.target }}
+     #    CFLAGS="-fPIE" cargo build --verbose --features oniguruma --release --target ${{ matrix.target }}
 
       - name: Packing
         id: pack
