@@ -3,7 +3,7 @@ name: Performance Benchmark
 on:
   push:
     branches:
-      - master
+      - main
       - 'develop-**'
       - 'bugfix/**'
       - 'feature/**'

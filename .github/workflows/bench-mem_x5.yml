@@ -3,7 +3,7 @@ name: Memory Benchmark x5
 on:
   push:
     branches:
-      - master
+      - main
       - 'develop-**'
       - 'bugfix/**'
       - 'feature/**'

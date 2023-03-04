@@ -6,7 +6,7 @@
 <p align="center">
   <a href="https://github.com/greymd/teip/releases/latest"><img src="https://img.shields.io/github/release/greymd/teip.svg" alt="Latest version" /></a>
   <a href="https://crates.io/crates/teip" alt="crate.io"><img src="https://img.shields.io/crates/v/teip.svg"/></a>
-  <a href="https://github.com/greymd/teip/actions?query=workflow%3ATest"><img src="https://github.com/greymd/teip/workflows/Test/badge.svg?branch=master" alt="Test Status" /></a>
+  <a href="https://github.com/greymd/teip/actions?query=workflow%3ATest"><img src="https://github.com/greymd/teip/workflows/Test/badge.svg?branch=main" alt="Test Status" /></a>
   <a href="LICENSE" alt="MIT License"><img src="http://img.shields.io/badge/license-MIT-blue.svg?style=flat" /></a>
 </p>
 

@@ -3,7 +3,7 @@ name: Test for UNIX-like OS
 on:
   push:
     branches:
-      - master
+      - main
       - 'develop-**'
       - 'bugfix/**'
       - 'feature/**'

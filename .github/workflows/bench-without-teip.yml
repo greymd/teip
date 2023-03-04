@@ -3,7 +3,7 @@ name: Benchmark without teip
 on:
   push:
     branches:
-      - master
+      - main
       - 'develop-**'
       - 'bugfix/**'
       - 'feature/**'

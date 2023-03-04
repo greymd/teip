@@ -241,6 +241,6 @@ jobs:
           author_name: GitHub Action
           author_email: yamada@gr3.ie
           message: '[skip ci] Update README.md'
-          ref: 'master'
+          ref: 'main'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
