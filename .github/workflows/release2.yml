@@ -52,11 +52,11 @@ jobs:
         run: |
           case ${{ matrix.target }} in
             arm-unknown-linux-*) sudo apt-get -y update ; sudo apt-get -y install gcc-arm-linux-gnueabihf ;;
-            aarch64-unknown-linux-*) sudo apt-get -y update ; sudo apt-get -y install musl-tools gcc-aarch64-linux-gnu ;;
+            aarch64-unknown-linux-*) sudo apt-get -y update ; sudo apt-get -y install gcc-aarch64-linux-gnu ;;
           esac
-
           # For aarch64 settings
           if [[ "${{ matrix.target }}" =~ ^aarch64-unknown-linux ]]; then
+            sudo apt-get -y install musl-tools
             mkdir -p $HOME/.cargo
             echo "[target.aarch64-unknown-linux-musl]" >> $HOME/.cargo/config
             echo 'linker = "aarch64-linux-gnu-gcc"' >> $HOME/.cargo/config
@@ -76,17 +76,16 @@ jobs:
      #    sudo apt-get install musl-tools
 
       - name: Compile
-        # if: "! contains(matrix.target, 'musl')"
         run: |
           rustup target add ${{ matrix.target }}
           cargo build --verbose --features oniguruma --release --target ${{ matrix.target }}
+        # if: "! contains(matrix.target, 'musl')"
 
-     #- name: Compile for musl
-     #  if: contains(matrix.target, 'musl')
-     #  run: |
-     #    rustup target add ${{ matrix.target }}
-     #    # CFLAGS="-fPIE" CC="musl-gcc -static" cargo build --verbose --features oniguruma --release --target ${{ matrix.target }}
-     #    CFLAGS="-fPIE" cargo build --verbose --features oniguruma --release --target ${{ matrix.target }}
+     - name: Compile for musl
+       if: contains(matrix.target, 'musl') && contains(matrix.target, 'x86_64')
+       run: |
+         rustup target add ${{ matrix.target }}
+         CFLAGS="-fPIE" CC="musl-gcc -static" cargo build --verbose --features oniguruma --release --target ${{ matrix.target }}
 
       - name: Packing
         id: pack
