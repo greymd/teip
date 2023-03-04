@@ -82,7 +82,7 @@ jobs:
       - name: Compile
         run: |
           rustup target add ${{ matrix.target }}
-          case ${{ matrix.target}} in
+          case ${{ matrix.target }} in
             x86_64-unknown-linux-musl)  CFLAGS="-fPIE" CC="musl-gcc -static" cargo build --verbose --features oniguruma --release --target ${{ matrix.target }} ;;
             *)  cargo build --verbose --features oniguruma --release --target ${{ matrix.target }} ;;
           esac
