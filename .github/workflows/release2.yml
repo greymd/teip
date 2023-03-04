@@ -69,17 +69,18 @@ jobs:
      #  run: |
      #    sudo apt-get install musl-tools
 
-      - name: Compile
-        if: "!contains(matrix.target, 'musl') && !contains(matrix.target, 'x86_64')"
-        run: |
-          rustup target add ${{ matrix.target }}
-          cargo build --verbose --features oniguruma --release --target ${{ matrix.target }}
+     #- name: Compile
+     #  if: "!contains(matrix.target, 'musl') && !contains(matrix.target, 'x86_64')"
+     #  run: |
+     #    rustup target add ${{ matrix.target }}
 
-      - name: Compile for musl
-        if: contains(matrix.target, 'musl') && contains(matrix.target, 'x86_64')
+      - name: Compile
         run: |
           rustup target add ${{ matrix.target }}
-          CFLAGS="-fPIE" CC="musl-gcc -static" cargo build --verbose --features oniguruma --release --target ${{ matrix.target }}
+          case ${{ matrix.target}} in
+            x86_64-unknown-linux-musl)  CFLAGS="-fPIE" CC="musl-gcc -static" cargo build --verbose --features oniguruma --release --target ${{ matrix.target }} ;;
+            *)  cargo build --verbose --features oniguruma --release --target ${{ matrix.target }} ;;
+          esac
 
       - name: Packing
         id: pack
