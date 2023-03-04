@@ -64,12 +64,6 @@ jobs:
             sudo chmod +x /usr/bin/aarch64-linux-musl-gcc
           fi
 
-      - name: Build aarch64 Docker image
-        if: matrix.target == 'aarch64-unknown-linux-musl'
-        run: |
-          sudo apt-get update && sudo apt-get install -y qemu-user-static
-          docker build -t aarch64-rpm-builder -f .github/dockerfiles/Dockerfile.aarch64 .
-
      #- name: Install prerequisites for musl
      #  if: contains(matrix.target, 'musl')
      #  run: |
@@ -101,14 +95,68 @@ jobs:
           _TAR=teip-${{ steps.vars.outputs.ver }}.${{ matrix.target }}.tar.gz
           tar zcvf "$_TAR" -C "$PWD/package" completion bin man
 
+      - name: Build aarch64 Docker image
+        if: matrix.target == 'aarch64-unknown-linux-musl'
+        run: |
+          sudo apt-get update && sudo apt-get install -y qemu-user-static
+          docker build -t aarch64-rpm-builder -f .github/dockerfiles/Dockerfile.aarch64 .
+
       - name: Build rpm
         id: rpm
         if: matrix.ext == 'rpm'
         run: |
           _TAR=teip-${{ steps.vars.outputs.ver }}.${{ matrix.target }}.tar.gz
+          RPM_BUILD=rpmbuild
           RPM_PACK=teip-${{ steps.vars.outputs.ver }}
           cp -al "package/" "${RPM_PACK}/"
           tar zcvf "${RPM_PACK}.tar.gz" -C "$PWD" ${RPM_PACK}
+          mkdir -p "${RPM_BUILD}/SOURCES"
+          cp "${RPM_PACK}.tar.gz" "${RPM_BUILD}/SOURCES"
+
+          unset RPM_ARCH
+          case ${{ matrix.target }} in
+            aarch64-*-linux-*) RPM_ARCH=aarch64 ;;
+            arm-*-linux-*hf) RPM_ARCH=armhf ;;
+            i686-*-linux-*) RPM_ARCH=i686 ;;
+            x86_64-*-linux-*) RPM_ARCH=x86_64 ;;
+            *) RPM_ARCH=notset ;;
+          esac;
+
+          cat > "${RPM_BUILD}/SOURCES/template.spec" <<EOF
+          Name:       ${PROJECT_NAME}
+          Summary:    Masking tape to help commands "do one thing well"
+          Version:    ${PROJECT_VERSION}
+          Group:      Applications
+          License:    MIT
+          Release:    %(date '+%'s)
+          BuildArch:  ${RPM_ARCH}
+          URL:        ${PROJECT_HOMEPAGE}
+          Source:     ${RPM_PACK}.tar.gz
+          Vendor:     Yasuhiro Yamada <yamada@gr3.ie>
+          Provides:   ${PROJECT_NAME}
+          BuildRoot: %(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
+          %description
+          Masking tape to help commands "do one thing well"
+          Bypassing a partial range of standard input to any command
+          whatever you want
+          %prep
+          %setup
+          %install
+          install -d -m 0755 %{buildroot}%{_bindir}
+          install -d -m 0755 %{buildroot}%{_mandir}/man1
+          %{__cp} -a bin/* %{buildroot}%{_bindir}/
+          %{__cp} -a man/*.1 %{buildroot}%{_mandir}/man1/
+          %files
+          %attr(0644, root, root) %{_mandir}/man1/*
+          %attr(0755, root, root) %{_bindir}/*
+          %clean
+          %{__rm} -rf %{buildroot}
+          EOF
+
+          docker run --rm -v "$PWD/$RPM_BUILD":/root/rpmbuild aarch64-rpm-builder \
+            rpmbuild --undefine=_disable_source_fetch -ba /root/rpmbuild/SPECS/template.spec
+          mv "$RPM_BUILD"/RPMS/"$RPM_ARCH"/teip-*.rpm teip-${{ steps.vars.outputs.ver }}.${{ matrix.target }}.rpm
+          file teip-${{ steps.vars.outputs.ver }}.${{ matrix.target }}.rpm
           echo sha256=$( sha256sum teip-${{ steps.vars.outputs.ver }}.${{ matrix.target }}.rpm | awk '{print $1}' ) >> ${GITHUB_OUTPUT}
 
       - name: Create Debian package
