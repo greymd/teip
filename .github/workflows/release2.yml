@@ -112,6 +112,7 @@ jobs:
           cp -al "package/" "${RPM_PACK}/"
           tar zcvf "${RPM_PACK}.tar.gz" -C "$PWD" ${RPM_PACK}
           mkdir -p "${RPM_BUILD}/SOURCES"
+          mkdir -p "${RPM_BUILD}/SPECS"
           cp "${RPM_PACK}.tar.gz" "${RPM_BUILD}/SOURCES"
 
           unset RPM_ARCH
@@ -123,7 +124,7 @@ jobs:
             *) RPM_ARCH=notset ;;
           esac;
 
-          cat > "${RPM_BUILD}/SOURCES/template.spec" <<EOF
+          cat > "${RPM_BUILD}/SPECS/template.spec" <<EOF
           Name:       ${PROJECT_NAME}
           Summary:    Masking tape to help commands "do one thing well"
           Version:    ${PROJECT_VERSION}
