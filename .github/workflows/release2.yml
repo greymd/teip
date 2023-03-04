@@ -164,6 +164,7 @@ jobs:
           chmod -R 777 "$RPM_BUILD"/
           mv "$RPM_BUILD"/RPMS/"$RPM_ARCH"/teip-*.rpm teip-${{ steps.vars.outputs.ver }}.${{ matrix.target }}.rpm
           file teip-${{ steps.vars.outputs.ver }}.${{ matrix.target }}.rpm
+          rm -rf "$RPM_BUILD"/
           echo sha256=$( sha256sum teip-${{ steps.vars.outputs.ver }}.${{ matrix.target }}.rpm | awk '{print $1}' ) >> ${GITHUB_OUTPUT}
 
       - name: Create Debian package
