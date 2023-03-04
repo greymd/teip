@@ -47,6 +47,12 @@ jobs:
           echo "PROJECT_MAINTAINER=$(sed -n 's/^authors = \["\(.*\)"\]/\1/p' Cargo.toml)" >> $GITHUB_ENV
           echo "PROJECT_HOMEPAGE=$(sed -n 's/^homepage = "\(.*\)"/\1/p' Cargo.toml)" >> $GITHUB_ENV
 
+      - name: Install prerequisites for musl
+        if: contains(matrix.target, 'musl')
+        run: |
+          sudo apt-get -y update
+          sudo apt-get install musl-tools
+
       - name: Install prerequisites
         shell: bash
         run: |
@@ -63,11 +69,6 @@ jobs:
             sed 2iREALGCC=aarch64-linux-gnu-gcc /usr/bin/musl-gcc | sudo tee /usr/bin/aarch64-linux-musl-gcc
             sudo chmod +x /usr/bin/aarch64-linux-musl-gcc
           fi
-
-     #- name: Install prerequisites for musl
-     #  if: contains(matrix.target, 'musl')
-     #  run: |
-     #    sudo apt-get install musl-tools
 
      #- name: Compile
      #  if: "!contains(matrix.target, 'musl') && !contains(matrix.target, 'x86_64')"
