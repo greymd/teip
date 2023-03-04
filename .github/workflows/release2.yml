@@ -176,7 +176,9 @@ jobs:
             Bypassing a partial range of standard input to any command
             whatever you want
           EOF
-          mv "${DPKG_STAGING}/${DPKG_NAME}" "${DPKG_NAME}"
+          DPKG_PATH="${DPKG_STAGING}/${DPKG_NAME}"
+          fakeroot dpkg-deb --build "${DPKG_DIR}" "${DPKG_PATH}"
+          mv "${DPKG_PATH}" "${DPKG_NAME}"
           echo sha256=$( sha256sum "${DPKG_NAME}" | awk '{print $1}' ) >> ${GITHUB_OUTPUT}
 
       - name: Upload binaries to release
