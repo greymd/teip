@@ -18,18 +18,21 @@ jobs:
           - target: x86_64-unknown-linux-musl
             os: ubuntu-latest
             ext: tar.gz
-         #- target: x86_64-unknown-linux-musl
-         #  os: ubuntu-latest
-         #  ext: rpm
+          - target: x86_64-unknown-linux-musl
+            os: ubuntu-latest
+            ext: rpm
           - target: x86_64-unknown-linux-musl
             os: ubuntu-latest
             ext: deb
           - target: aarch64-unknown-linux-musl
             os: ubuntu-latest
+            ext: tar.gz
+          - target: aarch64-unknown-linux-musl
+            os: ubuntu-latest
             ext: deb
           - target: aarch64-unknown-linux-musl
             os: ubuntu-latest
-            ext: tar.gz
+            ext: rpm
           - target: x86_64-apple-darwin
             os: macOS-latest
             ext: tar.gz
@@ -97,17 +100,13 @@ jobs:
           _TAR=teip-${{ steps.vars.outputs.ver }}.${{ matrix.target }}.tar.gz
           tar zcvf "$_TAR" -C "$PWD/package" completion bin man
 
-      - name: Build aarch64 Docker image
-        if: matrix.target == 'aarch64-unknown-linux-musl'
-        run: |
-          sudo apt-get update && sudo apt-get install -y qemu-user-static
-          docker build -t aarch64-rpm-builder -f .github/dockerfiles/Dockerfile.aarch64 .
-
       - name: Build rpm
         id: rpm
         if: matrix.ext == 'rpm'
         run: |
           _TAR=teip-${{ steps.vars.outputs.ver }}.${{ matrix.target }}.tar.gz
+
+          ## Create tarball
           RPM_BUILD=rpmbuild
           RPM_PACK=teip-${{ steps.vars.outputs.ver }}
           cp -al "package/" "${RPM_PACK}/"
@@ -155,7 +154,10 @@ jobs:
           %{__rm} -rf %{buildroot}
           EOF
 
-          docker run --rm -v "$PWD/$RPM_BUILD":/root/rpmbuild aarch64-rpm-builder \
+          ## Build
+          sudo apt-get update && sudo apt-get install -y qemu-user-static
+          docker build -t ${RPM_ARCH}-rpm-builder -f .github/dockerfiles/Dockerfile.${RPM_ARCH} .
+          docker run --rm -v "$PWD/$RPM_BUILD":/root/rpmbuild ${RPM_ARCH}-rpm-builder \
             rpmbuild --undefine=_disable_source_fetch -ba /root/rpmbuild/SPECS/template.spec
           mv "$RPM_BUILD"/RPMS/"$RPM_ARCH"/teip-*.rpm teip-${{ steps.vars.outputs.ver }}.${{ matrix.target }}.rpm
           file teip-${{ steps.vars.outputs.ver }}.${{ matrix.target }}.rpm
