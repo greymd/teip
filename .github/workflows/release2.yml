@@ -12,6 +12,7 @@ jobs:
   build:
     name: Release for UNIX-like OS
     runs-on: ${{ matrix.os }}
+    permissions: write-all
     strategy:
       matrix:
         include:
