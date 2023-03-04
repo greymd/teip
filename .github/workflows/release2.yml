@@ -159,12 +159,11 @@ jobs:
           ## Build
           sudo apt-get update && sudo apt-get install -y qemu-user-static
           docker build -t ${RPM_ARCH}-rpm-builder -f .github/dockerfiles/Dockerfile.${RPM_ARCH} .
-          docker run --rm -v "$PWD/$RPM_BUILD":/root/rpmbuild ${RPM_ARCH}-rpm-builder \
+          sudo docker run --rm -v "$PWD/$RPM_BUILD":/root/rpmbuild ${RPM_ARCH}-rpm-builder \
             rpmbuild --undefine=_disable_source_fetch -ba /root/rpmbuild/SPECS/template.spec
-          chmod -R 777 "$RPM_BUILD"/
-          mv "$RPM_BUILD"/RPMS/"$RPM_ARCH"/teip-*.rpm teip-${{ steps.vars.outputs.ver }}.${{ matrix.target }}.rpm
-          file teip-${{ steps.vars.outputs.ver }}.${{ matrix.target }}.rpm
-          rm -rf "$RPM_BUILD"/
+          sudo mv "$RPM_BUILD"/RPMS/"$RPM_ARCH"/teip-*.rpm teip-${{ steps.vars.outputs.ver }}.${{ matrix.target }}.rpm
+          sudo file teip-${{ steps.vars.outputs.ver }}.${{ matrix.target }}.rpm
+          sudo rm -rf "$RPM_BUILD"/
           echo sha256=$( sha256sum teip-${{ steps.vars.outputs.ver }}.${{ matrix.target }}.rpm | awk '{print $1}' ) >> ${GITHUB_OUTPUT}
 
       - name: Create Debian package
