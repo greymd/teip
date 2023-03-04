@@ -5,8 +5,6 @@ env:
 
 on:
   push:
-    branches:
-      - feature/arm_build
     tags:
       - 'v*.*.*-test'
 
