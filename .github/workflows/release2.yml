@@ -339,6 +339,9 @@ jobs:
           - target: x86_64-pc-windows-msvc
             os: windows-latest
             ext: exe
+          - target: aarch64-pc-windows-msvc
+            os: windows-latest
+            ext: exe
     steps:
       - name: Set envs
         id: vars
@@ -355,7 +358,7 @@ jobs:
         run: |
           rustup target add ${{ matrix.target }}
           choco install llvm
-          cargo build --features oniguruma --release --verbose --target x86_64-pc-windows-msvc
+          cargo build --features oniguruma --release --verbose --target ${{ matrix.target }}
           # => target\x86_64-pc-windows-msvc\release\teip.exe will be created
           Invoke-WebRequest -OutFile windows\wizard.bmp -Uri https://raw.githubusercontent.com/wiki/greymd/teip/img/wizard.bmp
           Invoke-WebRequest -OutFile windows\wizard_long.bmp -Uri https://raw.githubusercontent.com/wiki/greymd/teip/img/wizard_long.bmp
@@ -376,17 +379,38 @@ jobs:
           tag: ${{ github.ref }}
           overwrite: true
 
-      - name: Create digest for exe
+      - name: Create digest for exe x86_64
+        if: |
+          contains(matrix.target, 'x86_64')
         shell: bash
         run: |
           _BIN=teip_installer-${{ steps.vars.outputs.ver }}-${{ matrix.target }}.${{ matrix.ext }}
           echo "$_BIN" > ./digest.txt
           echo "${{ steps.exe.outputs.sha256 }}" >> ./digest.txt
 
-      - name: Upload digest as artifact
+      - name: Upload digest as artifact x86_64
+        if: |
+          contains(matrix.target, 'x86_64')
         uses: actions/upload-artifact@v1
         with:
           name: ins.x86_64
+          path: digest.txt
+
+      - name: Create digest for exe aarch64
+        if: |
+          contains(matrix.target, 'aarch64')
+        shell: bash
+        run: |
+          _BIN=teip_installer-${{ steps.vars.outputs.ver }}-${{ matrix.target }}.${{ matrix.ext }}
+          echo "$_BIN" > ./digest.txt
+          echo "${{ steps.exe.outputs.sha256 }}" >> ./digest.txt
+
+      - name: Upload digest as artifact aarch64
+        if: |
+          contains(matrix.target, 'aarch64')
+        uses: actions/upload-artifact@v1
+        with:
+          name: ins.aarch64
           path: digest.txt
 
   readme:
