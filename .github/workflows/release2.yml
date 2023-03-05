@@ -74,11 +74,6 @@ jobs:
             sudo chmod +x /usr/bin/aarch64-linux-musl-gcc
           fi
 
-     #- name: Compile
-     #  if: "!contains(matrix.target, 'musl') && !contains(matrix.target, 'x86_64')"
-     #  run: |
-     #    rustup target add ${{ matrix.target }}
-
       - name: Compile
         run: |
           rustup target add ${{ matrix.target }}
@@ -268,29 +263,33 @@ jobs:
           tag: ${{ github.ref }}
           overwrite: true
 
-      - name: README for rpm
-        if: matrix.ext == 'rpm'
+      - name: Create digest for rpm
+        if: |
+          matrix.ext == 'rpm' && contains(matrix.target, 'x86_64')
         run: |
           _TAR=teip-${{ steps.vars.outputs.ver }}.${{ matrix.target }}.rpm
           echo "$_TAR" > ./digest.txt
           echo "${{ steps.rpm.outputs.sha256 }}" >> ./digest.txt
 
-      - name: Upload artifact
-        if: matrix.ext == 'rpm'
+      - name: Upload digest as artifact
+        if: |
+          matrix.ext == 'rpm' && contains(matrix.target, 'x86_64')
         uses: actions/upload-artifact@v1
         with:
           name: rpm.x86_64
           path: digest.txt
 
-      - name: README for deb
-        if: matrix.ext == 'deb'
+      - name: Create digest for deb
+        if: |
+          matrix.ext == 'deb' && contains(matrix.target, 'x86_64')
         run: |
           _TAR=teip-${{ steps.vars.outputs.ver }}.${{ matrix.target }}.deb
           echo "$_TAR" > ./digest.txt
           echo "${{ steps.deb.outputs.sha256 }}" >> ./digest.txt
 
-      - name: Upload artifact
-        if: matrix.ext == 'deb'
+      - name: Upload digest as artifact
+        if: |
+          matrix.ext == 'deb' && contains(matrix.target, 'x86_64')
         uses: actions/upload-artifact@v1
         with:
           name: deb.x86_64
