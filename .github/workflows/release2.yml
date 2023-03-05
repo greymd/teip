@@ -38,10 +38,7 @@ jobs:
             ext: tar.gz
           - target: arm-unknown-linux-gnueabihf
             os: ubuntu-latest
-            ext: deb
-          - target: arm-unknown-linux-gnueabihf
-            os: ubuntu-latest
-            ext: rpm
+            ext: deb ## For Raspberry PI before
           - target: x86_64-apple-darwin
             os: macOS-latest
             ext: tar.gz
