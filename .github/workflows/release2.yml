@@ -262,8 +262,8 @@ jobs:
             whatever you want
           EOF
           DPKG_PATH="${DPKG_STAGING}/${DPKG_NAME}"
-          # -z6 to use xz compression too keep compatibility with dpkg prior to version 1.21.18
-          fakeroot dpkg-deb -z6 --build "${DPKG_DIR}" "${DPKG_PATH}"
+          # -Z xz to use xz compression too keep compatibility with dpkg prior to version 1.21.18
+          fakeroot dpkg-deb -Z xz --build "${DPKG_DIR}" "${DPKG_PATH}"
           mv "${DPKG_PATH}" "${DPKG_NAME}"
           echo sha256=$( sha256sum "${DPKG_NAME}" | awk '{print $1}' ) >> ${GITHUB_OUTPUT}
 
