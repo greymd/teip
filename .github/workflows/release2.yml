@@ -86,21 +86,14 @@ jobs:
             echo "[target.arm-unknown-linux-gnueabihf]" >> $HOME/.cargo/config
             echo 'linker = "arm-linux-gnueabihf-gcc"' >> $HOME/.cargo/config
             echo 'rustflags = [ "-C", "target-feature=+crt-static", "-C", "link-arg=-lgcc" ]' >> $HOME/.cargo/config
-          elif [[ "${{ matrix.target }}" =~ ^x86_64-unknown-linux ]]; then
-            sudo apt-get -y update
-            sudo apt-get -y install gcc-arm-linux-gnueabihf
-            mkdir -p $HOME/.cargo
-            echo "[target.x86_64-unknown-linux-musl]" >> $HOME/.cargo/config
-            echo 'linker = "musl-gcc"' >> $HOME/.cargo/config
-            echo 'rustflags = [ "-C", "target-feature=+crt-static", "-C", "link-arg=-lgcc" ]' >> $HOME/.cargo/config
           fi
 
       - name: Compile
         run: |
           rustup target add ${{ matrix.target }}
           case ${{ matrix.target }} in
-            x86_64-unknown-linux-musl) cargo build --verbose --features oniguruma --release --target ${{ matrix.target }} ;;
-            *)  cargo build --verbose --features oniguruma --release --target ${{ matrix.target }} ;;
+            x86_64-unknown-linux-musl) CFLAGS="-fPIE" CC="musl-gcc -static" cargo build --verbose --features oniguruma --release --target ${{ matrix.target }} ;;
+            *) cargo build --verbose --features oniguruma --release --target ${{ matrix.target }} ;;
           esac
 
       - name: Packing
@@ -271,8 +264,13 @@ jobs:
             whatever you want
           EOF
           DPKG_PATH="${DPKG_STAGING}/${DPKG_NAME}"
-          # -Z xz to use xz compression too keep compatibility with dpkg prior to version 1.21.18
-          fakeroot dpkg-deb -Z xz --build "${DPKG_DIR}" "${DPKG_PATH}"
+          if [[ "${{ matrix.target }}" =~ ^arm-unknown-linux-gnueabihf ]]; then
+            # -Z xz to use xz compression too keep compatibility with
+            # dpkg prior to version 1.21.18, prior version of RasberryPI
+            fakeroot dpkg-deb -Z xz --build "${DPKG_DIR}" "${DPKG_PATH}"
+          else
+            fakeroot dpkg-deb --build "${DPKG_DIR}" "${DPKG_PATH}"
+          fi
           mv "${DPKG_PATH}" "${DPKG_NAME}"
           echo sha256=$( sha256sum "${DPKG_NAME}" | awk '{print $1}' ) >> ${GITHUB_OUTPUT}
 
