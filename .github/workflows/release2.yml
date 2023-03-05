@@ -81,7 +81,7 @@ jobs:
             echo 'linker = "aarch64-linux-gnu-gcc"' >> $HOME/.cargo/config
             sed 2iREALGCC=aarch64-linux-gnu-gcc /usr/bin/musl-gcc | sudo tee /usr/bin/aarch64-linux-musl-gcc
             sudo chmod +x /usr/bin/aarch64-linux-musl-gcc
-          elif [[ "${{ matrix.target }}" =~ ^arm-linux-gnueabihf ]]; then
+          elif [[ "${{ matrix.target }}" =~ ^arm-unknown-linux-gnueabihf ]]; then
             sudo apt-get -y update
             sudo apt-get -y install gcc-arm-linux-gnueabihf
             mkdir -p $HOME/.cargo
