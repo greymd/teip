@@ -33,6 +33,15 @@ jobs:
           - target: aarch64-unknown-linux-musl
             os: ubuntu-latest
             ext: rpm
+          - target: arm-unknown-linux-gnueabihf
+            os: ubuntu-latest
+            ext: tar.gz
+          - target: arm-unknown-linux-gnueabihf
+            os: ubuntu-latest
+            ext: deb
+          - target: arm-unknown-linux-gnueabihf
+            os: ubuntu-latest
+            ext: rpm
           - target: x86_64-apple-darwin
             os: macOS-latest
             ext: tar.gz
@@ -63,18 +72,21 @@ jobs:
       - name: Install prerequisites
         shell: bash
         run: |
-          case ${{ matrix.target }} in
-            arm-unknown-linux-*) sudo apt-get -y update ; sudo apt-get -y install gcc-arm-linux-gnueabihf ;;
-            aarch64-unknown-linux-*) sudo apt-get -y update ; sudo apt-get -y install gcc-aarch64-linux-gnu ;;
-          esac
           # For aarch64 settings
           if [[ "${{ matrix.target }}" =~ ^aarch64-unknown-linux ]]; then
             sudo apt-get -y install musl-tools
+            sudo apt-get -y install gcc-aarch64-linux-gnu
             mkdir -p $HOME/.cargo
             echo "[target.aarch64-unknown-linux-musl]" >> $HOME/.cargo/config
             echo 'linker = "aarch64-linux-gnu-gcc"' >> $HOME/.cargo/config
             sed 2iREALGCC=aarch64-linux-gnu-gcc /usr/bin/musl-gcc | sudo tee /usr/bin/aarch64-linux-musl-gcc
             sudo chmod +x /usr/bin/aarch64-linux-musl-gcc
+          elif [[ "${{ matrix.target }}" =~ ^arm-linux-gnueabihf ]]; then
+            sudo apt-get -y update
+            sudo apt-get -y install gcc-arm-linux-gnueabihf
+            mkdir -p $HOME/.cargo
+            echo "[target.arm-unknown-linux-gnueabihf]" >> $HOME/.cargo/config
+            echo 'linker = "arm-linux-gnueabihf-gcc"' >> $HOME/.cargo/config
           fi
 
       - name: Compile
@@ -339,9 +351,7 @@ jobs:
           - target: x86_64-pc-windows-msvc
             os: windows-latest
             ext: exe
-          - target: aarch64-pc-windows-msvc
-            os: windows-latest
-            ext: exe
+
     steps:
       - name: Set envs
         id: vars
@@ -350,7 +360,7 @@ jobs:
           echo ver=${GITHUB_REF/refs\/tags\/v/} >> ${GITHUB_OUTPUT}
 
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Build installer for Windows
         id: exe
@@ -396,23 +406,6 @@ jobs:
           name: ins.x86_64
           path: digest.txt
 
-      - name: Create digest for exe aarch64
-        if: |
-          contains(matrix.target, 'aarch64')
-        shell: bash
-        run: |
-          _BIN=teip_installer-${{ steps.vars.outputs.ver }}-${{ matrix.target }}.${{ matrix.ext }}
-          echo "$_BIN" > ./digest.txt
-          echo "${{ steps.exe.outputs.sha256 }}" >> ./digest.txt
-
-      - name: Upload digest as artifact aarch64
-        if: |
-          contains(matrix.target, 'aarch64')
-        uses: actions/upload-artifact@v1
-        with:
-          name: ins.aarch64
-          path: digest.txt
-
   readme:
     name: Update README.md
     runs-on: ubuntu-latest
@@ -424,7 +417,7 @@ jobs:
           echo ver=${GITHUB_REF/refs\/tags\/v/} >> ${GITHUB_OUTPUT}
 
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Apply artifacts rpm x86_64
         uses: actions/download-artifact@v1
