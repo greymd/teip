@@ -113,7 +113,7 @@ jobs:
           BIN_NAME="${{ env.PROJECT_NAME }}"
           # if strip is available
           if [[ -n "${STRIP}" ]]; then
-            "${STRIP}" "target/${{ matrix.job.target }}/release/${BIN_NAME}"
+            "${STRIP}" "target/${{ matrix.target }}/release/${BIN_NAME}"
           fi
 
       - name: Packing
