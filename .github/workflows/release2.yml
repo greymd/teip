@@ -36,6 +36,9 @@ jobs:
           - target: x86_64-apple-darwin
             os: macOS-latest
             ext: tar.gz
+          - target: aarch64-apple-darwin
+            os: macOS-latest
+            ext: tar.gz
 
     steps:
       - name: Checkout code
@@ -263,9 +266,9 @@ jobs:
           tag: ${{ github.ref }}
           overwrite: true
 
-      - name: Create digest for rpm x86_64
+      - name: Create digest for rpm x86_64-unknown-linux
         if: |
-          matrix.ext == 'rpm' && contains(matrix.target, 'x86_64')
+          matrix.ext == 'rpm' && contains(matrix.target, 'x86_64-unknown-linux')
         run: |
           _TAR=teip-${{ steps.vars.outputs.ver }}.${{ matrix.target }}.rpm
           echo "$_TAR" > ./digest.txt
@@ -273,31 +276,31 @@ jobs:
 
       - name: Upload digest as artifact x86_64
         if: |
-          matrix.ext == 'rpm' && contains(matrix.target, 'x86_64')
+          matrix.ext == 'rpm' && contains(matrix.target, 'x86_64-unknown-linux')
         uses: actions/upload-artifact@v1
         with:
           name: rpm.x86_64
           path: digest.txt
 
-      - name: Create digest for deb x86_64
+      - name: Create digest for deb x86_64-unknown-linux
         if: |
-          matrix.ext == 'deb' && contains(matrix.target, 'x86_64')
+          matrix.ext == 'deb' && contains(matrix.target, 'x86_64-unknown-linux')
         run: |
           _TAR=teip-${{ steps.vars.outputs.ver }}.${{ matrix.target }}.deb
           echo "$_TAR" > ./digest.txt
           echo "${{ steps.deb.outputs.sha256 }}" >> ./digest.txt
 
-      - name: Upload digest as artifact x86_64
+      - name: Upload digest as artifact x86_64-unknown-linux
         if: |
-          matrix.ext == 'deb' && contains(matrix.target, 'x86_64')
+          matrix.ext == 'deb' && contains(matrix.target, 'x86_64-unknown-linux')
         uses: actions/upload-artifact@v1
         with:
           name: deb.x86_64
           path: digest.txt
 
-      - name: Create digest for rpm aarch64
+      - name: Create digest for rpm aarch64-unknown-linux
         if: |
-          matrix.ext == 'rpm' && contains(matrix.target, 'aarch64')
+          matrix.ext == 'rpm' && contains(matrix.target, 'aarch64-unknown-linux')
         run: |
           _TAR=teip-${{ steps.vars.outputs.ver }}.${{ matrix.target }}.rpm
           echo "$_TAR" > ./digest.txt
@@ -305,23 +308,23 @@ jobs:
 
       - name: Upload digest as artifact aarch64
         if: |
-          matrix.ext == 'rpm' && contains(matrix.target, 'aarch64')
+          matrix.ext == 'rpm' && contains(matrix.target, 'aarch64-unknown-linux')
         uses: actions/upload-artifact@v1
         with:
           name: rpm.aarch64
           path: digest.txt
 
-      - name: Create digest for deb aarch64
+      - name: Create digest for deb aarch64-unknown-linux
         if: |
-          matrix.ext == 'deb' && contains(matrix.target, 'aarch64')
+          matrix.ext == 'deb' && contains(matrix.target, 'aarch64-unknown-linux')
         run: |
           _TAR=teip-${{ steps.vars.outputs.ver }}.${{ matrix.target }}.deb
           echo "$_TAR" > ./digest.txt
           echo "${{ steps.deb.outputs.sha256 }}" >> ./digest.txt
 
-      - name: Upload digest as artifact aarch64
+      - name: Upload digest as artifact aarch64-unknown-linux
         if: |
-          matrix.ext == 'deb' && contains(matrix.target, 'aarch64')
+          matrix.ext == 'deb' && contains(matrix.target, 'aarch64-unknown-linux')
         uses: actions/upload-artifact@v1
         with:
           name: deb.aarch64
