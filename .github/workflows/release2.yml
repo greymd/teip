@@ -69,7 +69,7 @@ jobs:
       - name: Install prerequisites
         shell: bash
         run: |
-          # For aarch64 settings
+          # For ARM64
           if [[ "${{ matrix.target }}" =~ ^aarch64-unknown-linux ]]; then
             sudo apt-get -y update
             sudo apt-get -y install musl-tools
@@ -79,6 +79,7 @@ jobs:
             echo 'linker = "aarch64-linux-gnu-gcc"' >> $HOME/.cargo/config
             sed 2iREALGCC=aarch64-linux-gnu-gcc /usr/bin/musl-gcc | sudo tee /usr/bin/aarch64-linux-musl-gcc
             sudo chmod +x /usr/bin/aarch64-linux-musl-gcc
+          # For ARMv6, ARMv7
           elif [[ "${{ matrix.target }}" =~ ^arm-unknown-linux-gnueabihf ]]; then
             sudo apt-get -y update
             sudo apt-get -y install gcc-arm-linux-gnueabihf
@@ -95,6 +96,28 @@ jobs:
             x86_64-unknown-linux-musl) CFLAGS="-fPIE" CC="musl-gcc -static" cargo build --verbose --features oniguruma --release --target ${{ matrix.target }} ;;
             *) cargo build --verbose --features oniguruma --release --target ${{ matrix.target }} ;;
           esac
+
+      - name: Strip debug information from executable
+        id: strip
+        shell: bash
+        run: |
+          # Figure out suffix of binary
+          EXE_suffix=""
+          case ${{ matrix.job.target }} in
+            *-pc-windows-*) EXE_suffix=".exe" ;;
+          esac;
+          # Figure out what strip tool to use if any
+          STRIP="strip"
+          case ${{ matrix.job.target }} in
+            arm-unknown-linux-*) STRIP="arm-linux-gnueabihf-strip" ;;
+            aarch64-unknown-linux-gnu) STRIP="aarch64-linux-gnu-strip" ;;
+            *-pc-windows-msvc) STRIP="" ;;
+          esac;
+          BIN_NAME="${{ env.PROJECT_NAME }}${EXE_suffix}"
+          # if strip is available
+          if [[ -n "${STRIP}" ]]; then
+            "${STRIP}" "target/${{ matrix.job.target }}/release/${BIN_NAME}"
+          fi
 
       - name: Packing
         id: pack
