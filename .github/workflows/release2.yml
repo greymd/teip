@@ -107,7 +107,7 @@ jobs:
           STRIP=
           case ${{ matrix.target }} in
             arm-unknown-linux-*) STRIP="arm-linux-gnueabihf-strip" ;;
-            aarch64-unknown-linux-gnu) STRIP="aarch64-linux-gnu-strip" ;;
+            aarch64-unknown-linux-*) STRIP="aarch64-linux-gnu-strip" ;;
             *) STRIP="strip" ;;
           esac
           BIN_NAME="${{ env.PROJECT_NAME }}"
