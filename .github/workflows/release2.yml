@@ -359,11 +359,11 @@ jobs:
           rustup target add ${{ matrix.target }}
           choco install llvm
           cargo build --features oniguruma --release --verbose --target ${{ matrix.target }}
-          # => target\x86_64-pc-windows-msvc\release\teip.exe will be created
+          # => target\${{ matrix.target }}\release\teip.exe will be created
           Invoke-WebRequest -OutFile windows\wizard.bmp -Uri https://raw.githubusercontent.com/wiki/greymd/teip/img/wizard.bmp
           Invoke-WebRequest -OutFile windows\wizard_long.bmp -Uri https://raw.githubusercontent.com/wiki/greymd/teip/img/wizard_long.bmp
           md windows\exe
-          Move-Item target\x86_64-pc-windows-msvc\release\teip.exe windows\exe
+          Move-Item target\${{ matrix.target }}\release\teip.exe windows\exe
           & "C:\\Program Files\\Git\\usr\\bin\\sed.exe" -i 's/#define MyAppVersion \"0.0.0\"/#define MyAppVersion \"${{ steps.vars.outputs.ver }}\"/' .\windows\installer.iss
           & "${Env:ProgramFiles(x86)}\Inno Setup 6\iscc.exe" windows\installer.iss
           Move-Item windows\Output\teip_installer.exe .
