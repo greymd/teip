@@ -71,6 +71,7 @@ jobs:
         run: |
           # For aarch64 settings
           if [[ "${{ matrix.target }}" =~ ^aarch64-unknown-linux ]]; then
+            sudo apt-get -y update
             sudo apt-get -y install musl-tools
             sudo apt-get -y install gcc-aarch64-linux-gnu
             mkdir -p $HOME/.cargo
@@ -84,6 +85,14 @@ jobs:
             mkdir -p $HOME/.cargo
             echo "[target.arm-unknown-linux-gnueabihf]" >> $HOME/.cargo/config
             echo 'linker = "arm-linux-gnueabihf-gcc"' >> $HOME/.cargo/config
+            echo 'rustflags = [ "-C", "target-feature=+crt-static", "-C", "link-arg=-lgcc" ]' >> $HOME/.cargo/config
+          elif [[ "${{ matrix.target }}" =~ ^x86_64-unknown-linux ]]; then
+            sudo apt-get -y update
+            sudo apt-get -y install gcc-arm-linux-gnueabihf
+            mkdir -p $HOME/.cargo
+            echo "[target.x86_64-unknown-linux-musl]" >> $HOME/.cargo/config
+            echo 'linker = "musl-gcc"' >> $HOME/.cargo/config
+            echo 'rustflags = [ "-C", "target-feature=+crt-static", "-C", "link-arg=-lgcc" ]' >> $HOME/.cargo/config
           fi
 
       - name: Compile
