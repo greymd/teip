@@ -38,7 +38,7 @@ jobs:
             ext: tar.gz
           - target: arm-unknown-linux-gnueabihf
             os: ubuntu-latest
-            ext: deb ## For Raspberry PI before
+            ext: deb ## For old Raspberry PI
           - target: x86_64-apple-darwin
             os: macOS-latest
             ext: tar.gz
@@ -262,7 +262,8 @@ jobs:
             whatever you want
           EOF
           DPKG_PATH="${DPKG_STAGING}/${DPKG_NAME}"
-          fakeroot dpkg-deb --build "${DPKG_DIR}" "${DPKG_PATH}"
+          # -z6 to use xz compression too keep compatibility with dpkg prior to version 1.21.18
+          fakeroot dpkg-deb -z6 --build "${DPKG_DIR}" "${DPKG_PATH}"
           mv "${DPKG_PATH}" "${DPKG_NAME}"
           echo sha256=$( sha256sum "${DPKG_NAME}" | awk '{print $1}' ) >> ${GITHUB_OUTPUT}
 
