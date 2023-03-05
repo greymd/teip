@@ -341,14 +341,14 @@ jobs:
           tag: ${{ github.ref }}
           overwrite: true
 
-      - name: README for exe
+      - name: Create digest for exe
         shell: bash
         run: |
           _BIN=teip_installer-${{ steps.vars.outputs.ver }}-${{ matrix.target }}.${{ matrix.ext }}
           echo "$_BIN" > ./digest.txt
           echo "${{ steps.exe.outputs.sha256 }}" >> ./digest.txt
 
-      - name: Upload artifact
+      - name: Upload digest as artifact
         uses: actions/upload-artifact@v1
         with:
           name: ins.x86_64
