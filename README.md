@@ -75,36 +75,65 @@ See detail on <a href="https://github.com/greymd/teip/wiki/Benchmark">wiki > Ben
 Using [Homebrew](https://brew.sh/)
 
 ```bash
-$ brew install greymd/tools/teip
+brew install greymd/tools/teip
 ```
 
-### With `dpkg` on Ubuntu, Debian, etc (x86_64)
+### With `dpkg` on Ubuntu, Debian, etc
 
+#### x86_64
 <!-- deb_x86_64_start -->
 ```bash
-$ wget https://github.com/greymd/teip/releases/download/v2.1.0/teip-2.1.0.x86_64-unknown-linux-musl.deb
-$ sudo dpkg -i ./teip*.deb
+wget https://github.com/greymd/teip/releases/download/v2.1.0/teip-2.1.0.x86_64-unknown-linux-musl.deb
+sudo dpkg -i ./teip*.deb
 ```
 <!-- deb_x86_64_end -->
 <!-- deb_x86_64_sha256 -->SHA256: 53e40a0161e6b46870118492fe302cb033ff59ff941af3dee70148e4f425f96f
 
-### With `dnf` on Fedora, CentOS, RHEL, etc (x86_64)
+#### ARM64
+<!-- deb_aarch64_start -->
+```bash
+wget https://github.com/greymd/teip/releases/download/v2.1.0/teip-2.1.0.aarch64-unknown-linux-musl.deb
+sudo dpkg -i ./teip*.deb
+```
+<!-- deb_aarch64_end -->
+<!-- deb_aarch64_sha256 -->SHA256: 53e40a0161e6b46870118492fe302cb033ff59ff941af3dee70148e4f425f96f
 
+### With `dnf` on Fedora, CentOS, RHEL, etc
+
+#### x86_64
 <!-- rpm_x86_64_start -->
 ```bash
-$ sudo dnf install https://github.com/greymd/teip/releases/download/v2.1.0/teip-2.1.0.x86_64-unknown-linux-musl.rpm
+sudo dnf install https://github.com/greymd/teip/releases/download/v2.1.0/teip-2.1.0.x86_64-unknown-linux-musl.rpm
 ```
 <!-- rpm_x86_64_end -->
 <!-- rpm_x86_64_sha256 -->SHA256: 0e9ed140488c01d91d614383d1c5b20733266a9ab089f58724b85873b823972a
 
-### With `yum` on CentOS7, RHEL7, etc (x86_64)
+#### ARM64
+<!-- rpm_aarch64_start -->
+```bash
+sudo dnf install https://github.com/greymd/teip/releases/download/v2.1.0/teip-2.1.0.aarch64-unknown-linux-musl.rpm
+```
+<!-- rpm_aarch64_end -->
+<!-- rpm_aarch64_sha256 -->SHA256: 0e9ed140488c01d91d614383d1c5b20733266a9ab089f58724b85873b823972a
 
+### With `yum` on CentOS7, RHEL7, etc
+
+#### x86_64
 <!-- rpm_x86_64_start -->
 ```bash
-$ sudo yum install https://github.com/greymd/teip/releases/download/v2.1.0/teip-2.1.0.x86_64-unknown-linux-musl.rpm
+sudo yum install https://github.com/greymd/teip/releases/download/v2.1.0/teip-2.1.0.x86_64-unknown-linux-musl.rpm
 ```
 <!-- rpm_x86_64_end -->
 <!-- rpm_x86_64_sha256 -->SHA256: 0e9ed140488c01d91d614383d1c5b20733266a9ab089f58724b85873b823972a
+
+#### ARM64
+<!-- rpm_aarch64_start -->
+```bash
+sudo yum install https://github.com/greymd/teip/releases/download/v2.1.0/teip-2.1.0.aarch64-unknown-linux-musl.rpm
+```
+<!-- rpm_aarch64_end -->
+<!-- rpm_aarch64_sha256 -->SHA256: 0e9ed140488c01d91d614383d1c5b20733266a9ab089f58724b85873b823972a
+
 
 ### On Windows (x86_64)
 
@@ -120,9 +149,9 @@ You may get some warning messages during the installation because this installer
 Please verify manually by comparing the above hash value and one given by `Get-FileHash <FileName> -Algorithm SHA256` for secure installation.
 Also, using `teip` on Windows requires some technical knowledge. See [Wiki > Use on Windows](https://github.com/greymd/teip/wiki/Use-on-Windows).
 
-### On other UNIX or other architectures (i686, ARM, etc..)
+### On other UNIX or other architectures (i686, etc..)
 
-Pre-built binary for other architectures (i686, ARM, etc..) is not prepared for now.
+Pre-built binaries for other architectures (i686, etc..) are not prepared for now.
 Please build from source.
 
 ### From source
@@ -130,7 +159,7 @@ Please build from source.
 With Rust's package manager cargo, you can install `teip` via:
 
 ```
-$ cargo install teip
+cargo install teip
 ```
 
 To enable Oniguruma regular expression (`-G` option), build with `--features oniguruma` option.

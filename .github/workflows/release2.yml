@@ -39,7 +39,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Set envs
         id: vars
@@ -263,7 +263,7 @@ jobs:
           tag: ${{ github.ref }}
           overwrite: true
 
-      - name: Create digest for rpm
+      - name: Create digest for rpm x86_64
         if: |
           matrix.ext == 'rpm' && contains(matrix.target, 'x86_64')
         run: |
@@ -271,7 +271,7 @@ jobs:
           echo "$_TAR" > ./digest.txt
           echo "${{ steps.rpm.outputs.sha256 }}" >> ./digest.txt
 
-      - name: Upload digest as artifact
+      - name: Upload digest as artifact x86_64
         if: |
           matrix.ext == 'rpm' && contains(matrix.target, 'x86_64')
         uses: actions/upload-artifact@v1
@@ -279,7 +279,7 @@ jobs:
           name: rpm.x86_64
           path: digest.txt
 
-      - name: Create digest for deb
+      - name: Create digest for deb x86_64
         if: |
           matrix.ext == 'deb' && contains(matrix.target, 'x86_64')
         run: |
@@ -287,12 +287,44 @@ jobs:
           echo "$_TAR" > ./digest.txt
           echo "${{ steps.deb.outputs.sha256 }}" >> ./digest.txt
 
-      - name: Upload digest as artifact
+      - name: Upload digest as artifact x86_64
         if: |
           matrix.ext == 'deb' && contains(matrix.target, 'x86_64')
         uses: actions/upload-artifact@v1
         with:
           name: deb.x86_64
+          path: digest.txt
+
+      - name: Create digest for rpm aarch64
+        if: |
+          matrix.ext == 'rpm' && contains(matrix.target, 'aarch64')
+        run: |
+          _TAR=teip-${{ steps.vars.outputs.ver }}.${{ matrix.target }}.rpm
+          echo "$_TAR" > ./digest.txt
+          echo "${{ steps.rpm.outputs.sha256 }}" >> ./digest.txt
+
+      - name: Upload digest as artifact aarch64
+        if: |
+          matrix.ext == 'rpm' && contains(matrix.target, 'aarch64')
+        uses: actions/upload-artifact@v1
+        with:
+          name: rpm.aarch64
+          path: digest.txt
+
+      - name: Create digest for deb aarch64
+        if: |
+          matrix.ext == 'deb' && contains(matrix.target, 'aarch64')
+        run: |
+          _TAR=teip-${{ steps.vars.outputs.ver }}.${{ matrix.target }}.deb
+          echo "$_TAR" > ./digest.txt
+          echo "${{ steps.deb.outputs.sha256 }}" >> ./digest.txt
+
+      - name: Upload digest as artifact aarch64
+        if: |
+          matrix.ext == 'deb' && contains(matrix.target, 'aarch64')
+        uses: actions/upload-artifact@v1
+        with:
+          name: deb.aarch64
           path: digest.txt
 
   build-win:
@@ -367,7 +399,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: Apply artifacts rpm
+      - name: Apply artifacts rpm x86_64
         uses: actions/download-artifact@v1
         with:
           name: rpm.x86_64
@@ -382,7 +414,7 @@ jobs:
           sed -i "/rpm_x86_64_sha256/s/SHA256:.*/SHA256: $_sha/" ./README.md
           cat ./README.md
 
-      - name: Apply artifacts deb
+      - name: Apply artifacts deb x86_64
         uses: actions/download-artifact@v1
         with:
           name: deb.x86_64
@@ -395,6 +427,36 @@ jobs:
           _short_url=$($_shorter "${_url}" "teip-${_ver}.x86_64.deb" || $_shorter "${_url}" "teip-${_ver}-${_sha:1:5}.x86_64.deb" || echo "${_url}")
           sed -i "/deb_x86_64_start/,/deb_x86_64_end/s|https://.*deb|$_short_url|g" ./README.md
           sed -i "/deb_x86_64_sha256/s/SHA256:.*/SHA256: $_sha/" ./README.md
+          cat ./README.md
+
+      - name: Apply artifacts rpm aarch64
+        uses: actions/download-artifact@v1
+        with:
+          name: rpm.aarch64
+      - shell: bash
+        run: |
+          _shorter=./.github/gitio_shorter.sh
+          _ver=${{ steps.vars.outputs.ver }}
+          _url="https://github.com/greymd/teip/releases/download/v${_ver}/$(head -n 1 rpm.aarch64/digest.txt)"
+          _sha=$(tail -n 1 rpm.aarch64/digest.txt)
+          _short_url=$($_shorter "${_url}" "teip-${_ver}.aarch64.rpm" || $_shorter "${_url}" "teip-${_ver}-${_sha:1:5}.aarch64.rpm" || echo "${_url}")
+          sed -i "/rpm_aarch64_start/,/rpm_aarch64_end/s|https://.*rpm|$_short_url|g" ./README.md
+          sed -i "/rpm_aarch64_sha256/s/SHA256:.*/SHA256: $_sha/" ./README.md
+          cat ./README.md
+
+      - name: Apply artifacts deb aarch64
+        uses: actions/download-artifact@v1
+        with:
+          name: deb.aarch64
+      - shell: bash
+        run: |
+          _shorter=./.github/gitio_shorter.sh
+          _ver=${{ steps.vars.outputs.ver }}
+          _url="https://github.com/greymd/teip/releases/download/v${_ver}/$(head -n 1 deb.aarch64/digest.txt)"
+          _sha=$(tail -n 1 deb.aarch64/digest.txt)
+          _short_url=$($_shorter "${_url}" "teip-${_ver}.aarch64.deb" || $_shorter "${_url}" "teip-${_ver}-${_sha:1:5}.aarch64.deb" || echo "${_url}")
+          sed -i "/deb_aarch64_start/,/deb_aarch64_end/s|https://.*deb|$_short_url|g" ./README.md
+          sed -i "/deb_aarch64_sha256/s/SHA256:.*/SHA256: $_sha/" ./README.md
           cat ./README.md
 
       - name: Apply artifacts ins
