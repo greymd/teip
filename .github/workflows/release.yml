@@ -419,6 +419,6 @@ jobs:
           author_name: GitHub Action
           author_email: yamada@gr3.ie
           message: '[skip ci] Update README.md'
-          ref: 'feature/arm_build'
+          ref: main
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
