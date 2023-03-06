@@ -198,7 +198,7 @@ jobs:
           echo "RPM_$(echo ${{ matrix.target }} | tr '[:lower:]-' '[:upper:]_')=$BIN_NAME" >> ${GITHUB_ENV}
           ## Generate sha256
           echo "$( sha256sum "$BIN_NAME" | awk '{print $1}' )" > "${BIN_NAME}.sha256"
-          cp -l "${BIN_NAME}" "${BIN_NAME}.sha256" "${{ env.RELEASE_DIR }}"
+          sudo cp -l "${BIN_NAME}" "${BIN_NAME}.sha256" "${{ env.RELEASE_DIR }}"
 
       - name: Create Debian package
         id: deb
