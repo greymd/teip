@@ -1,9 +1,12 @@
 name: Release
 
+env:
+  RELEASE_DIR: "_release"
+
 on:
   push:
     tags:
-      - 'stop-v*.*.*' # release pending for testing
+      - 'v*.*.*'
 
 jobs:
   build:
@@ -21,100 +24,301 @@ jobs:
           - target: x86_64-unknown-linux-musl
             os: ubuntu-latest
             ext: deb
+          - target: aarch64-unknown-linux-musl
+            os: ubuntu-latest
+            ext: tar.gz
+          - target: aarch64-unknown-linux-musl
+            os: ubuntu-latest
+            ext: deb
+          - target: aarch64-unknown-linux-musl
+            os: ubuntu-latest
+            ext: rpm
+          - target: arm-unknown-linux-gnueabihf
+            os: ubuntu-latest
+            ext: tar.gz
+          - target: arm-unknown-linux-gnueabihf
+            os: ubuntu-latest
+            ext: deb ## For old Raspberry PI
           - target: x86_64-apple-darwin
+            os: macOS-latest
+            ext: tar.gz
+          - target: aarch64-apple-darwin
             os: macOS-latest
             ext: tar.gz
 
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
       - name: Set envs
         id: vars
         run: |
           echo ver=${GITHUB_REF/refs\/tags\/v/} >> ${GITHUB_OUTPUT}
+          echo "PROJECT_VERSION=${GITHUB_REF/refs\/tags\/v/}" >> $GITHUB_ENV
+          echo "CARGO_VERSION=$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -n1)" >> $GITHUB_ENV
+          ## TODO: Check if CARGO_VERSION equals PROJECT_VERSION
+          echo "PROJECT_NAME=$(sed -n 's/^name = "\(.*\)"/\1/p' Cargo.toml | head -n1)" >> $GITHUB_ENV
+          echo "PROJECT_MAINTAINER=$(sed -n 's/^authors = \["\(.*\)"\]/\1/p' Cargo.toml)" >> $GITHUB_ENV
+          echo "PROJECT_HOMEPAGE=$(sed -n 's/^homepage = "\(.*\)"/\1/p' Cargo.toml)" >> $GITHUB_ENV
 
-      - name: Checkout code
-        uses: actions/checkout@v2
-
-      - name: Install musl-gcc if required
+      - name: Install prerequisites for musl
         if: contains(matrix.target, 'musl')
         run: |
+          sudo apt-get -y update
           sudo apt-get install musl-tools
 
-      - name: Compile for musl
-        if: contains(matrix.target, 'musl')
+      - name: Install prerequisites
+        shell: bash
         run: |
-          rustup target add ${{ matrix.target }}
-          CFLAGS="-fPIE" CC="musl-gcc -static" cargo build --verbose --features oniguruma --release --target ${{ matrix.target }}
+          # For ARM64
+          if [[ "${{ matrix.target }}" =~ ^aarch64-unknown-linux ]]; then
+            sudo apt-get -y update
+            sudo apt-get -y install musl-tools
+            sudo apt-get -y install gcc-aarch64-linux-gnu
+            mkdir -p $HOME/.cargo
+            echo "[target.aarch64-unknown-linux-musl]" >> $HOME/.cargo/config
+            echo 'linker = "aarch64-linux-gnu-gcc"' >> $HOME/.cargo/config
+            sed 2iREALGCC=aarch64-linux-gnu-gcc /usr/bin/musl-gcc | sudo tee /usr/bin/aarch64-linux-musl-gcc
+            sudo chmod +x /usr/bin/aarch64-linux-musl-gcc
+          # For ARMv6, ARMv7
+          elif [[ "${{ matrix.target }}" =~ ^arm-unknown-linux-gnueabihf ]]; then
+            sudo apt-get -y update
+            sudo apt-get -y install gcc-arm-linux-gnueabihf
+            mkdir -p $HOME/.cargo
+            echo "[target.arm-unknown-linux-gnueabihf]" >> $HOME/.cargo/config
+            echo 'linker = "arm-linux-gnueabihf-gcc"' >> $HOME/.cargo/config
+            echo 'rustflags = [ "-C", "target-feature=+crt-static", "-C", "link-arg=-lgcc" ]' >> $HOME/.cargo/config
+          fi
 
       - name: Compile
-        if: "! contains(matrix.target, 'musl')"
         run: |
           rustup target add ${{ matrix.target }}
-          cargo build --verbose --features oniguruma --release --target ${{ matrix.target }}
+          case ${{ matrix.target }} in
+            x86_64-unknown-linux-musl) CFLAGS="-fPIE" CC="musl-gcc -static" cargo build --verbose --features oniguruma --release --target ${{ matrix.target }} ;;
+            *) cargo build --verbose --features oniguruma --release --target ${{ matrix.target }} ;;
+          esac
 
-      - name: Build packages
+      - name: Strip debug information from executable
+        if: |
+          contains(matrix.target, 'linux')
+        id: strip
+        shell: bash
         run: |
-          _TAR=teip-${{ steps.vars.outputs.ver }}.${{ matrix.target }}.tar.gz
+          # Figure out what strip tool to use if any
+          STRIP=
+          case ${{ matrix.target }} in
+            arm-unknown-linux-*) STRIP="arm-linux-gnueabihf-strip" ;;
+            aarch64-unknown-linux-*) STRIP="aarch64-linux-gnu-strip" ;;
+            *) STRIP="strip" ;;
+          esac
+          BIN_NAME="${{ env.PROJECT_NAME }}"
+          # if strip is available
+          if [[ -n "${STRIP}" ]]; then
+            "${STRIP}" "target/${{ matrix.target }}/release/${BIN_NAME}"
+          fi
+
+      - name: Packing
+        id: pack
+        run: |
           mkdir -p package/bin
-          mv target/${{ matrix.target }}/release/teip package/bin
+          cp target/${{ matrix.target }}/release/teip package/bin
           mkdir -p package/man
           cp man/teip.1 package/man
           cp -r completion package/
-          ## sed -i is not used due to difference between macOS and Linux
-          perl -i -pe s/___VERSION___/${{ steps.vars.outputs.ver }}/ ./package/.tar2package.yml
-          tar zcvf "$_TAR" -C "$PWD/package" completion bin man .tar2package.yml
+
+      - name: Create tarball
+        run: |
+          TAR=teip-${{ steps.vars.outputs.ver }}.${{ matrix.target }}.tar.gz
+          mkdir "${{ env.RELEASE_DIR }}"
+          tar zcvf "$TAR" -C "$PWD/package" completion bin man
+          echo "$( sha256sum "$TAR" | awk '{print $1}' )" > "${TAR}.sha256"
+          cp -l "${TAR}" "${TAR}.sha256" "${{ env.RELEASE_DIR }}"
 
       - name: Build rpm
         id: rpm
         if: matrix.ext == 'rpm'
         run: |
-          _TAR=teip-${{ steps.vars.outputs.ver }}.${{ matrix.target }}.tar.gz
-          docker run -i "greymd/tar2rpm:1.0.1" < "$_TAR" > teip-${{ steps.vars.outputs.ver }}.${{ matrix.target }}.rpm
-          echo sha256=$( sha256sum teip-${{ steps.vars.outputs.ver }}.${{ matrix.target }}.rpm | awk '{print $1}' ) >> ${GITHUB_OUTPUT}
+          ## Create tarball
+          RPM_BUILD=rpmbuild
+          RPM_PACK=teip-${{ steps.vars.outputs.ver }}
+          cp -al "package/" "${RPM_PACK}/"
+          tar zcvf "${RPM_PACK}.tar.gz" -C "$PWD" ${RPM_PACK}
+          mkdir -p "${RPM_BUILD}/SOURCES"
+          mkdir -p "${RPM_BUILD}/SPECS"
+          cp "${RPM_PACK}.tar.gz" "${RPM_BUILD}/SOURCES"
 
-      - name: Build deb
+          unset RPM_ARCH
+          case ${{ matrix.target }} in
+            aarch64-*-linux-*) RPM_ARCH=aarch64 ;;
+            arm-*-linux-*hf) RPM_ARCH=armhf ;;
+            i686-*-linux-*) RPM_ARCH=i686 ;;
+            x86_64-*-linux-*) RPM_ARCH=x86_64 ;;
+            *) RPM_ARCH=notset ;;
+          esac;
+
+          cat > "${RPM_BUILD}/SPECS/template.spec" <<EOF
+          Name:       ${PROJECT_NAME}
+          Summary:    Masking tape to help commands "do one thing well"
+          Version:    ${PROJECT_VERSION}
+          Group:      Applications
+          License:    MIT
+          Release:    %(date '+%'s)
+          BuildArch:  ${RPM_ARCH}
+          URL:        ${PROJECT_HOMEPAGE}
+          Source:     ${RPM_PACK}.tar.gz
+          Vendor:     Yasuhiro Yamada <yamada@gr3.ie>
+          Provides:   ${PROJECT_NAME}
+          BuildRoot: %(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
+          %description
+          Masking tape to help commands "do one thing well"
+          Bypassing a partial range of standard input to any command
+          whatever you want
+          %prep
+          %setup
+          %install
+          install -d -m 0755 %{buildroot}%{_bindir}
+          install -d -m 0755 %{buildroot}%{_mandir}/man1
+          %{__cp} -a bin/* %{buildroot}%{_bindir}/
+          %{__cp} -a man/*.1 %{buildroot}%{_mandir}/man1/
+          %files
+          %attr(0644, root, root) %{_mandir}/man1/*
+          %attr(0755, root, root) %{_bindir}/*
+          %clean
+          %{__rm} -rf %{buildroot}
+          EOF
+
+          ## Build
+          sudo apt-get update && sudo apt-get install -y qemu-user-static
+          docker build -t ${RPM_ARCH}-rpm-builder -f .github/dockerfiles/Dockerfile.${RPM_ARCH} .
+          sudo docker run --rm -v "$PWD/$RPM_BUILD":/root/rpmbuild ${RPM_ARCH}-rpm-builder \
+            rpmbuild --undefine=_disable_source_fetch -ba /root/rpmbuild/SPECS/template.spec
+
+          BIN_NAME="teip-${{ steps.vars.outputs.ver }}.${{ matrix.target }}.rpm"
+          sudo mv "$RPM_BUILD"/RPMS/"$RPM_ARCH"/teip-*.rpm "$BIN_NAME"
+          sudo rm -rf "$RPM_BUILD"/
+          echo "RPM_$(echo ${{ matrix.target }} | tr '[:lower:]-' '[:upper:]_')=$BIN_NAME" >> ${GITHUB_ENV}
+          ## Generate sha256
+          echo "$( sha256sum "$BIN_NAME" | awk '{print $1}' )" > "${BIN_NAME}.sha256"
+          sudo cp -l "${BIN_NAME}" "${BIN_NAME}.sha256" "${{ env.RELEASE_DIR }}"
+
+      - name: Create Debian package
         id: deb
         if: matrix.ext == 'deb'
         run: |
-          _TAR=teip-${{ steps.vars.outputs.ver }}.${{ matrix.target }}.tar.gz
-          docker run -i "greymd/tar2deb:1.0.1" < "$_TAR" > teip-${{ steps.vars.outputs.ver }}.${{ matrix.target }}.deb
-          echo sha256=$( sha256sum teip-${{ steps.vars.outputs.ver }}.${{ matrix.target }}.deb | awk '{print $1}' ) >> ${GITHUB_OUTPUT}
+          COPYRIGHT_YEARS="2020 - "$(date "+%Y")
+          DPKG_STAGING="_dpkg_staging/debian-package"
+          DPKG_DIR="${DPKG_STAGING}/dpkg"
+          mkdir -p "${DPKG_DIR}"
+
+          DPKG_BASENAME=${PROJECT_NAME}
+          DPKG_VERSION=${PROJECT_VERSION}
+
+          unset DPKG_ARCH
+          case ${{ matrix.target }} in
+            aarch64-*-linux-*) DPKG_ARCH=arm64 ;;
+            arm-*-linux-*hf) DPKG_ARCH=armhf ;;
+            i686-*-linux-*) DPKG_ARCH=i686 ;;
+            x86_64-*-linux-*) DPKG_ARCH=amd64 ;;
+            *) DPKG_ARCH=notset ;;
+          esac;
+
+          DPKG_NAME="teip-${{ steps.vars.outputs.ver }}.${{ matrix.target }}.deb"
+          echo name=${DPKG_NAME} >> ${GITHUB_OUTPUT}
+          BIN_PATH=package/bin/teip
+          BIN_NAME=${{ env.PROJECT_NAME }}
+
+          # Binary
+          install -Dm755 "$BIN_PATH" "${DPKG_DIR}/usr/bin/${BIN_NAME}"
+
+          # Man page
+          install -Dm644 package/man/teip.1 "${DPKG_DIR}/usr/share/man/man1/${PROJECT_NAME}.1"
+          gzip -n --best "${DPKG_DIR}/usr/share/man/man1/${PROJECT_NAME}.1"
+
+          # Autocompletion files
+          install -Dm644 package/completion/zsh/_teip "${DPKG_DIR}/usr/share/zsh/vendor-completions/_${PROJECT_NAME}"
+
+          # README and LICENSE
+          install -Dm644 "README.md" "${DPKG_DIR}/usr/share/doc/${DPKG_BASENAME}/README.md"
+          install -Dm644 "LICENSE" "${DPKG_DIR}/usr/share/doc/${DPKG_BASENAME}/LICENSE"
+          cat > "${DPKG_DIR}/usr/share/doc/${DPKG_BASENAME}/copyright" <<EOF
+          Format: http://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+          Upstream-Name: ${PROJECT_NAME}
+          Source: ${PROJECT_HOMEPAGE}
+          Files: *
+          Copyright: ${PROJECT_MAINTAINER}
+          Copyright: $COPYRIGHT_YEARS ${PROJECT_MAINTAINER}
+          License: MIT
+            Permission is hereby granted, free of charge, to any
+            person obtaining a copy of this software and associated
+            documentation files (the "Software"), to deal in the
+            Software without restriction, including without
+            limitation the rights to use, copy, modify, merge,
+            publish, distribute, sublicense, and/or sell copies of
+            the Software, and to permit persons to whom the Software
+            is furnished to do so, subject to the following
+            conditions:
+            .
+            The above copyright notice and this permission notice
+            shall be included in all copies or substantial portions
+            of the Software.
+            .
+            THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF
+            ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED
+            TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+            PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT
+            SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+            CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+            OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR
+            IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+            DEALINGS IN THE SOFTWARE.
+          EOF
+
+          mkdir -p "${DPKG_DIR}/DEBIAN"
+          cat > "${DPKG_DIR}/DEBIAN/control" <<EOF
+          Package: ${DPKG_BASENAME}
+          Version: ${DPKG_VERSION}
+          Section: utils
+          Priority: optional
+          Maintainer: ${PROJECT_MAINTAINER}
+          Homepage: ${PROJECT_HOMEPAGE}
+          Architecture: ${DPKG_ARCH}
+          Provides: ${PROJECT_NAME}
+          Conflicts: ${DPKG_CONFLICTS}
+          Description: Masking tape to help commands "do one thing well"
+            Bypassing a partial range of standard input to any command
+            whatever you want
+          EOF
+          DPKG_PATH="${DPKG_STAGING}/${DPKG_NAME}"
+          if [[ "${{ matrix.target }}" =~ ^arm-unknown-linux-gnueabihf ]]; then
+            # -Z xz to use xz compression too keep compatibility with
+            # dpkg prior to version 1.21.18, prior version of RasberryPI
+            fakeroot dpkg-deb -Z xz --build "${DPKG_DIR}" "${DPKG_PATH}"
+          else
+            fakeroot dpkg-deb --build "${DPKG_DIR}" "${DPKG_PATH}"
+          fi
+          mv "${DPKG_PATH}" "${DPKG_NAME}"
+          echo "DEB_$(echo ${{ matrix.target }} | tr '[:lower:]-' '[:upper:]_')=$DPKG_NAME" >> ${GITHUB_ENV}
+          ## Generate sha256
+          echo "$( sha256sum "$DPKG_NAME" | awk '{print $1}' )" > "${DPKG_NAME}.sha256"
+          cp -l "${DPKG_NAME}" "${DPKG_NAME}.sha256" "${{ env.RELEASE_DIR }}"
 
       - name: Upload binaries to release
-        uses: svenstaro/upload-release-action@v1-release
+        uses: svenstaro/upload-release-action@v2
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: teip-${{ steps.vars.outputs.ver }}.${{ matrix.target }}.${{ matrix.ext }}
-          asset_name: teip-${{ steps.vars.outputs.ver }}.${{ matrix.target }}.${{ matrix.ext }}
+          file: ${{ env.RELEASE_DIR }}/teip-${{ steps.vars.outputs.ver }}.${{ matrix.target }}.${{ matrix.ext }}
           tag: ${{ github.ref }}
-          overwrite: true
+          file_glob: false
+          overwrite: false
 
-      - name: README for rpm
-        if: matrix.ext == 'rpm'
-        run: |
-          _TAR=teip-${{ steps.vars.outputs.ver }}.${{ matrix.target }}.rpm
-          echo "$_TAR" > ./digest.txt
-          echo "${{ steps.rpm.outputs.sha256 }}" >> ./digest.txt
-
-      - name: Upload artifact
-        if: matrix.ext == 'rpm'
-        uses: actions/upload-artifact@v1
+      - name: Upload sha256 to release
+        uses: svenstaro/upload-release-action@v2
         with:
-          name: rpm.x86_64
-          path: digest.txt
-
-      - name: README for deb
-        if: matrix.ext == 'deb'
-        run: |
-          _TAR=teip-${{ steps.vars.outputs.ver }}.${{ matrix.target }}.deb
-          echo "$_TAR" > ./digest.txt
-          echo "${{ steps.deb.outputs.sha256 }}" >> ./digest.txt
-
-      - name: Upload artifact
-        if: matrix.ext == 'deb'
-        uses: actions/upload-artifact@v1
-        with:
-          name: deb.x86_64
-          path: digest.txt
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: ${{ env.RELEASE_DIR }}/teip-${{ steps.vars.outputs.ver }}.${{ matrix.target }}.${{ matrix.ext }}.sha256
+          tag: ${{ github.ref }}
+          file_glob: false
+          overwrite: false
 
   build-win:
     name: Release for Windows
@@ -125,6 +329,7 @@ jobs:
           - target: x86_64-pc-windows-msvc
             os: windows-latest
             ext: exe
+
     steps:
       - name: Set envs
         id: vars
@@ -133,7 +338,7 @@ jobs:
           echo ver=${GITHUB_REF/refs\/tags\/v/} >> ${GITHUB_OUTPUT}
 
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Build installer for Windows
         id: exe
@@ -141,39 +346,41 @@ jobs:
         run: |
           rustup target add ${{ matrix.target }}
           choco install llvm
-          cargo build --features oniguruma --release --verbose --target x86_64-pc-windows-msvc
-          # => target\x86_64-pc-windows-msvc\release\teip.exe will be created
+          cargo build --features oniguruma --release --verbose --target ${{ matrix.target }}
+          # => target\${{ matrix.target }}\release\teip.exe will be created
           Invoke-WebRequest -OutFile windows\wizard.bmp -Uri https://raw.githubusercontent.com/wiki/greymd/teip/img/wizard.bmp
           Invoke-WebRequest -OutFile windows\wizard_long.bmp -Uri https://raw.githubusercontent.com/wiki/greymd/teip/img/wizard_long.bmp
           md windows\exe
-          Move-Item target\x86_64-pc-windows-msvc\release\teip.exe windows\exe
+          Move-Item target\${{ matrix.target }}\release\teip.exe windows\exe
           & "C:\\Program Files\\Git\\usr\\bin\\sed.exe" -i 's/#define MyAppVersion \"0.0.0\"/#define MyAppVersion \"${{ steps.vars.outputs.ver }}\"/' .\windows\installer.iss
           & "${Env:ProgramFiles(x86)}\Inno Setup 6\iscc.exe" windows\installer.iss
           Move-Item windows\Output\teip_installer.exe .
-          echo "sha256=$(Get-FileHash .\\teip_installer.exe -Algorithm SHA256 | Select-Object -ExpandProperty Hash)" >> ${GITHUB_OUTPUT}
-          Rename-Item teip_installer.exe teip_installer-${{ steps.vars.outputs.ver }}-${{ matrix.target }}.${{ matrix.ext }}
+          $EXENAME = "teip_installer-${{ steps.vars.outputs.ver }}-${{ matrix.target }}.${{ matrix.ext }}"
+          New-Item -Path "${{ env.RELEASE_DIR }}" -ItemType directory
+          Rename-Item teip_installer.exe "$EXENAME"
+          echo "BIN_X86_64_PC_WINDOWS_MSVC=$EXENAME" >> ${GITHUB_ENV}
+          # Generate sha256
+          Get-FileHash "$EXENAME" -Algorithm SHA256 | Select-Object -ExpandProperty Hash > "${EXENAME}.sha256"
+          Move-Item -Path "${EXENAME}" -Destination "${{ env.RELEASE_DIR }}"
+          Move-Item -Path "${EXENAME}.sha256" -Destination "${{ env.RELEASE_DIR }}"
 
       - name: Upload binaries to release for Windows
-        uses: svenstaro/upload-release-action@v1-release
+        uses: svenstaro/upload-release-action@v2
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: teip_installer-${{ steps.vars.outputs.ver }}-${{ matrix.target }}.${{ matrix.ext }}
-          asset_name: teip_installer-${{ steps.vars.outputs.ver }}-${{ matrix.target }}.${{ matrix.ext }}
+          file: ${{ env.RELEASE_DIR }}/teip_installer-${{ steps.vars.outputs.ver }}-${{ matrix.target }}.${{ matrix.ext }}
           tag: ${{ github.ref }}
-          overwrite: true
+          file_glob: false
+          overwrite: false
 
-      - name: README for exe
-        shell: bash
-        run: |
-          _BIN=teip_installer-${{ steps.vars.outputs.ver }}-${{ matrix.target }}.${{ matrix.ext }}
-          echo "$_BIN" > ./digest.txt
-          echo "${{ steps.exe.outputs.sha256 }}" >> ./digest.txt
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v1
+      - name: Upload sha256 to release for Windows
+        uses: svenstaro/upload-release-action@v2
         with:
-          name: ins.x86_64
-          path: digest.txt
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: ${{ env.RELEASE_DIR }}/teip_installer-${{ steps.vars.outputs.ver }}-${{ matrix.target }}.${{ matrix.ext }}.sha256
+          tag: ${{ github.ref }}
+          file_glob: false
+          overwrite: false
 
   readme:
     name: Update README.md
@@ -186,61 +393,28 @@ jobs:
           echo ver=${GITHUB_REF/refs\/tags\/v/} >> ${GITHUB_OUTPUT}
 
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
-      - name: Apply artifacts rpm
-        uses: actions/download-artifact@v1
-        with:
-          name: rpm.x86_64
-      - shell: bash
+      - name: Update URL on README.md
+        shell: bash
         run: |
-          _shorter=./.github/gitio_shorter.sh
           _ver=${{ steps.vars.outputs.ver }}
-          _url="https://github.com/greymd/teip/releases/download/v${_ver}/$(head -n 1 rpm.x86_64/digest.txt)"
-          _sha=$(tail -n 1 rpm.x86_64/digest.txt)
-          _short_url=$($_shorter "${_url}" "teip-${_ver}.x86_64.rpm" || $_shorter "${_url}" "teip-${_ver}-${_sha:1:5}.x86_64.rpm" || echo "${_url}")
-          sed -i "/rpm_x86_64_start/,/rpm_x86_64_end/s|https://.*rpm|$_short_url|g" ./README.md
-          sed -i "/rpm_x86_64_sha256/s/SHA256:.*/SHA256: $_sha/" ./README.md
-          cat ./README.md
-
-      - name: Apply artifacts deb
-        uses: actions/download-artifact@v1
-        with:
-          name: deb.x86_64
-      - shell: bash
-        run: |
-          _shorter=./.github/gitio_shorter.sh
-          _ver=${{ steps.vars.outputs.ver }}
-          _url="https://github.com/greymd/teip/releases/download/v${_ver}/$(head -n 1 deb.x86_64/digest.txt)"
-          _sha=$(tail -n 1 deb.x86_64/digest.txt)
-          _short_url=$($_shorter "${_url}" "teip-${_ver}.x86_64.deb" || $_shorter "${_url}" "teip-${_ver}-${_sha:1:5}.x86_64.deb" || echo "${_url}")
-          sed -i "/deb_x86_64_start/,/deb_x86_64_end/s|https://.*deb|$_short_url|g" ./README.md
-          sed -i "/deb_x86_64_sha256/s/SHA256:.*/SHA256: $_sha/" ./README.md
-          cat ./README.md
-
-      - name: Apply artifacts ins
-        uses: actions/download-artifact@v1
-        with:
-          name: ins.x86_64
-      - shell: bash
-        run: |
-          _shorter=./.github/gitio_shorter.sh
-          _ver=${{ steps.vars.outputs.ver }}
-          _url="https://github.com/greymd/teip/releases/download/v${_ver}/$(head -n 1 ins.x86_64/digest.txt)"
-          _sha=$(tail -n 1 ins.x86_64/digest.txt)
-          _short_url=$($_shorter "${_url}" "teip_installer-${_ver}.x86_64.exe" || $_shorter "${_url}" "teip_installer-${_ver}-${_sha:1:5}.x86_64.exe" || echo "${_url}")
-          sed -i "/ins.x86_64_start/,/ins.x86_64_end/s|https://.*exe|$_short_url|g" ./README.md
-          sed -i "/ins.x86_64_sha256/s/SHA256:.*/SHA256: $_sha/" ./README.md
-          cat ./README.md
+          _url="https://github.com/${GITHUB_REPOSITORY}/releases/download/v${_ver}/teip-${_ver}.\$(uname -m)-unknown-linux-musl.rpm"
+          sed -i "/rpm_url_start/,/rpm_url_end/s|https://.*rpm|$_url|g" ./README.md
+          _url="https://github.com/${GITHUB_REPOSITORY}/releases/download/v${_ver}/teip-${_ver}.\$(uname -m)-unknown-linux-musl.deb"
+          sed -i "/deb_url_start/,/deb_url_end/s|https://.*deb|$_url|g" ./README.md
+          _url="https://github.com/${GITHUB_REPOSITORY}/releases/download/v${_ver}/teip_installer-${_ver}-x86_64-pc-windows-msvc.exe"
+          sed -i "/ins_url_start/,/ins_url_end/s|https://.*exe|$_url|g" ./README.md
+          _url="https://github.com/${GITHUB_REPOSITORY}/releases/tag/v${_ver}"
+          sed -i "/release_url_start/,/release_url_start/s|https://[^)]*|$_url|g"
 
       - name: Release README
-        if: "! contains (steps.vars.outputs.ver, 'beta')"
         uses: EndBug/add-and-commit@v4
         with:
           add: README.md
           author_name: GitHub Action
           author_email: yamada@gr3.ie
           message: '[skip ci] Update README.md'
-          ref: 'main'
+          ref: 'feature/arm_build'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
