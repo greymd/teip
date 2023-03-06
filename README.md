@@ -76,7 +76,7 @@ See detail on <a href="https://github.com/greymd/teip/wiki/Benchmark">wiki > Ben
 
 <!-- deb_url_start -->
 ```bash
-wget https://github.com/greymd/teip/releases/download/v2.1.63/teip-2.1.63.$(uname -m)-unknown-linux-musl.deb
+wget https://github.com/greymd/teip-test/releases/download/v2.1.70/teip-2.1.70.$(uname -m)-unknown-linux-musl.deb
 sudo dpkg -i ./teip*.deb
 ```
 <!-- deb_url_end -->
@@ -85,7 +85,7 @@ sudo dpkg -i ./teip*.deb
 
 <!-- deb_url_start -->
 ```bash
-wget https://github.com/greymd/teip/releases/download/v2.1.63/teip-2.1.63.$(uname -m)-unknown-linux-musl.deb
+wget https://github.com/greymd/teip-test/releases/download/v2.1.70/teip-2.1.70.$(uname -m)-unknown-linux-musl.deb
 sudo apt install ./teip*.deb
 ```
 <!-- deb_url_end -->
@@ -94,7 +94,7 @@ sudo apt install ./teip*.deb
 
 <!-- rpm_url_start -->
 ```bash
-sudo dnf install https://github.com/greymd/teip/releases/download/v2.1.63/teip-2.1.63.$(uname -m)-unknown-linux-musl.rpm
+sudo dnf install https://github.com/greymd/teip-test/releases/download/v2.1.70/teip-2.1.70.$(uname -m)-unknown-linux-musl.rpm
 ```
 <!-- rpm_url_end -->
 
@@ -102,7 +102,7 @@ sudo dnf install https://github.com/greymd/teip/releases/download/v2.1.63/teip-2
 
 <!-- rpm_url_start -->
 ```bash
-sudo dnf install https://github.com/greymd/teip/releases/download/v2.1.63/teip-2.1.63.$(uname -m)-unknown-linux-musl.rpm
+sudo dnf install https://github.com/greymd/teip-test/releases/download/v2.1.70/teip-2.1.70.$(uname -m)-unknown-linux-musl.rpm
 ```
 <!-- rpm_url_end -->
 
@@ -110,7 +110,7 @@ If necessary, check the hash value from the following release page.
 Files whose filenames end with `sha256` have hash values listed.
 
 <!-- release_url_start -->
-[Release page for v2.1.62](https://github.com/greymd/teip/releases/tag/v2.1.62)
+[Release page for v2.1.62](https://github.com/greymd/teip-test/releases/tag/v2.1.70)
 <!-- release_url_end -->
 
 
@@ -125,7 +125,7 @@ brew install greymd/tools/teip
 ### Windows (x86_64)
 
 <!-- ins_url_start -->
-Download installer from [here](https://github.com/greymd/teip/releases/download/v2.1.0/teip_installer-2.1.0-x86_64-pc-windows-msvc.exe).
+Download installer from [here](https://github.com/greymd/teip-test/releases/download/v2.1.70/teip_installer-2.1.70-x86_64-pc-windows-msvc.exe).
 <!-- ins_url_end -->
 
 See [Wiki > Use on Windows](https://github.com/greymd/teip/wiki/Use-on-Windows) in detail.
@@ -135,7 +135,7 @@ See [Wiki > Use on Windows](https://github.com/greymd/teip/wiki/Use-on-Windows) 
 Check this page for executables for the platform you are using.
 
 <!-- release_url_start -->
-[Release page for v2.1.62](https://github.com/greymd/teip/releases/tag/v2.1.62)
+[Release page for v2.1.62](https://github.com/greymd/teip-test/releases/tag/v2.1.70)
 <!-- release_url_end -->
 
 If not, please build it from source.
