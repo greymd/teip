@@ -399,12 +399,14 @@ jobs:
         shell: bash
         run: |
           _ver=${{ steps.vars.outputs.ver }}
-          _url="https://github.com/greymd/teip/releases/download/v${_ver}/teip-${_ver}.\$(uname -m)-unknown-linux-musl.rpm"
+          _url="https://github.com/${GITHUB_REPOSITORY}/releases/download/v${_ver}/teip-${_ver}.\$(uname -m)-unknown-linux-musl.rpm"
           sed -i "/rpm_url_start/,/rpm_url_end/s|https://.*rpm|$_url|g" ./README.md
-          _url="https://github.com/greymd/teip/releases/download/v${_ver}/teip-${_ver}.\$(uname -m)-unknown-linux-musl.deb"
+          _url="https://github.com/${GITHUB_REPOSITORY}/releases/download/v${_ver}/teip-${_ver}.\$(uname -m)-unknown-linux-musl.deb"
           sed -i "/deb_url_start/,/deb_url_end/s|https://.*deb|$_url|g" ./README.md
-          _url="https://github.com/greymd/teip/releases/download/v${_ver}/teip_installer-${_ver}-x86_64-pc-windows-msvc.exe"
+          _url="https://github.com/${GITHUB_REPOSITORY}/releases/download/v${_ver}/teip_installer-${_ver}-x86_64-pc-windows-msvc.exe"
           sed -i "/ins_url_start/,/ins_url_end/s|https://.*exe|$_url|g" ./README.md
+          _url="https://github.com/${GITHUB_REPOSITORY}/releases/tag/v${_ver}"
+          sed -i "/release_url_start/,/release_url_start/s|https://[^)]*|$_url|g"
 
       - name: Release README
         uses: EndBug/add-and-commit@v4

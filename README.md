@@ -106,6 +106,14 @@ sudo dnf install https://github.com/greymd/teip/releases/download/v2.1.0/teip-2.
 ```
 <!-- rpm_url_end -->
 
+If necessary, check the hash value from the following release page.
+Files whose filenames end with `sha256` have hash values listed.
+
+<!-- release_url_start -->
+[Release page for v2.1.62](https://github.com/greymd/teip/releases/tag/v2.1.62)
+<!-- release_url_end -->
+
+
 ### macOS (x86_64, ARM64)
 
 Using [Homebrew](https://brew.sh/)
@@ -116,18 +124,21 @@ brew install greymd/tools/teip
 
 ### Windows (x86_64)
 
-Run installer from below.
-
 <!-- ins_url_start -->
-https://github.com/greymd/teip/releases/download/v2.1.0/teip_installer-2.1.0-x86_64-pc-windows-msvc.exe
+Download installer from [here](https://github.com/greymd/teip/releases/download/v2.1.0/teip_installer-2.1.0-x86_64-pc-windows-msvc.exe).
 <!-- ins_url_start -->
 
 See [Wiki > Use on Windows](https://github.com/greymd/teip/wiki/Use-on-Windows) in detail.
 
-### On other UNIX or other architectures (i686, etc..)
+### On other UNIX or other architectures
 
-Pre-built binaries for other architectures (i686, etc..) are not prepared for now.
-Please build from source.
+Check this page for executables for the platform you are using.
+
+<!-- release_url_start -->
+[Release page for v2.1.62](https://github.com/greymd/teip/releases/tag/v2.1.62)
+<!-- release_url_end -->
+
+If not, please build it from source.
 
 ### Build from source
 
