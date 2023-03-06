@@ -57,9 +57,9 @@ Here is the comparison of processing time to replace approx 761,000 IP addresses
 
 See detail on <a href="https://github.com/greymd/teip/wiki/Benchmark">wiki > Benchmark</a>.
 
-# Features
+## Features
 
-* Help the command "do one thing well"
+* Taping: Help the command "do one thing well"
   - Bypassing a partial range of standard input to any command whatever you want
   - The targeted command just handles bypassed parts of the standard input
   - Flexible methods for selecting a range (Select like AWK, `cut` or `grep`)
@@ -68,7 +68,7 @@ See detail on <a href="https://github.com/greymd/teip/wiki/Benchmark">wiki > Ben
   - The targeted command's standard input/output are intercepted by multiple `teip`'s threads asynchronously.
   - If general UNIX commands on your environment can process a few hundred MB files in a few seconds, then `teip` can do the same or better performance.
 
-# Installation
+## Installation
 
 ### Linux (x86_64, ARM64)
 
@@ -169,7 +169,7 @@ PS C:\> choco install llvm
 PS C:\> cargo install teip --features oniguruma
 ```
 
-# Usage
+## Usage
 
 ```
 USAGE:
@@ -951,7 +951,7 @@ G
 ```
 
 
-# Environment variables
+## Environment variables
 
 `teip` refers to the following environment variables.
 Add the statement to your default shell's startup file (i.e `.bashrc`, `.zshrc`) to change them as you like.
@@ -1008,19 +1008,19 @@ For example, if you want to use `gsed` instead of `sed`, set this variable to `g
 The path to `awk` command used by `--awk` option.
 For example, if you want to use `gawk` instead of `awk`, set this variable to `gawk`.
 
-# Background
+## Background
 
-## Why made it?
+### Why made it?
 See this [post](https://dev.to/greymd/teip-masking-tape-for-shell-is-what-we-needed-5e05).
 
-## Why "teip"?
+### Why "teip"?
 
 * [tee](https://en.wikipedia.org/wiki/Tee_%28command%29) + in-place.
 * And it sounds similar to Masking-"tape".
 
-# License
+## License
 
-## Modules imported/referenced from other repositories
+### Modules imported/referenced from other repositories
 
 Thank you so much for helpful modules!
 
@@ -1033,8 +1033,8 @@ Thank you so much for helpful modules!
   - Many parts of the source code are referenced from [BurntSushi/rust-csv](https://github.com/BurntSushi/rust-csv).
   - Original source codes are distributed under dual-licensed under MIT and Unlicense
 
-## Source code
+### Source code
 The scripts are available as open source under the terms of the [MIT License](http://opensource.org/licenses/MIT).
 
-## Logo
+### Logo
 <a rel="license" href="http://creativecommons.org/licenses/by-nc/4.0/"><img alt="Creative Commons License" style="border-width:0" src="https://i.creativecommons.org/l/by-nc/4.0/88x31.png" /></a><br />The logo of teip is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by-nc/4.0/">Creative Commons Attribution-NonCommercial 4.0 International License</a>.
