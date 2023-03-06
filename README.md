@@ -76,7 +76,7 @@ See detail on <a href="https://github.com/greymd/teip/wiki/Benchmark">wiki > Ben
 
 <!-- deb_url_start -->
 ```bash
-wget https://github.com/greymd/teip/releases/download/v2.1.0/teip-2.1.0.$(uname -m)-unknown-linux-musl.deb
+wget https://github.com/greymd/teip/releases/download/v2.1.63/teip-2.1.63.$(uname -m)-unknown-linux-musl.deb
 sudo dpkg -i ./teip*.deb
 ```
 <!-- deb_url_end -->
@@ -85,7 +85,7 @@ sudo dpkg -i ./teip*.deb
 
 <!-- deb_url_start -->
 ```bash
-wget https://github.com/greymd/teip/releases/download/v2.1.0/teip-2.1.0.$(uname -m)-unknown-linux-musl.deb
+wget https://github.com/greymd/teip/releases/download/v2.1.63/teip-2.1.63.$(uname -m)-unknown-linux-musl.deb
 sudo apt install ./teip*.deb
 ```
 <!-- deb_url_end -->
@@ -94,7 +94,7 @@ sudo apt install ./teip*.deb
 
 <!-- rpm_url_start -->
 ```bash
-sudo dnf install https://github.com/greymd/teip/releases/download/v2.1.0/teip-2.1.0.$(uname -m)-unknown-linux-musl.rpm
+sudo dnf install https://github.com/greymd/teip/releases/download/v2.1.63/teip-2.1.63.$(uname -m)-unknown-linux-musl.rpm
 ```
 <!-- rpm_url_end -->
 
@@ -102,7 +102,7 @@ sudo dnf install https://github.com/greymd/teip/releases/download/v2.1.0/teip-2.
 
 <!-- rpm_url_start -->
 ```bash
-sudo dnf install https://github.com/greymd/teip/releases/download/v2.1.0/teip-2.1.0.$(uname -m)-unknown-linux-musl.rpm
+sudo dnf install https://github.com/greymd/teip/releases/download/v2.1.63/teip-2.1.63.$(uname -m)-unknown-linux-musl.rpm
 ```
 <!-- rpm_url_end -->
 
