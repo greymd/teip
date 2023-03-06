@@ -130,7 +130,7 @@ Download installer from [here](https://github.com/greymd/teip-test/releases/down
 
 See [Wiki > Use on Windows](https://github.com/greymd/teip/wiki/Use-on-Windows) in detail.
 
-### On other UNIX or other architectures
+### Other architectures
 
 Check this page for executables for the platform you are using.
 
