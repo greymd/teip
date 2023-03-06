@@ -309,7 +309,7 @@ jobs:
           file: ${{ env.RELEASE_DIR }}/teip-${{ steps.vars.outputs.ver }}.${{ matrix.target }}.${{ matrix.ext }}
           tag: ${{ github.ref }}
           file_glob: false
-          overwrite: false
+          overwrite: true
 
       - name: Upload sha256 to release
         uses: svenstaro/upload-release-action@v2
@@ -318,7 +318,7 @@ jobs:
           file: ${{ env.RELEASE_DIR }}/teip-${{ steps.vars.outputs.ver }}.${{ matrix.target }}.${{ matrix.ext }}.sha256
           tag: ${{ github.ref }}
           file_glob: false
-          overwrite: false
+          overwrite: true
 
   build-win:
     name: Release for Windows
@@ -371,7 +371,7 @@ jobs:
           file: ${{ env.RELEASE_DIR }}/teip_installer-${{ steps.vars.outputs.ver }}-${{ matrix.target }}.${{ matrix.ext }}
           tag: ${{ github.ref }}
           file_glob: false
-          overwrite: false
+          overwrite: true
 
       - name: Upload sha256 to release for Windows
         uses: svenstaro/upload-release-action@v2
@@ -380,7 +380,7 @@ jobs:
           file: ${{ env.RELEASE_DIR }}/teip_installer-${{ steps.vars.outputs.ver }}-${{ matrix.target }}.${{ matrix.ext }}.sha256
           tag: ${{ github.ref }}
           file_glob: false
-          overwrite: false
+          overwrite: true
 
   readme:
     name: Update README.md
