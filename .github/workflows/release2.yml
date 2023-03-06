@@ -404,7 +404,7 @@ jobs:
           Move-Item windows\Output\teip_installer.exe .
           $EXENAME = "teip_installer.exe teip_installer-${{ steps.vars.outputs.ver }}-${{ matrix.target }}.${{ matrix.ext }}"
           Rename-Item teip_installer.exe "$EXENAME"
-          Get-FileHash .\\teip_installer.exe -Algorithm SHA256 | Select-Object -ExpandProperty Hash > "${EXENAME}.sha256"
+          Get-FileHash .\teip_installer.exe -Algorithm SHA256 | Select-Object -ExpandProperty Hash > "${EXENAME}.sha256"
           echo "BIN_X86_64_PC_WINDOWS_MSVC=$EXENAME" >> $GITHUB_OUTPUT
 
       - name: Upload binaries to release for Windows
