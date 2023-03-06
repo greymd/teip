@@ -127,8 +127,9 @@ jobs:
 
       - name: Create tarball
         run: |
-          _TAR=teip-${{ steps.vars.outputs.ver }}.${{ matrix.target }}.tar.gz
-          tar zcvf "$_TAR" -C "$PWD/package" completion bin man
+          TAR=teip-${{ steps.vars.outputs.ver }}.${{ matrix.target }}.tar.gz
+          tar zcvf "$TAR" -C "$PWD/package" completion bin man
+          echo "$( sha256sum "$TAR" | awk '{print $1}' )" > "${TAR}.sha256"
 
       - name: Build rpm
         id: rpm
