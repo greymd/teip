@@ -406,7 +406,7 @@ jobs:
           _url="https://github.com/${GITHUB_REPOSITORY}/releases/download/v${_ver}/teip_installer-${_ver}-x86_64-pc-windows-msvc.exe"
           sed -i "/ins_url_start/,/ins_url_end/s|https://.*exe|$_url|g" ./README.md
           _url="https://github.com/${GITHUB_REPOSITORY}/releases/tag/v${_ver}"
-          sed -i "/release_url_start/,/release_url_start/s|https://[^)]*|$_url|g" ./README.md
+          sed -i "/release_url_start/,/release_url_end/s|https://[^)]*|$_url|g" ./README.md
 
       - name: Release README
         uses: EndBug/add-and-commit@v4

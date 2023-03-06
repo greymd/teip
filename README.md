@@ -126,7 +126,7 @@ brew install greymd/tools/teip
 
 <!-- ins_url_start -->
 Download installer from [here](https://github.com/greymd/teip/releases/download/v2.1.0/teip_installer-2.1.0-x86_64-pc-windows-msvc.exe).
-<!-- ins_url_start -->
+<!-- ins_url_end -->
 
 See [Wiki > Use on Windows](https://github.com/greymd/teip/wiki/Use-on-Windows) in detail.
 
