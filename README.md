@@ -10,11 +10,17 @@
   <a href="LICENSE" alt="MIT License"><img src="http://img.shields.io/badge/license-MIT-blue.svg?style=flat" /></a>
 </p>
 
-# TL;DR
+## Taping
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/wiki/greymd/teip/img/teip_intro2.png" alt="Git Animation for Introduction" width="50%" />
+  <img src="https://raw.githubusercontent.com/wiki/greymd/teip/img/teip_intro2.png" alt="Git Animation for Introduction" width="80%" />
 </p>
+
+* Convert timestamps in /var/log/secure to UNIX time
+
+```bash
+$ cat /var/log/secure | teip -c 1-15 -- date -f- +%s
+```
 
 * Replace 'WORLD' to 'EARTH' on lines containing 'HELLO'
 
@@ -34,19 +40,13 @@ $ cat file.csv | teip --csv -f 2 -- tr a-z A-Z
 $ cat file.tsv | teip -D '\t' -f 2-4 -- tr a-z A-Z
 ```
 
-* Convert timestamps in /var/log/secure to UNIX time
-
-```bash
-$ cat /var/log/secure | teip -c 1-15 -- date -f- +%s
-```
-
 * Edit lines containing 'hello' and the three lines before and after it
 
 ```bash
 $ cat access.log | teip -e 'grep -n -C 3 hello' -- sed 's/./@/g'
 ```
 
-# Performance enhancement
+## Performance enhancement
 `teip` allows a command to focus on its own task.
 
 Here is the comparison of processing time to replace approx 761,000 IP addresses with dummy ones in 100 MiB text file.
