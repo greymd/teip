@@ -386,58 +386,28 @@ jobs:
     runs-on: ubuntu-latest
     needs: [build, build-win]
     steps:
+      - name: Set envs
+        id: vars
+        run: |
+          echo ver=${GITHUB_REF/refs\/tags\/v/} >> ${GITHUB_OUTPUT}
+
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Apply artifacts rpm x86_64
+      - name: Update URL on README.md
         shell: bash
         run: |
-          _shorter=./.github/gitio_shorter.sh
-          _ver=${PROJECT_VERSION}
-          _url="https://github.com/greymd/teip/releases/download/v${_ver}/${{env.RPM_X86_64_UNKNOWN_LINUX_MUSL}}"
-          _short_url=$($_shorter "${_url}" "teip-${_ver}.x86_64.rpm" || $_shorter "${_url}" "teip-${_ver}-${_sha:1:5}.x86_64.rpm" || echo "${_url}")
-          sed -i "/rpm_x86_64_start/,/rpm_x86_64_end/s|https://.*rpm|$_short_url|g" ./README.md
-          cat ./README.md
-
-      - name: Apply artifacts deb x86_64
-        shell: bash
-        run: |
-          _shorter=./.github/gitio_shorter.sh
-          _ver=${PROJECT_VERSION}
-          _url="https://github.com/greymd/teip/releases/download/v${_ver}/${{env.DEB_X86_64_UNKNOWN_LINUX_MUSL}}"
-          _short_url=$($_shorter "${_url}" "teip-${_ver}.x86_64.deb" || $_shorter "${_url}" "teip-${_ver}-${_sha:1:5}.x86_64.deb" || echo "${_url}")
-          sed -i "/deb_x86_64_start/,/deb_x86_64_end/s|https://.*deb|$_short_url|g" ./README.md
-          cat ./README.md
-
-      - name: Apply artifacts rpm aarch64
-        shell: bash
-        run: |
-          _shorter=./.github/gitio_shorter.sh
-          _ver=${PROJECT_VERSION}
-          _url="https://github.com/greymd/teip/releases/download/v${_ver}/${{env.RPM_AARCH64_UNKNOWN_LINUX_MUSL}}"
-          _short_url=$($_shorter "${_url}" "teip-${_ver}.aarch64.rpm" || $_shorter "${_url}" "teip-${_ver}-${_sha:1:5}.aarch64.rpm" || echo "${_url}")
-          sed -i "/rpm_aarch64_start/,/rpm_aarch64_end/s|https://.*rpm|$_short_url|g" ./README.md
-          cat ./README.md
-
-      - name: Apply artifacts deb aarch64
-        shell: bash
-        run: |
-          _shorter=./.github/gitio_shorter.sh
-          _ver=${PROJECT_VERSION}
-          _url="https://github.com/greymd/teip/releases/download/v${_ver}/${{env.DEB_AARCH64_UNKNOWN_LINUX_MUSL}}"
-          _short_url=$($_shorter "${_url}" "teip-${_ver}.aarch64.deb" || $_shorter "${_url}" "teip-${_ver}-${_sha:1:5}.aarch64.deb" || echo "${_url}")
-          sed -i "/deb_aarch64_start/,/deb_aarch64_end/s|https://.*deb|$_short_url|g" ./README.md
-          cat ./README.md
-
-      - name: Apply artifacts ins
-        shell: bash
-        run: |
-          _shorter=./.github/gitio_shorter.sh
-          _ver=${PROJECT_VERSION}
-          _url="https://github.com/greymd/teip/releases/download/v${_ver}/${{env.BIN_X86_64_PC_WINDOWS_MSVC}}"
-          _short_url=$($_shorter "${_url}" "teip_installer-${_ver}.x86_64.exe" || $_shorter "${_url}" "teip_installer-${_ver}-${_sha:1:5}.x86_64.exe" || echo "${_url}")
-          sed -i "/ins.x86_64_start/,/ins.x86_64_end/s|https://.*exe|$_short_url|g" ./README.md
-          cat ./README.md
+          _ver=${{ steps.vars.outputs.ver }}
+          _url="https://github.com/greymd/teip/releases/download/v${_ver}/teip-${_ver}.x86_64-unknown-linux-musl.rpm"
+          sed -i "/rpm_x86_64_start/,/rpm_x86_64_end/s|https://.*rpm|$_url|g" ./README.md
+          _url="https://github.com/greymd/teip/releases/download/v${_ver}/teip-${_ver}.x86_64-unknown-linux-musl.deb"
+          sed -i "/deb_x86_64_start/,/deb_x86_64_end/s|https://.*deb|$_url|g" ./README.md
+          _url="https://github.com/greymd/teip/releases/download/v${_ver}/teip-${_ver}.aarch64-unknown-linux-musl.rpm"
+          sed -i "/rpm_aarch64_start/,/rpm_aarch64_end/s|https://.*rpm|$_url|g" ./README.md
+          _url="https://github.com/greymd/teip/releases/download/v${_ver}/teip-${_ver}.aarch64-unknown-linux-musl.deb"
+          sed -i "/deb_aarch64_start/,/deb_aarch64_end/s|https://.*deb|$_url|g" ./README.md
+          _url="https://github.com/greymd/teip/releases/download/v${_ver}/teip_installer-${_ver}-x86_64-pc-windows-msvc.exe"
+          sed -i "/ins.x86_64_start/,/ins.x86_64_end/s|https://.*exe|$_url|g" ./README.md
 
       - name: Release README
         uses: EndBug/add-and-commit@v4

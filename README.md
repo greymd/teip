@@ -87,7 +87,6 @@ wget https://github.com/greymd/teip/releases/download/v2.1.0/teip-2.1.0.x86_64-u
 sudo dpkg -i ./teip*.deb
 ```
 <!-- deb_x86_64_end -->
-<!-- deb_x86_64_sha256 -->SHA256: 53e40a0161e6b46870118492fe302cb033ff59ff941af3dee70148e4f425f96f
 
 #### ARM64
 <!-- deb_aarch64_start -->
@@ -96,7 +95,6 @@ wget https://github.com/greymd/teip/releases/download/v2.1.0/teip-2.1.0.aarch64-
 sudo dpkg -i ./teip*.deb
 ```
 <!-- deb_aarch64_end -->
-<!-- deb_aarch64_sha256 -->SHA256: 53e40a0161e6b46870118492fe302cb033ff59ff941af3dee70148e4f425f96f
 
 ### With `dnf` on Fedora, CentOS, RHEL, etc
 
@@ -106,7 +104,6 @@ sudo dpkg -i ./teip*.deb
 sudo dnf install https://github.com/greymd/teip/releases/download/v2.1.0/teip-2.1.0.x86_64-unknown-linux-musl.rpm
 ```
 <!-- rpm_x86_64_end -->
-<!-- rpm_x86_64_sha256 -->SHA256: 0e9ed140488c01d91d614383d1c5b20733266a9ab089f58724b85873b823972a
 
 #### ARM64
 <!-- rpm_aarch64_start -->
@@ -114,7 +111,6 @@ sudo dnf install https://github.com/greymd/teip/releases/download/v2.1.0/teip-2.
 sudo dnf install https://github.com/greymd/teip/releases/download/v2.1.0/teip-2.1.0.aarch64-unknown-linux-musl.rpm
 ```
 <!-- rpm_aarch64_end -->
-<!-- rpm_aarch64_sha256 -->SHA256: 0e9ed140488c01d91d614383d1c5b20733266a9ab089f58724b85873b823972a
 
 ### With `yum` on CentOS7, RHEL7, etc
 
@@ -124,7 +120,6 @@ sudo dnf install https://github.com/greymd/teip/releases/download/v2.1.0/teip-2.
 sudo yum install https://github.com/greymd/teip/releases/download/v2.1.0/teip-2.1.0.x86_64-unknown-linux-musl.rpm
 ```
 <!-- rpm_x86_64_end -->
-<!-- rpm_x86_64_sha256 -->SHA256: 0e9ed140488c01d91d614383d1c5b20733266a9ab089f58724b85873b823972a
 
 #### ARM64
 <!-- rpm_aarch64_start -->
@@ -132,8 +127,6 @@ sudo yum install https://github.com/greymd/teip/releases/download/v2.1.0/teip-2.
 sudo yum install https://github.com/greymd/teip/releases/download/v2.1.0/teip-2.1.0.aarch64-unknown-linux-musl.rpm
 ```
 <!-- rpm_aarch64_end -->
-<!-- rpm_aarch64_sha256 -->SHA256: 0e9ed140488c01d91d614383d1c5b20733266a9ab089f58724b85873b823972a
-
 
 ### On Windows (x86_64)
 
@@ -142,7 +135,6 @@ sudo yum install https://github.com/greymd/teip/releases/download/v2.1.0/teip-2.
 <!-- ins.x86_64_start -->
 https://github.com/greymd/teip/releases/download/v2.1.0/teip_installer-2.1.0-x86_64-pc-windows-msvc.exe
 <!-- ins.x86_64_end -->
-<!-- ins.x86_64_sha256 -->SHA256: 
 
 **Attention:**
 You may get some warning messages during the installation because this installer is not signed.
