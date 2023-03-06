@@ -106,11 +106,9 @@ sudo dnf install https://github.com/greymd/teip-test/releases/download/v2.1.70/t
 ```
 <!-- rpm_url_end -->
 
-If necessary, check the hash value from the following release page.
-Files whose filenames end with `sha256` have hash values listed.
-
 <!-- release_url_start -->
-[Release page for v2.1.62](https://github.com/greymd/teip-test/releases/tag/v2.1.70)
+If necessary, check the hash value from the [latest release page](https://github.com/greymd/teip-test/releases/tag/v2.1.70).
+Files whose filenames end with `sha256` have hash values listed.
 <!-- release_url_end -->
 
 
@@ -132,10 +130,8 @@ See [Wiki > Use on Windows](https://github.com/greymd/teip/wiki/Use-on-Windows) 
 
 ### Other architectures
 
-Check this page for executables for the platform you are using.
-
 <!-- release_url_start -->
-[Release page for v2.1.62](https://github.com/greymd/teip-test/releases/tag/v2.1.70)
+Check the [latest release page](https://github.com/greymd/teip-test/releases/tag/v2.1.70) for executables for the platform you are using.
 <!-- release_url_end -->
 
 If not, please build it from source.
