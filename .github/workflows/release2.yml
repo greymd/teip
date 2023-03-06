@@ -1,7 +1,7 @@
 name: Release
 
 env:
-  CICD_INTERMEDIATES_DIR: "_cicd-intermediates"
+  RELEASE_DIR: "_release"
 
 on:
   push:
@@ -130,6 +130,7 @@ jobs:
           TAR=teip-${{ steps.vars.outputs.ver }}.${{ matrix.target }}.tar.gz
           tar zcvf "$TAR" -C "$PWD/package" completion bin man
           echo "$( sha256sum "$TAR" | awk '{print $1}' )" > "${TAR}.sha256"
+          cp -l "${TAR}" "${TAR}.sha256" "${{ env.RELEASE_DIR }}"
 
       - name: Build rpm
         id: rpm
@@ -196,13 +197,14 @@ jobs:
           echo "RPM_$(echo ${{ matrix.target }} | tr '[:lower:]-' '[:upper:]_')=$BIN_NAME" >> ${GITHUB_ENV}
           ## Generate sha256
           echo "$( sha256sum "$BIN_NAME" | awk '{print $1}' )" > "${BIN_NAME}.sha256"
+          cp -l "${BIN_NAME}" "${BIN_NAME}.sha256" "${{ env.RELEASE_DIR }}"
 
       - name: Create Debian package
         id: deb
         if: matrix.ext == 'deb'
         run: |
           COPYRIGHT_YEARS="2020 - "$(date "+%Y")
-          DPKG_STAGING="${{ env.CICD_INTERMEDIATES_DIR }}/debian-package"
+          DPKG_STAGING="_dpkg_staging/debian-package"
           DPKG_DIR="${DPKG_STAGING}/dpkg"
           mkdir -p "${DPKG_DIR}"
 
@@ -296,89 +298,16 @@ jobs:
           echo "DEB_$(echo ${{ matrix.target }} | tr '[:lower:]-' '[:upper:]_')=$DPKG_NAME" >> ${GITHUB_ENV}
           ## Generate sha256
           echo "$( sha256sum "$DPKG_NAME" | awk '{print $1}' )" > "${DPKG_NAME}.sha256"
-
+          cp -l "${DPKG_NAME}" "${DPKG_NAME}.sha256" "${{ env.RELEASE_DIR }}"
 
       - name: Upload binaries to release
-        uses: svenstaro/upload-release-action@v1-release
+        uses: svenstaro/upload-release-action@v2
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: teip-${{ steps.vars.outputs.ver }}.${{ matrix.target }}.${{ matrix.ext }}
-          asset_name: teip-${{ steps.vars.outputs.ver }}.${{ matrix.target }}.${{ matrix.ext }}
+          file: ${{ env.RELEASE_DIR }}/teip-*
           tag: ${{ github.ref }}
-          overwrite: true
-
-      - name: Upload sha256 to release
-        uses: svenstaro/upload-release-action@v1-release
-        with:
-          repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: teip-${{ steps.vars.outputs.ver }}.${{ matrix.target }}.${{ matrix.ext }}.sha256
-          asset_name: teip-${{ steps.vars.outputs.ver }}.${{ matrix.target }}.${{ matrix.ext }}.sha256
-          tag: ${{ github.ref }}
-          overwrite: true
-
-     #- name: Create digest for rpm x86_64-unknown-linux
-     #  if: |
-     #    matrix.ext == 'rpm' && contains(matrix.target, 'x86_64-unknown-linux')
-     #  run: |
-     #    _TAR=teip-${{ steps.vars.outputs.ver }}.${{ matrix.target }}.rpm
-     #    echo "$_TAR" > ./digest.txt
-     #    echo "${{ steps.rpm.outputs.sha256 }}" >> ./digest.txt
-
-     #- name: Upload digest as artifact x86_64
-     #  if: |
-     #    matrix.ext == 'rpm' && contains(matrix.target, 'x86_64-unknown-linux')
-     #  uses: actions/upload-artifact@v1
-     #  with:
-     #    name: rpm.x86_64
-     #    path: digest.txt
-
-     #- name: Create digest for deb x86_64-unknown-linux
-     #  if: |
-     #    matrix.ext == 'deb' && contains(matrix.target, 'x86_64-unknown-linux')
-     #  run: |
-     #    _TAR=teip-${{ steps.vars.outputs.ver }}.${{ matrix.target }}.deb
-     #    echo "$_TAR" > ./digest.txt
-     #    echo "${{ steps.deb.outputs.sha256 }}" >> ./digest.txt
-
-     #- name: Upload digest as artifact x86_64-unknown-linux
-     #  if: |
-     #    matrix.ext == 'deb' && contains(matrix.target, 'x86_64-unknown-linux')
-     #  uses: actions/upload-artifact@v1
-     #  with:
-     #    name: deb.x86_64
-     #    path: digest.txt
-
-     #- name: Create digest for rpm aarch64-unknown-linux
-     #  if: |
-     #    matrix.ext == 'rpm' && contains(matrix.target, 'aarch64-unknown-linux')
-     #  run: |
-     #    _TAR=teip-${{ steps.vars.outputs.ver }}.${{ matrix.target }}.rpm
-     #    echo "$_TAR" > ./digest.txt
-     #    echo "${{ steps.rpm.outputs.sha256 }}" >> ./digest.txt
-
-     #- name: Upload digest as artifact aarch64
-     #  if: |
-     #    matrix.ext == 'rpm' && contains(matrix.target, 'aarch64-unknown-linux')
-     #  uses: actions/upload-artifact@v1
-     #  with:
-     #    name: rpm.aarch64
-     #    path: digest.txt
-
-     #- name: Create digest for deb aarch64-unknown-linux
-     #  if: |
-     #    matrix.ext == 'deb' && contains(matrix.target, 'aarch64-unknown-linux')
-     #  run: |
-     #    _TAR=teip-${{ steps.vars.outputs.ver }}.${{ matrix.target }}.deb
-     #    echo "$_TAR" > ./digest.txt
-     #    echo "${{ steps.deb.outputs.sha256 }}" >> ./digest.txt
-
-     #- name: Upload digest as artifact aarch64-unknown-linux
-     #  if: |
-     #    matrix.ext == 'deb' && contains(matrix.target, 'aarch64-unknown-linux')
-     #  uses: actions/upload-artifact@v1
-     #  with:
-     #    name: deb.aarch64
-     #    path: digest.txt
+          file_glob: true
+          overwrite: false
 
   build-win:
     name: Release for Windows
@@ -420,24 +349,17 @@ jobs:
           echo "BIN_X86_64_PC_WINDOWS_MSVC=$EXENAME" >> ${GITHUB_ENV}
           # Generate sha256
           Get-FileHash "$EXENAME" -Algorithm SHA256 | Select-Object -ExpandProperty Hash > "${EXENAME}.sha256"
+          Move-Item "${DPKG_NAME}" "${{ env.RELEASE_DIR }}"
+          Move-Item "${DPKG_NAME}.sha256" "${{ env.RELEASE_DIR }}"
 
       - name: Upload binaries to release for Windows
-        uses: svenstaro/upload-release-action@v1-release
+        uses: svenstaro/upload-release-action@v2
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: teip_installer-${{ steps.vars.outputs.ver }}-${{ matrix.target }}.${{ matrix.ext }}
-          asset_name: teip_installer-${{ steps.vars.outputs.ver }}-${{ matrix.target }}.${{ matrix.ext }}
+          file: ${{ env.RELEASE_DIR }}/teip_installer-*
           tag: ${{ github.ref }}
-          overwrite: true
-
-      - name: Upload sha256 to release for Windows
-        uses: svenstaro/upload-release-action@v1-release
-        with:
-          repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: teip_installer-${{ steps.vars.outputs.ver }}-${{ matrix.target }}.${{ matrix.ext }}.sha256
-          asset_name: teip_installer-${{ steps.vars.outputs.ver }}-${{ matrix.target }}.${{ matrix.ext }}.sha256
-          tag: ${{ github.ref }}
-          overwrite: true
+          file_glob: true
+          overwrite: false
 
   readme:
     name: Update README.md
@@ -460,7 +382,7 @@ jobs:
         run: |
           _shorter=./.github/gitio_shorter.sh
           _ver=${PROJECT_VERSION}
-          _url="https://github.com/greymd/teip/releases/download/v${_ver}/$RPM_X86_64_UNKNOWN_LINUX_MUSL"
+          _url="https://github.com/greymd/teip/releases/download/v${_ver}/${{env.RPM_X86_64_UNKNOWN_LINUX_MUSL}}"
           _short_url=$($_shorter "${_url}" "teip-${_ver}.x86_64.rpm" || $_shorter "${_url}" "teip-${_ver}-${_sha:1:5}.x86_64.rpm" || echo "${_url}")
           sed -i "/rpm_x86_64_start/,/rpm_x86_64_end/s|https://.*rpm|$_short_url|g" ./README.md
           cat ./README.md
@@ -473,7 +395,7 @@ jobs:
         run: |
           _shorter=./.github/gitio_shorter.sh
           _ver=${PROJECT_VERSION}
-          _url="https://github.com/greymd/teip/releases/download/v${_ver}/$DEB_X86_64_UNKNOWN_LINUX_MUSL"
+          _url="https://github.com/greymd/teip/releases/download/v${_ver}/${{env.DEB_X86_64_UNKNOWN_LINUX_MUSL}}"
           _short_url=$($_shorter "${_url}" "teip-${_ver}.x86_64.deb" || $_shorter "${_url}" "teip-${_ver}-${_sha:1:5}.x86_64.deb" || echo "${_url}")
           sed -i "/deb_x86_64_start/,/deb_x86_64_end/s|https://.*deb|$_short_url|g" ./README.md
           cat ./README.md
@@ -486,7 +408,7 @@ jobs:
         run: |
           _shorter=./.github/gitio_shorter.sh
           _ver=${PROJECT_VERSION}
-          _url="https://github.com/greymd/teip/releases/download/v${_ver}/$RPM_AARCH64_UNKNOWN_LINUX_MUSL"
+          _url="https://github.com/greymd/teip/releases/download/v${_ver}/${{env.RPM_AARCH64_UNKNOWN_LINUX_MUSL}}"
           _short_url=$($_shorter "${_url}" "teip-${_ver}.aarch64.rpm" || $_shorter "${_url}" "teip-${_ver}-${_sha:1:5}.aarch64.rpm" || echo "${_url}")
           sed -i "/rpm_aarch64_start/,/rpm_aarch64_end/s|https://.*rpm|$_short_url|g" ./README.md
           cat ./README.md
@@ -499,7 +421,7 @@ jobs:
         run: |
           _shorter=./.github/gitio_shorter.sh
           _ver=${PROJECT_VERSION}
-          _url="https://github.com/greymd/teip/releases/download/v${_ver}/$DEB_AARCH64_UNKNOWN_LINUX_MUSL"
+          _url="https://github.com/greymd/teip/releases/download/v${_ver}/${{env.DEB_AARCH64_UNKNOWN_LINUX_MUSL}}"
           _short_url=$($_shorter "${_url}" "teip-${_ver}.aarch64.deb" || $_shorter "${_url}" "teip-${_ver}-${_sha:1:5}.aarch64.deb" || echo "${_url}")
           sed -i "/deb_aarch64_start/,/deb_aarch64_end/s|https://.*deb|$_short_url|g" ./README.md
           cat ./README.md
@@ -512,7 +434,7 @@ jobs:
         run: |
           _shorter=./.github/gitio_shorter.sh
           _ver=${PROJECT_VERSION}
-          _url="https://github.com/greymd/teip/releases/download/v${_ver}/$BIN_X86_64_PC_WINDOWS_MSVC"
+          _url="https://github.com/greymd/teip/releases/download/v${_ver}/${{env.BIN_X86_64_PC_WINDOWS_MSVC}}"
           _short_url=$($_shorter "${_url}" "teip_installer-${_ver}.x86_64.exe" || $_shorter "${_url}" "teip_installer-${_ver}-${_sha:1:5}.x86_64.exe" || echo "${_url}")
           sed -i "/ins.x86_64_start/,/ins.x86_64_end/s|https://.*exe|$_short_url|g" ./README.md
           cat ./README.md
