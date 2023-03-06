@@ -128,6 +128,7 @@ jobs:
       - name: Create tarball
         run: |
           TAR=teip-${{ steps.vars.outputs.ver }}.${{ matrix.target }}.tar.gz
+          mkdir "${{ env.RELEASE_DIR }}"
           tar zcvf "$TAR" -C "$PWD/package" completion bin man
           echo "$( sha256sum "$TAR" | awk '{print $1}' )" > "${TAR}.sha256"
           cp -l "${TAR}" "${TAR}.sha256" "${{ env.RELEASE_DIR }}"
