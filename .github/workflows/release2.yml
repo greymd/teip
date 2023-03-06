@@ -355,12 +355,13 @@ jobs:
           & "${Env:ProgramFiles(x86)}\Inno Setup 6\iscc.exe" windows\installer.iss
           Move-Item windows\Output\teip_installer.exe .
           $EXENAME = "teip_installer-${{ steps.vars.outputs.ver }}-${{ matrix.target }}.${{ matrix.ext }}"
+          New-Item -Path "${{ env.RELEASE_DIR }}" -ItemType directory
           Rename-Item teip_installer.exe "$EXENAME"
           echo "BIN_X86_64_PC_WINDOWS_MSVC=$EXENAME" >> ${GITHUB_ENV}
           # Generate sha256
           Get-FileHash "$EXENAME" -Algorithm SHA256 | Select-Object -ExpandProperty Hash > "${EXENAME}.sha256"
-          Move-Item -Path "${EXENAME}" -Destination "${{ env.RELEASE_DIR }}" -Force
-          Move-Item -Path "${EXENAME}.sha256" -Destination "${{ env.RELEASE_DIR }}" -Force
+          Move-Item -Path "${EXENAME}" -Destination "${{ env.RELEASE_DIR }}"
+          Move-Item -Path "${EXENAME}.sha256" -Destination "${{ env.RELEASE_DIR }}"
 
       - name: Upload binaries to release for Windows
         uses: svenstaro/upload-release-action@v2
