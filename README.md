@@ -13,7 +13,7 @@
 # TL;DR
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/wiki/greymd/teip/img/teip_intro.png" alt="Git Animation for Introduction" width="50%" />
+  <img src="https://raw.githubusercontent.com/wiki/greymd/teip/img/teip_intro2.png" alt="Git Animation for Introduction" width="50%" />
 </p>
 
 * Replace 'WORLD' to 'EARTH' on lines containing 'HELLO'
