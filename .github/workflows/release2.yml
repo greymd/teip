@@ -186,14 +186,14 @@ jobs:
           EOF
 
           ## Build
+          BIN_NAME="teip-${{ steps.vars.outputs.ver }}.${{ matrix.target }}.rpm"
           sudo apt-get update && sudo apt-get install -y qemu-user-static
           docker build -t ${RPM_ARCH}-rpm-builder -f .github/dockerfiles/Dockerfile.${RPM_ARCH} .
           sudo docker run --rm -v "$PWD/$RPM_BUILD":/root/rpmbuild ${RPM_ARCH}-rpm-builder \
             rpmbuild --undefine=_disable_source_fetch -ba /root/rpmbuild/SPECS/template.spec
-          sudo mv "$RPM_BUILD"/RPMS/"$RPM_ARCH"/teip-*.rpm teip-${{ steps.vars.outputs.ver }}.${{ matrix.target }}.rpm
-          sudo file teip-${{ steps.vars.outputs.ver }}.${{ matrix.target }}.rpm
+          sudo mv "$RPM_BUILD"/RPMS/"$RPM_ARCH"/teip-*.rpm "$BIN_NAME"
           sudo rm -rf "$RPM_BUILD"/
-          echo sha256=$( sha256sum teip-${{ steps.vars.outputs.ver }}.${{ matrix.target }}.rpm | awk '{print $1}' ) >> ${GITHUB_OUTPUT}
+          echo "RPM_$(echo ${{ matrix.target }} | tr '[:lower:]-' '[:upper:]_')=$BIN_NAME" ) >> ${GITHUB_OUTPUT}
 
       - name: Create Debian package
         id: deb
@@ -445,8 +445,8 @@ jobs:
       - shell: bash
         run: |
           _shorter=./.github/gitio_shorter.sh
-          _ver=${{ steps.vars.outputs.ver }}
-          _url="https://github.com/greymd/teip/releases/download/v${_ver}/$(head -n 1 rpm.x86_64/digest.txt)"
+          _ver=${PROJECT_VERSION}
+          _url="https://github.com/greymd/teip/releases/download/v${_ver}/$RPM_X86_64_UNKNOWN_LINUX_MUSL"
           _short_url=$($_shorter "${_url}" "teip-${_ver}.x86_64.rpm" || $_shorter "${_url}" "teip-${_ver}-${_sha:1:5}.x86_64.rpm" || echo "${_url}")
           sed -i "/rpm_x86_64_start/,/rpm_x86_64_end/s|https://.*rpm|$_short_url|g" ./README.md
           cat ./README.md
