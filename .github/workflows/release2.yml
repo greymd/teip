@@ -402,8 +402,10 @@ jobs:
           & "C:\\Program Files\\Git\\usr\\bin\\sed.exe" -i 's/#define MyAppVersion \"0.0.0\"/#define MyAppVersion \"${{ steps.vars.outputs.ver }}\"/' .\windows\installer.iss
           & "${Env:ProgramFiles(x86)}\Inno Setup 6\iscc.exe" windows\installer.iss
           Move-Item windows\Output\teip_installer.exe .
-          echo "sha256=$(Get-FileHash .\\teip_installer.exe -Algorithm SHA256 | Select-Object -ExpandProperty Hash)" >> ${GITHUB_OUTPUT}
-          Rename-Item teip_installer.exe teip_installer-${{ steps.vars.outputs.ver }}-${{ matrix.target }}.${{ matrix.ext }}
+          $EXENAME = "teip_installer.exe teip_installer-${{ steps.vars.outputs.ver }}-${{ matrix.target }}.${{ matrix.ext }}"
+          Rename-Item teip_installer.exe "$EXENAME"
+          Get-FileHash .\\teip_installer.exe -Algorithm SHA256 | Select-Object -ExpandProperty Hash > "${EXENAME}.sha256"
+          echo "BIN_X86_64_PC_WINDOWS_MSVC=$EXENAME" >> $GITHUB_OUTPUT
 
       - name: Upload binaries to release for Windows
         uses: svenstaro/upload-release-action@v1-release
@@ -414,22 +416,14 @@ jobs:
           tag: ${{ github.ref }}
           overwrite: true
 
-      - name: Create digest for exe x86_64
-        if: |
-          contains(matrix.target, 'x86_64')
-        shell: bash
-        run: |
-          _BIN=teip_installer-${{ steps.vars.outputs.ver }}-${{ matrix.target }}.${{ matrix.ext }}
-          echo "$_BIN" > ./digest.txt
-          echo "${{ steps.exe.outputs.sha256 }}" >> ./digest.txt
-
-      - name: Upload digest as artifact x86_64
-        if: |
-          contains(matrix.target, 'x86_64')
-        uses: actions/upload-artifact@v1
+      - name: Upload sha256 to release for Windows
+        uses: svenstaro/upload-release-action@v1-release
         with:
-          name: ins.x86_64
-          path: digest.txt
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: teip_installer-${{ steps.vars.outputs.ver }}-${{ matrix.target }}.${{ matrix.ext }}.sha256
+          asset_name: teip_installer-${{ steps.vars.outputs.ver }}-${{ matrix.target }}.${{ matrix.ext }}.sha256
+          tag: ${{ github.ref }}
+          overwrite: true
 
   readme:
     name: Update README.md
@@ -453,10 +447,8 @@ jobs:
           _shorter=./.github/gitio_shorter.sh
           _ver=${{ steps.vars.outputs.ver }}
           _url="https://github.com/greymd/teip/releases/download/v${_ver}/$(head -n 1 rpm.x86_64/digest.txt)"
-          _sha=$(tail -n 1 rpm.x86_64/digest.txt)
           _short_url=$($_shorter "${_url}" "teip-${_ver}.x86_64.rpm" || $_shorter "${_url}" "teip-${_ver}-${_sha:1:5}.x86_64.rpm" || echo "${_url}")
           sed -i "/rpm_x86_64_start/,/rpm_x86_64_end/s|https://.*rpm|$_short_url|g" ./README.md
-          sed -i "/rpm_x86_64_sha256/s/SHA256:.*/SHA256: $_sha/" ./README.md
           cat ./README.md
 
       - name: Apply artifacts deb x86_64
@@ -468,10 +460,8 @@ jobs:
           _shorter=./.github/gitio_shorter.sh
           _ver=${{ steps.vars.outputs.ver }}
           _url="https://github.com/greymd/teip/releases/download/v${_ver}/$(head -n 1 deb.x86_64/digest.txt)"
-          _sha=$(tail -n 1 deb.x86_64/digest.txt)
           _short_url=$($_shorter "${_url}" "teip-${_ver}.x86_64.deb" || $_shorter "${_url}" "teip-${_ver}-${_sha:1:5}.x86_64.deb" || echo "${_url}")
           sed -i "/deb_x86_64_start/,/deb_x86_64_end/s|https://.*deb|$_short_url|g" ./README.md
-          sed -i "/deb_x86_64_sha256/s/SHA256:.*/SHA256: $_sha/" ./README.md
           cat ./README.md
 
       - name: Apply artifacts rpm aarch64
@@ -483,10 +473,8 @@ jobs:
           _shorter=./.github/gitio_shorter.sh
           _ver=${{ steps.vars.outputs.ver }}
           _url="https://github.com/greymd/teip/releases/download/v${_ver}/$(head -n 1 rpm.aarch64/digest.txt)"
-          _sha=$(tail -n 1 rpm.aarch64/digest.txt)
           _short_url=$($_shorter "${_url}" "teip-${_ver}.aarch64.rpm" || $_shorter "${_url}" "teip-${_ver}-${_sha:1:5}.aarch64.rpm" || echo "${_url}")
           sed -i "/rpm_aarch64_start/,/rpm_aarch64_end/s|https://.*rpm|$_short_url|g" ./README.md
-          sed -i "/rpm_aarch64_sha256/s/SHA256:.*/SHA256: $_sha/" ./README.md
           cat ./README.md
 
       - name: Apply artifacts deb aarch64
@@ -498,10 +486,8 @@ jobs:
           _shorter=./.github/gitio_shorter.sh
           _ver=${{ steps.vars.outputs.ver }}
           _url="https://github.com/greymd/teip/releases/download/v${_ver}/$(head -n 1 deb.aarch64/digest.txt)"
-          _sha=$(tail -n 1 deb.aarch64/digest.txt)
           _short_url=$($_shorter "${_url}" "teip-${_ver}.aarch64.deb" || $_shorter "${_url}" "teip-${_ver}-${_sha:1:5}.aarch64.deb" || echo "${_url}")
           sed -i "/deb_aarch64_start/,/deb_aarch64_end/s|https://.*deb|$_short_url|g" ./README.md
-          sed -i "/deb_aarch64_sha256/s/SHA256:.*/SHA256: $_sha/" ./README.md
           cat ./README.md
 
       - name: Apply artifacts ins
@@ -511,12 +497,10 @@ jobs:
       - shell: bash
         run: |
           _shorter=./.github/gitio_shorter.sh
-          _ver=${{ steps.vars.outputs.ver }}
-          _url="https://github.com/greymd/teip/releases/download/v${_ver}/$(head -n 1 ins.x86_64/digest.txt)"
-          _sha=$(tail -n 1 ins.x86_64/digest.txt)
+          _ver=${PROJECT_VERSION}
+          _url="https://github.com/greymd/teip/releases/download/v${_ver}/${BIN_X86_64_PC_WINDOWS_MSVC}"
           _short_url=$($_shorter "${_url}" "teip_installer-${_ver}.x86_64.exe" || $_shorter "${_url}" "teip_installer-${_ver}-${_sha:1:5}.x86_64.exe" || echo "${_url}")
           sed -i "/ins.x86_64_start/,/ins.x86_64_end/s|https://.*exe|$_short_url|g" ./README.md
-          sed -i "/ins.x86_64_sha256/s/SHA256:.*/SHA256: $_sha/" ./README.md
           cat ./README.md
 
       - name: Release README
