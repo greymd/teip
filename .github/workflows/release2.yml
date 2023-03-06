@@ -55,7 +55,8 @@ jobs:
         run: |
           echo ver=${GITHUB_REF/refs\/tags\/v/} >> ${GITHUB_OUTPUT}
           echo "PROJECT_VERSION=${GITHUB_REF/refs\/tags\/v/}" >> $GITHUB_ENV
-          # echo "PROJECT_VERSION=$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -n1)" >> $GITHUB_ENV
+          echo "CARGO_VERSION=$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -n1)" >> $GITHUB_ENV
+          ## TODO: Check if CARGO_VERSION equals PROJECT_VERSION
           echo "PROJECT_NAME=$(sed -n 's/^name = "\(.*\)"/\1/p' Cargo.toml | head -n1)" >> $GITHUB_ENV
           echo "PROJECT_MAINTAINER=$(sed -n 's/^authors = \["\(.*\)"\]/\1/p' Cargo.toml)" >> $GITHUB_ENV
           echo "PROJECT_HOMEPAGE=$(sed -n 's/^homepage = "\(.*\)"/\1/p' Cargo.toml)" >> $GITHUB_ENV
@@ -398,16 +399,12 @@ jobs:
         shell: bash
         run: |
           _ver=${{ steps.vars.outputs.ver }}
-          _url="https://github.com/greymd/teip/releases/download/v${_ver}/teip-${_ver}.x86_64-unknown-linux-musl.rpm"
-          sed -i "/rpm_x86_64_start/,/rpm_x86_64_end/s|https://.*rpm|$_url|g" ./README.md
-          _url="https://github.com/greymd/teip/releases/download/v${_ver}/teip-${_ver}.x86_64-unknown-linux-musl.deb"
-          sed -i "/deb_x86_64_start/,/deb_x86_64_end/s|https://.*deb|$_url|g" ./README.md
-          _url="https://github.com/greymd/teip/releases/download/v${_ver}/teip-${_ver}.aarch64-unknown-linux-musl.rpm"
-          sed -i "/rpm_aarch64_start/,/rpm_aarch64_end/s|https://.*rpm|$_url|g" ./README.md
-          _url="https://github.com/greymd/teip/releases/download/v${_ver}/teip-${_ver}.aarch64-unknown-linux-musl.deb"
-          sed -i "/deb_aarch64_start/,/deb_aarch64_end/s|https://.*deb|$_url|g" ./README.md
+          _url="https://github.com/greymd/teip/releases/download/v${_ver}/teip-${_ver}.\$(uname -m)-unknown-linux-musl.rpm"
+          sed -i "/rpm_url_start/,/rpm_url_end/s|https://.*rpm|$_url|g" ./README.md
+          _url="https://github.com/greymd/teip/releases/download/v${_ver}/teip-${_ver}.\$(uname -m)-unknown-linux-musl.deb"
+          sed -i "/deb_url_start/,/deb_url_end/s|https://.*deb|$_url|g" ./README.md
           _url="https://github.com/greymd/teip/releases/download/v${_ver}/teip_installer-${_ver}-x86_64-pc-windows-msvc.exe"
-          sed -i "/ins.x86_64_start/,/ins.x86_64_end/s|https://.*exe|$_url|g" ./README.md
+          sed -i "/ins_url_start/,/ins_url_end/s|https://.*exe|$_url|g" ./README.md
 
       - name: Release README
         uses: EndBug/add-and-commit@v4
@@ -416,6 +413,6 @@ jobs:
           author_name: GitHub Action
           author_email: yamada@gr3.ie
           message: '[skip ci] Update README.md'
-          ref: 'main'
+          ref: 'feature/arm_build'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

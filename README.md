@@ -70,7 +70,43 @@ See detail on <a href="https://github.com/greymd/teip/wiki/Benchmark">wiki > Ben
 
 # Installation
 
-### On macOS (x86_64)
+### Linux (x86_64, ARM64)
+
+#### `dpkg`
+
+<!-- deb_url_start -->
+```bash
+wget https://github.com/greymd/teip/releases/download/v2.1.0/teip-2.1.0.$(uname -m)-unknown-linux-musl.deb
+sudo dpkg -i ./teip*.deb
+```
+<!-- deb_url_end -->
+
+#### `apt`
+
+<!-- deb_url_start -->
+```bash
+wget https://github.com/greymd/teip/releases/download/v2.1.0/teip-2.1.0.$(uname -m)-unknown-linux-musl.deb
+sudo apt install ./teip*.deb
+```
+<!-- deb_url_end -->
+
+#### `dnf`
+
+<!-- rpm_url_start -->
+```bash
+sudo dnf install https://github.com/greymd/teip/releases/download/v2.1.0/teip-2.1.0.$(uname -m)-unknown-linux-musl.rpm
+```
+<!-- rpm_url_end -->
+
+#### `yum
+
+<!-- rpm_url_start -->
+```bash
+sudo dnf install https://github.com/greymd/teip/releases/download/v2.1.0/teip-2.1.0.$(uname -m)-unknown-linux-musl.rpm
+```
+<!-- rpm_url_end -->
+
+### macOS (x86_64, ARM64)
 
 Using [Homebrew](https://brew.sh/)
 
@@ -78,77 +114,24 @@ Using [Homebrew](https://brew.sh/)
 brew install greymd/tools/teip
 ```
 
-### With `dpkg` on Ubuntu, Debian, etc
+### Windows (x86_64)
 
-#### x86_64
-<!-- deb_x86_64_start -->
-```bash
-wget https://github.com/greymd/teip/releases/download/v2.1.0/teip-2.1.0.x86_64-unknown-linux-musl.deb
-sudo dpkg -i ./teip*.deb
-```
-<!-- deb_x86_64_end -->
+Run installer from below.
 
-#### ARM64
-<!-- deb_aarch64_start -->
-```bash
-wget https://github.com/greymd/teip/releases/download/v2.1.0/teip-2.1.0.aarch64-unknown-linux-musl.deb
-sudo dpkg -i ./teip*.deb
-```
-<!-- deb_aarch64_end -->
-
-### With `dnf` on Fedora, CentOS, RHEL, etc
-
-#### x86_64
-<!-- rpm_x86_64_start -->
-```bash
-sudo dnf install https://github.com/greymd/teip/releases/download/v2.1.0/teip-2.1.0.x86_64-unknown-linux-musl.rpm
-```
-<!-- rpm_x86_64_end -->
-
-#### ARM64
-<!-- rpm_aarch64_start -->
-```bash
-sudo dnf install https://github.com/greymd/teip/releases/download/v2.1.0/teip-2.1.0.aarch64-unknown-linux-musl.rpm
-```
-<!-- rpm_aarch64_end -->
-
-### With `yum` on CentOS7, RHEL7, etc
-
-#### x86_64
-<!-- rpm_x86_64_start -->
-```bash
-sudo yum install https://github.com/greymd/teip/releases/download/v2.1.0/teip-2.1.0.x86_64-unknown-linux-musl.rpm
-```
-<!-- rpm_x86_64_end -->
-
-#### ARM64
-<!-- rpm_aarch64_start -->
-```bash
-sudo yum install https://github.com/greymd/teip/releases/download/v2.1.0/teip-2.1.0.aarch64-unknown-linux-musl.rpm
-```
-<!-- rpm_aarch64_end -->
-
-### On Windows (x86_64)
-
-`teip` command will be available on PowerShell after installing with the executable file distributed from below URL.
-
-<!-- ins.x86_64_start -->
+<!-- ins_url_start -->
 https://github.com/greymd/teip/releases/download/v2.1.0/teip_installer-2.1.0-x86_64-pc-windows-msvc.exe
-<!-- ins.x86_64_end -->
+<!-- ins_url_start -->
 
-**Attention:**
-You may get some warning messages during the installation because this installer is not signed.
-Please verify manually by comparing the above hash value and one given by `Get-FileHash <FileName> -Algorithm SHA256` for secure installation.
-Also, using `teip` on Windows requires some technical knowledge. See [Wiki > Use on Windows](https://github.com/greymd/teip/wiki/Use-on-Windows).
+See [Wiki > Use on Windows](https://github.com/greymd/teip/wiki/Use-on-Windows) in detail.
 
 ### On other UNIX or other architectures (i686, etc..)
 
 Pre-built binaries for other architectures (i686, etc..) are not prepared for now.
 Please build from source.
 
-### From source
+### Build from source
 
-With Rust's package manager cargo, you can install `teip` via:
+With Rust's package manager cargo
 
 ```
 cargo install teip
@@ -158,19 +141,19 @@ To enable Oniguruma regular expression (`-G` option), build with `--features oni
 Please make sure `libclang` shared library is on your environment in advance.
 
 ```bash
-### Example for Ubuntu
+### Ubuntu
 $ sudo apt install cargo clang
 $ cargo install teip --features oniguruma
 ```
 
 ```bash
-### Example for RHEL
+### Red Hat base OS
 $ sudo dnf install cargo clang
 $ cargo install teip --features oniguruma
 ```
 
 ```powershell
-### Example for Windows (PowerShell) and choco (chocolatey.org)
+### Windows (PowerShell) and choco (chocolatey.org)
 PS C:\> choco install llvm
 PS C:\> cargo install teip --features oniguruma
 ```
