@@ -10,11 +10,17 @@
   <a href="LICENSE" alt="MIT License"><img src="http://img.shields.io/badge/license-MIT-blue.svg?style=flat" /></a>
 </p>
 
-# TL;DR
+## Taping
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/wiki/greymd/teip/img/teip_intro.png" alt="Git Animation for Introduction" width="50%" />
+  <img src="https://raw.githubusercontent.com/wiki/greymd/teip/img/teip_intro2.png" alt="Git Animation for Introduction" width="80%" />
 </p>
+
+* Convert timestamps in /var/log/secure to UNIX time
+
+```bash
+$ cat /var/log/secure | teip -c 1-15 -- date -f- +%s
+```
 
 * Replace 'WORLD' to 'EARTH' on lines containing 'HELLO'
 
@@ -34,19 +40,13 @@ $ cat file.csv | teip --csv -f 2 -- tr a-z A-Z
 $ cat file.tsv | teip -D '\t' -f 2-4 -- tr a-z A-Z
 ```
 
-* Convert timestamps in /var/log/secure to UNIX time
-
-```bash
-$ cat /var/log/secure | teip -c 1-15 -- date -f- +%s
-```
-
 * Edit lines containing 'hello' and the three lines before and after it
 
 ```bash
 $ cat access.log | teip -e 'grep -n -C 3 hello' -- sed 's/./@/g'
 ```
 
-# Performance enhancement
+## Performance enhancement
 `teip` allows a command to focus on its own task.
 
 Here is the comparison of processing time to replace approx 761,000 IP addresses with dummy ones in 100 MiB text file.
@@ -57,9 +57,9 @@ Here is the comparison of processing time to replace approx 761,000 IP addresses
 
 See detail on <a href="https://github.com/greymd/teip/wiki/Benchmark">wiki > Benchmark</a>.
 
-# Features
+## Features
 
-* Help the command "do one thing well"
+* Taping: Help the command "do one thing well"
   - Bypassing a partial range of standard input to any command whatever you want
   - The targeted command just handles bypassed parts of the standard input
   - Flexible methods for selecting a range (Select like AWK, `cut` or `grep`)
@@ -68,93 +68,104 @@ See detail on <a href="https://github.com/greymd/teip/wiki/Benchmark">wiki > Ben
   - The targeted command's standard input/output are intercepted by multiple `teip`'s threads asynchronously.
   - If general UNIX commands on your environment can process a few hundred MB files in a few seconds, then `teip` can do the same or better performance.
 
-# Installation
+## Installation
 
-### On macOS (x86_64)
+### Linux (x86_64, ARM64)
+
+#### `dpkg`
+
+<!-- deb_url_start -->
+```bash
+wget https://github.com/greymd/teip/releases/download/v2.1.0/teip-2.1.0.$(uname -m)-unknown-linux-musl.deb
+sudo dpkg -i ./teip*.deb
+```
+<!-- deb_url_end -->
+
+#### `apt`
+
+<!-- deb_url_start -->
+```bash
+wget https://github.com/greymd/teip/releases/download/v2.1.0/teip-2.1.0.$(uname -m)-unknown-linux-musl.deb
+sudo apt install ./teip*.deb
+```
+<!-- deb_url_end -->
+
+#### `dnf`
+
+<!-- rpm_url_start -->
+```bash
+sudo dnf install https://github.com/greymd/teip/releases/download/v2.1.0/teip-2.1.0.$(uname -m)-unknown-linux-musl.rpm
+```
+<!-- rpm_url_end -->
+
+#### `yum`
+
+<!-- rpm_url_start -->
+```bash
+sudo dnf install https://github.com/greymd/teip/releases/download/v2.1.0/teip-2.1.0.$(uname -m)-unknown-linux-musl.rpm
+```
+<!-- rpm_url_end -->
+
+<!-- release_url_start -->
+If necessary, check the hash value from the [latest release page](https://github.com/greymd/teip/releases/tag/v2.1.0).
+Files whose filenames end with `sha256` have hash values listed.
+<!-- release_url_end -->
+
+
+### macOS (x86_64, ARM64)
 
 Using [Homebrew](https://brew.sh/)
 
 ```bash
-$ brew install greymd/tools/teip
+brew install greymd/tools/teip
 ```
 
-### With `dpkg` on Ubuntu, Debian, etc (x86_64)
+### Windows (x86_64)
 
-<!-- deb_x86_64_start -->
-```bash
-$ wget https://github.com/greymd/teip/releases/download/v2.1.0/teip-2.1.0.x86_64-unknown-linux-musl.deb
-$ sudo dpkg -i ./teip*.deb
-```
-<!-- deb_x86_64_end -->
-<!-- deb_x86_64_sha256 -->SHA256: 53e40a0161e6b46870118492fe302cb033ff59ff941af3dee70148e4f425f96f
+<!-- ins_url_start -->
+Download installer from [here](https://github.com/greymd/teip/releases/download/v2.1.0/teip_installer-2.1.70-x86_64-pc-windows-msvc.exe).
+<!-- ins_url_end -->
 
-### With `dnf` on Fedora, CentOS, RHEL, etc (x86_64)
+See [Wiki > Use on Windows](https://github.com/greymd/teip/wiki/Use-on-Windows) in detail.
 
-<!-- rpm_x86_64_start -->
-```bash
-$ sudo dnf install https://github.com/greymd/teip/releases/download/v2.1.0/teip-2.1.0.x86_64-unknown-linux-musl.rpm
-```
-<!-- rpm_x86_64_end -->
-<!-- rpm_x86_64_sha256 -->SHA256: 0e9ed140488c01d91d614383d1c5b20733266a9ab089f58724b85873b823972a
+### Other architectures
 
-### With `yum` on CentOS7, RHEL7, etc (x86_64)
+<!-- release_url_start -->
+Check the [latest release page](https://github.com/greymd/teip/releases/tag/v2.1.0) for executables for the platform you are using.
+<!-- release_url_end -->
 
-<!-- rpm_x86_64_start -->
-```bash
-$ sudo yum install https://github.com/greymd/teip/releases/download/v2.1.0/teip-2.1.0.x86_64-unknown-linux-musl.rpm
-```
-<!-- rpm_x86_64_end -->
-<!-- rpm_x86_64_sha256 -->SHA256: 0e9ed140488c01d91d614383d1c5b20733266a9ab089f58724b85873b823972a
+If not, please build it from source.
 
-### On Windows (x86_64)
+### Build from source
 
-`teip` command will be available on PowerShell after installing with the executable file distributed from below URL.
-
-<!-- ins.x86_64_start -->
-https://github.com/greymd/teip/releases/download/v2.1.0/teip_installer-2.1.0-x86_64-pc-windows-msvc.exe
-<!-- ins.x86_64_end -->
-<!-- ins.x86_64_sha256 -->SHA256: 
-
-**Attention:**
-You may get some warning messages during the installation because this installer is not signed.
-Please verify manually by comparing the above hash value and one given by `Get-FileHash <FileName> -Algorithm SHA256` for secure installation.
-Also, using `teip` on Windows requires some technical knowledge. See [Wiki > Use on Windows](https://github.com/greymd/teip/wiki/Use-on-Windows).
-
-### On other UNIX or other architectures (i686, ARM, etc..)
-
-Pre-built binary for other architectures (i686, ARM, etc..) is not prepared for now.
-Please build from source.
-
-### From source
-
-With Rust's package manager cargo, you can install `teip` via:
+With Rust's package manager cargo
 
 ```
-$ cargo install teip
+cargo install teip
 ```
 
 To enable Oniguruma regular expression (`-G` option), build with `--features oniguruma` option.
 Please make sure `libclang` shared library is on your environment in advance.
 
 ```bash
-### Example for Ubuntu
+### Ubuntu
 $ sudo apt install cargo clang
 $ cargo install teip --features oniguruma
 ```
 
 ```bash
-### Example for RHEL
+### Red Hat base OS
 $ sudo dnf install cargo clang
 $ cargo install teip --features oniguruma
 ```
 
 ```powershell
-### Example for Windows (PowerShell) and choco (chocolatey.org)
+### Windows (PowerShell) and choco (chocolatey.org)
 PS C:\> choco install llvm
 PS C:\> cargo install teip --features oniguruma
 ```
 
-# Usage
+## Usage
 
 ```
 USAGE:
@@ -828,7 +839,7 @@ CCC
 The `-e` argument is a single string.
 Therefore, pipe `|` and other symbols can be used as it is.
 
-### Experimental options (`-A`, `-B`, `-C`, `--awk`, `--sed`)
+### Alias options (`-A`, `-B`, `-C`, `--awk`, `--sed`)
 
 There are several **experimental options** which are alias of `-e` and specific string.
 These options may be discontinued in the future since they are just experimental ones.
@@ -936,7 +947,7 @@ G
 ```
 
 
-# Environment variables
+## Environment variables
 
 `teip` refers to the following environment variables.
 Add the statement to your default shell's startup file (i.e `.bashrc`, `.zshrc`) to change them as you like.
@@ -993,19 +1004,19 @@ For example, if you want to use `gsed` instead of `sed`, set this variable to `g
 The path to `awk` command used by `--awk` option.
 For example, if you want to use `gawk` instead of `awk`, set this variable to `gawk`.
 
-# Background
+## Background
 
-## Why made it?
+### Why made it?
 See this [post](https://dev.to/greymd/teip-masking-tape-for-shell-is-what-we-needed-5e05).
 
-## Why "teip"?
+### Why "teip"?
 
 * [tee](https://en.wikipedia.org/wiki/Tee_%28command%29) + in-place.
 * And it sounds similar to Masking-"tape".
 
-# License
+## License
 
-## Modules imported/referenced from other repositories
+### Modules imported/referenced from other repositories
 
 Thank you so much for helpful modules!
 
@@ -1018,8 +1029,8 @@ Thank you so much for helpful modules!
   - Many parts of the source code are referenced from [BurntSushi/rust-csv](https://github.com/BurntSushi/rust-csv).
   - Original source codes are distributed under dual-licensed under MIT and Unlicense
 
-## Source code
+### Source code
 The scripts are available as open source under the terms of the [MIT License](http://opensource.org/licenses/MIT).
 
-## Logo
+### Logo
 <a rel="license" href="http://creativecommons.org/licenses/by-nc/4.0/"><img alt="Creative Commons License" style="border-width:0" src="https://i.creativecommons.org/l/by-nc/4.0/88x31.png" /></a><br />The logo of teip is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by-nc/4.0/">Creative Commons Attribution-NonCommercial 4.0 International License</a>.

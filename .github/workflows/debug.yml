@@ -1,0 +1,11 @@
+name: debug
+on: [push]
+jobs:
+  if: |
+    contains(github.event.head_commit.message, '[debug]')
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Setup upterm session
+      uses: lhotari/action-upterm@v1
