@@ -305,9 +305,18 @@ jobs:
         uses: svenstaro/upload-release-action@v2
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: ${{ env.RELEASE_DIR }}/teip-*
+          file: ${{ env.RELEASE_DIR }}/teip-${{ steps.vars.outputs.ver }}.${{ matrix.target }}.${{ matrix.ext }}
           tag: ${{ github.ref }}
-          file_glob: true
+          file_glob: false
+          overwrite: false
+
+      - name: Upload sha256 to release
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: ${{ env.RELEASE_DIR }}/teip-${{ steps.vars.outputs.ver }}.${{ matrix.target }}.${{ matrix.ext }}.sha256
+          tag: ${{ github.ref }}
+          file_glob: false
           overwrite: false
 
   build-win:
@@ -350,16 +359,25 @@ jobs:
           echo "BIN_X86_64_PC_WINDOWS_MSVC=$EXENAME" >> ${GITHUB_ENV}
           # Generate sha256
           Get-FileHash "$EXENAME" -Algorithm SHA256 | Select-Object -ExpandProperty Hash > "${EXENAME}.sha256"
-          Move-Item "${DPKG_NAME}" "${{ env.RELEASE_DIR }}"
-          Move-Item "${DPKG_NAME}.sha256" "${{ env.RELEASE_DIR }}"
+          Move-Item "${EXENAME}" "${{ env.RELEASE_DIR }}"
+          Move-Item "${EXENAME}.sha256" "${{ env.RELEASE_DIR }}"
 
       - name: Upload binaries to release for Windows
         uses: svenstaro/upload-release-action@v2
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: ${{ env.RELEASE_DIR }}/teip_installer-*
+          file: ${{ env.RELEASE_DIR }}/teip_installer-${{ steps.vars.outputs.ver }}-${{ matrix.target }}.${{ matrix.ext }}
           tag: ${{ github.ref }}
-          file_glob: true
+          file_glob: false
+          overwrite: false
+
+      - name: Upload sha256 to release for Windows
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: ${{ env.RELEASE_DIR }}/teip_installer-${{ steps.vars.outputs.ver }}-${{ matrix.target }}.${{ matrix.ext }}.sha256
+          tag: ${{ github.ref }}
+          file_glob: false
           overwrite: false
 
   readme:
@@ -367,11 +385,6 @@ jobs:
     runs-on: ubuntu-latest
     needs: [build, build-win]
     steps:
-      - name: Set envs
-        id: vars
-        run: |
-          echo ver=${GITHUB_REF/refs\/tags\/v/} >> ${GITHUB_OUTPUT}
-
       - name: Checkout code
         uses: actions/checkout@v3
 
@@ -441,7 +454,6 @@ jobs:
           cat ./README.md
 
       - name: Release README
-        if: "! contains (steps.vars.outputs.ver, 'beta')"
         uses: EndBug/add-and-commit@v4
         with:
           add: README.md
