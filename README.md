@@ -843,7 +843,7 @@ CCC
 The `-e` argument is a single string.
 Therefore, pipe `|` and other symbols can be used as it is.
 
-### Experimental options (`-A`, `-B`, `-C`, `--awk`, `--sed`)
+### Alias options (`-A`, `-B`, `-C`, `--awk`, `--sed`)
 
 There are several **experimental options** which are alias of `-e` and specific string.
 These options may be discontinued in the future since they are just experimental ones.
