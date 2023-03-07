@@ -200,6 +200,8 @@ jobs:
           %attr(0644, root, root) %{_mandir}/man1/*
           %attr(0755, root, root) %{_bindir}/*
           %attr(0644, root, root) %{_datadir}/zsh/site-functions/*
+          %attr(0644, root, root) %{_datadir}/fish/completions/*
+          %attr(0644, root, root) %{_datadir}/bash-completion/completions/*
           %attr(0644, root, root) %doc %{_docdir}/%{name}/README.md
           %attr(0644, root, root) %doc %{_docdir}/%{name}/LICENSE
           %clean
