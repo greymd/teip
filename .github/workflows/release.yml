@@ -187,15 +187,21 @@ jobs:
           install -d -m 0755 %{buildroot}%{_mandir}/man1
           install -d -m 0755 %{buildroot}%{_docdir}/%{name}/
           install -d -m 0755 %{buildroot}%{_datadir}/zsh/site-functions
+          install -d -m 0755 %{buildroot}%{_datadir}/fish/completions
+          install -d -m 0755 %{buildroot}%{_datadir}/bash-completion/completions/
           %{__cp} -a bin/* %{buildroot}%{_bindir}/
           %{__cp} -a man/*.1 %{buildroot}%{_mandir}/man1/
           %{__cp} -a doc/README.md %{buildroot}%{_docdir}/%{name}/
           %{__cp} -a doc/LICENSE %{buildroot}%{_docdir}/%{name}/
-          %{__cp} -a completion/zsh/_teip %{buildroot}%{_datadir}/zsh/site-functions/
+          %{__cp} -a completion/zsh/* %{buildroot}%{_datadir}/zsh/site-functions/
+          %{__cp} -a completion/fish/* %{buildroot}%{_datadir}/fish/completions/
+          %{__cp} -a completion/bash/* %{buildroot}%{_datadir}/bash-completion/completions/
           %files
           %attr(0644, root, root) %{_mandir}/man1/*
           %attr(0755, root, root) %{_bindir}/*
           %attr(0644, root, root) %{_datadir}/zsh/site-functions/*
+          %attr(0644, root, root) %{_datadir}/fish/completions/*
+          %attr(0644, root, root) %{_datadir}/bash-completion/completions/*
           %attr(0644, root, root) %doc %{_docdir}/%{name}/README.md
           %attr(0644, root, root) %doc %{_docdir}/%{name}/LICENSE
           %clean
@@ -250,6 +256,8 @@ jobs:
 
           # Autocompletion files
           install -Dm644 package/completion/zsh/_teip "${DPKG_DIR}/usr/share/zsh/vendor-completions/_${PROJECT_NAME}"
+          install -Dm644 package/completion/bash/teip "${DPKG_DIR}/usr/share/bash-completion/completions/${PROJECT_NAME}"
+          install -Dm644 package/completion/fish/teip.fish "${DPKG_DIR}/usr/share/fish/vendor_completions.d/${PROJECT_NAME}.fish"
 
           # README and LICENSE
           install -Dm644 "README.md" "${DPKG_DIR}/usr/share/doc/${DPKG_BASENAME}/README.md"
