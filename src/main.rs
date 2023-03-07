@@ -112,50 +112,52 @@ EXAMPLES:
   Convert timestamps in /var/log/secure to UNIX time:
     $ cat /var/log/secure | teip -c 1-15 -- date -f- +%s
 
-Full documentation at:<https://github.com/greymd/teip>",
+Full documentation at:<https://github.com/greymd/teip>\n",
 )]
 
 struct Args {
-    #[structopt(short = "g")]
+    #[structopt(short = "g", help = "Bypassing lines that match the regular expression <pattern>")]
     regex: Option<String>,
-    #[structopt(short = "o")]
+    #[structopt(short = "o", help = "-g bypasses only matched parts" )]
     only_matched: bool,
-    #[structopt(short = "G")]
+    #[structopt(short = "G", help = "-g interprets Oniguruma regular expressions.")]
     onig_enabled: bool,
-    #[structopt(short = "f")]
+    #[structopt(short = "f", help = "Bypassing these white-space separated fields")]
     list: Option<String>,
-    #[structopt(short = "d")]
+    #[structopt(short = "d", help = "Use <delimiter> for field delimiter of -f")]
     delimiter: Option<String>,
-    #[structopt(short = "D",)]
+    #[structopt(short = "D", help = "Use regular expression <pattern> for field delimiter of -f" )]
     regexp_delimiter: Option<String>,
-    #[structopt(long = "csv",)]
+    #[structopt(long = "csv", help = "-f interprets <list> as field number of a CSV according to RFC 4180, instead of white-space separated fields" )]
     csv: bool,
     #[structopt(long = "\x75\x6E\x6B\x6F")]
     u: bool,
-    #[structopt(short = "c")]
+    #[structopt(short = "c", help = "Bypassing these characters")]
     char: Option<String>,
-    #[structopt(short = "l")]
+    #[structopt(short = "l", help = "Bypassing those lines")]
     line: Option<String>,
-    #[structopt(short = "s")]
+    #[structopt(short = "s", help = "Execute new command for each bypassed chunk")]
     solid: bool,
-    #[structopt(long = "chomp")]
+    #[structopt(long = "chomp", help = "Command spawned by -s receives standard input without trailing newlines")]
     solid_chomp: bool,
-    #[structopt(short = "v")]
+    #[structopt(short = "v", help = "Invert the range of bypassing")]
     invert: bool,
-    #[structopt(short = "z")]
+    #[structopt(short = "z", help = "Line delimiter is NUL instead of a newline")]
     zero: bool,
-    #[structopt(short = "e")]
+    #[structopt(short = "e", help = "Execute <string> on another process that will receive identical standard input as the teip, and numbers given by the result are used as line numbers for bypassing")]
     exoffload_pipeline: Option<String>,
-    #[structopt(short = "A")]
+    #[structopt(short = "A", help = "Alias of -e 'grep -n -A <number> <pattern>'")]
     after: Option<usize>,
-    #[structopt(short = "B")]
+    #[structopt(short = "B", help = "Alias of -e 'grep -n -B <number> <pattern>'")]
     before: Option<usize>,
-    #[structopt(short = "C")]
+    #[structopt(short = "C", help = "Alias of -e 'grep -n -C <number> <pattern>'" )]
     center: Option<usize>,
-    #[structopt(long = "sed")]
+    #[structopt(long = "sed", help = "Alias of -e 'sed -n \"<pattern>=\"'")]
     sed: Option<String>,
-    #[structopt(long = "awk")]
+    #[structopt(long = "awk", help = "Alias of -e 'awk \"<pattern>{print NR}\"'")]
     awk: Option<String>,
+    #[structopt(long = "completion")]
+    completion: Option<String>,
     #[structopt(name = "command")]
     commands: Vec<String>,
 }
@@ -199,6 +201,21 @@ fn main() {
     let mut ch: PipeIntercepter;
     let mut flag_dryrun = true;
     let regex_delimiter;
+
+    if let Some(shell) = args.completion {
+        use structopt::clap::Shell;
+        if shell == "bash" {
+            Args::clap().gen_completions_to("teip", Shell::Bash, &mut io::stdout());
+        } else if shell == "zsh" {
+            Args::clap().gen_completions_to("teip", Shell::Zsh, &mut io::stdout());
+        } else if shell == "fish" {
+            Args::clap().gen_completions_to("teip", Shell::Fish, &mut io::stdout());
+        } else {
+            std::process::exit(1);
+        }
+        std::process::exit(0);
+    }
+
     if args.u {
         u();
     }
