@@ -134,7 +134,7 @@ jobs:
         run: |
           TAR=teip-${{ steps.vars.outputs.ver }}.${{ matrix.target }}.tar.gz
           mkdir "${{ env.RELEASE_DIR }}"
-          tar zcvf "$TAR" -C "$PWD/package" completion bin man
+          tar zcvf "$TAR" -C "$PWD/package" completion bin man doc
           case ${{ matrix.target }} in
             *-apple-darwin) echo "$( shasum -a 256 "$TAR" | awk '{print $1}' )" > "${TAR}.sha256" ;;
             *) echo "$( sha256sum "$TAR" | awk '{print $1}' )" > "${TAR}.sha256" ;;
@@ -185,13 +185,15 @@ jobs:
           %install
           install -d -m 0755 %{buildroot}%{_bindir}
           install -d -m 0755 %{buildroot}%{_mandir}/man1
+          install -d -m 0755 %{buildroot}%{_docdir}/%{name}/
+          install -d -m 0755 %{buildroot}%{_datadir}/zsh/site-functions
           %{__cp} -a bin/* %{buildroot}%{_bindir}/
           %{__cp} -a man/*.1 %{buildroot}%{_mandir}/man1/
           %{__cp} -a doc/README.md %{buildroot}%{_docdir}/%{name}/
           %{__cp} -a doc/LICENSE %{buildroot}%{_docdir}/%{name}/
           %{__cp} -a completion/zsh/_teip %{buildroot}%{_datadir}/zsh/site-functions/
           %files
-          %attr(0644, root, root) %{_mandir}/man1/*
+          %attr(0644, root, root) %{_mandir}/man1/*.1
           %attr(0755, root, root) %{_bindir}/*
           %attr(0644, root, root) %{_datadir}/zsh/site-functions/*
           %attr(0644, root, root) %doc %{_docdir}/%{name}/README.md
