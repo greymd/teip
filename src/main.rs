@@ -210,6 +210,8 @@ fn main() {
             Args::clap().gen_completions_to("teip", Shell::Zsh, &mut io::stdout());
         } else if shell == "fish" {
             Args::clap().gen_completions_to("teip", Shell::Fish, &mut io::stdout());
+        } else if shell == "powershell" {
+            Args::clap().gen_completions_to("teip", Shell::PowerShell, &mut io::stdout());
         } else {
             std::process::exit(1);
         }
