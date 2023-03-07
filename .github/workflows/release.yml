@@ -121,8 +121,11 @@ jobs:
         id: pack
         run: |
           mkdir -p package/bin
-          cp target/${{ matrix.target }}/release/teip package/bin
           mkdir -p package/man
+          mkdir -p package/doc
+          cp README.md package/doc
+          cp LICENSE package/doc
+          cp target/${{ matrix.target }}/release/teip package/bin
           cp man/teip.1 package/man
           cp -r completion package/
 
@@ -131,7 +134,7 @@ jobs:
         run: |
           TAR=teip-${{ steps.vars.outputs.ver }}.${{ matrix.target }}.tar.gz
           mkdir "${{ env.RELEASE_DIR }}"
-          tar zcvf "$TAR" -C "$PWD/package" completion bin man
+          tar zcvf "$TAR" -C "$PWD/package" completion bin man doc
           case ${{ matrix.target }} in
             *-apple-darwin) echo "$( shasum -a 256 "$TAR" | awk '{print $1}' )" > "${TAR}.sha256" ;;
             *) echo "$( sha256sum "$TAR" | awk '{print $1}' )" > "${TAR}.sha256" ;;
@@ -182,11 +185,19 @@ jobs:
           %install
           install -d -m 0755 %{buildroot}%{_bindir}
           install -d -m 0755 %{buildroot}%{_mandir}/man1
+          install -d -m 0755 %{buildroot}%{_docdir}/%{name}/
+          install -d -m 0755 %{buildroot}%{_datadir}/zsh/site-functions
           %{__cp} -a bin/* %{buildroot}%{_bindir}/
           %{__cp} -a man/*.1 %{buildroot}%{_mandir}/man1/
+          %{__cp} -a doc/README.md %{buildroot}%{_docdir}/%{name}/
+          %{__cp} -a doc/LICENSE %{buildroot}%{_docdir}/%{name}/
+          %{__cp} -a completion/zsh/_teip %{buildroot}%{_datadir}/zsh/site-functions/
           %files
           %attr(0644, root, root) %{_mandir}/man1/*
           %attr(0755, root, root) %{_bindir}/*
+          %attr(0644, root, root) %{_datadir}/zsh/site-functions/*
+          %attr(0644, root, root) %doc %{_docdir}/%{name}/README.md
+          %attr(0644, root, root) %doc %{_docdir}/%{name}/LICENSE
           %clean
           %{__rm} -rf %{buildroot}
           EOF
@@ -200,7 +211,6 @@ jobs:
           BIN_NAME="teip-${{ steps.vars.outputs.ver }}.${{ matrix.target }}.rpm"
           sudo mv "$RPM_BUILD"/RPMS/"$RPM_ARCH"/teip-*.rpm "$BIN_NAME"
           sudo rm -rf "$RPM_BUILD"/
-          echo "RPM_$(echo ${{ matrix.target }} | tr '[:lower:]-' '[:upper:]_')=$BIN_NAME" >> ${GITHUB_ENV}
           ## Generate sha256
           echo "$( sha256sum "$BIN_NAME" | awk '{print $1}' )" > "${BIN_NAME}.sha256"
           sudo cp -l "${BIN_NAME}" "${BIN_NAME}.sha256" "${{ env.RELEASE_DIR }}"
@@ -301,7 +311,6 @@ jobs:
             fakeroot dpkg-deb --build "${DPKG_DIR}" "${DPKG_PATH}"
           fi
           mv "${DPKG_PATH}" "${DPKG_NAME}"
-          echo "DEB_$(echo ${{ matrix.target }} | tr '[:lower:]-' '[:upper:]_')=$DPKG_NAME" >> ${GITHUB_ENV}
           ## Generate sha256
           echo "$( sha256sum "$DPKG_NAME" | awk '{print $1}' )" > "${DPKG_NAME}.sha256"
           cp -l "${DPKG_NAME}" "${DPKG_NAME}.sha256" "${{ env.RELEASE_DIR }}"
