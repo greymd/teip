@@ -28,7 +28,7 @@ $ cat /var/log/secure | teip -c 1-15 -- date -f- +%s
 $ cat file | teip -g HELLO -- sed 's/WORLD/EARTH/'
 ```
 
-* Edit 2nd field of the CSV file
+* Make characters upper case on 2nd field of the CSV (RFC4180)
 
 ```bash
 $ cat file.csv | teip --csv -f 2 -- tr a-z A-Z
