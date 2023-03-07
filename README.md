@@ -102,7 +102,7 @@ sudo dnf install https://github.com/greymd/teip/releases/download/v2.1.0/teip-2.
 
 <!-- rpm_url_start -->
 ```bash
-sudo dnf install https://github.com/greymd/teip/releases/download/v2.1.0/teip-2.1.0.$(uname -m)-unknown-linux-musl.rpm
+sudo yum install https://github.com/greymd/teip/releases/download/v2.1.0/teip-2.1.0.$(uname -m)-unknown-linux-musl.rpm
 ```
 <!-- rpm_url_end -->
 
