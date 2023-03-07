@@ -193,7 +193,7 @@ jobs:
           %{__cp} -a doc/LICENSE %{buildroot}%{_docdir}/%{name}/
           %{__cp} -a completion/zsh/_teip %{buildroot}%{_datadir}/zsh/site-functions/
           %files
-          %attr(0644, root, root) %{_mandir}/man1/*.1
+          %attr(0644, root, root) %{_mandir}/man1/*
           %attr(0755, root, root) %{_bindir}/*
           %attr(0644, root, root) %{_datadir}/zsh/site-functions/*
           %attr(0644, root, root) %doc %{_docdir}/%{name}/README.md
