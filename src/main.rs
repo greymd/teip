@@ -108,7 +108,7 @@ EXAMPLES:
   Replace 'WORLD' to 'EARTH' on line including 'HELLO' in input:
     $ cat file | teip -g HELLO -- sed 's/WORLD/EARTH/'
   Edit '|' separated fields of input:
-    $ cat file.csv | teip -f 2 --d '|' -- sed 's/./@/g'
+    $ cat file.csv | teip -f 2 -d '|' -- sed 's/./@/g'
   Convert timestamps in /var/log/secure to UNIX time:
     $ cat /var/log/secure | teip -c 1-15 -- date -f- +%s
 
