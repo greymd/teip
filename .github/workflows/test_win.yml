@@ -26,7 +26,7 @@ jobs:
             ext: exe
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Build the release target
         run: |
           rustup target add ${{ matrix.target }}

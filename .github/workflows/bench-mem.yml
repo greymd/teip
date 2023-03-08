@@ -19,7 +19,7 @@ jobs:
     runs-on: ubuntu-latest
     if: "contains(github.event.head_commit.message, '[bench]') || contains(github.event.head_commit.message, 'Bump version')"
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Build
       run: cargo build --release
     - name: Benchmark for each functions
@@ -43,7 +43,7 @@ jobs:
           - name: mem_usage_one_third
             cmd: teip -e 'awk "NR % 3 == 0 {print NR}"' -- sed 's/./@/g' < test_secure
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
 
     - name: Install dependencies
       run: |

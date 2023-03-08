@@ -19,7 +19,7 @@ jobs:
     runs-on: ubuntu-latest
     if: "contains(github.event.head_commit.message, '[bench]')"
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Build
       run: cargo build --release
     - name: Benchmark for each functions
@@ -43,7 +43,7 @@ jobs:
             # same as: awk '{gsub(".","@",$2);print}' FS=, OFS=, < test.csv
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
 
     - name: Install dependencies
       run: |
