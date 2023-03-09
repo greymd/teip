@@ -41,6 +41,40 @@ pub fn exec_cmd(
 }
 
 /// Execute single command and return the stdout of the command as String synchronously
+pub fn exec_cmd_sync_replace(input: String, cmds: &Vec<String>, line_end: u8, chomp: bool, replace_str: &str) -> String {
+    debug!("thread: exec_cmd_sync: {:?}", &cmds);
+    // check each element of cmds. If it contains replace_str, replace it with input
+    let mut cmds_new = Vec::new();
+    for cmd in cmds {
+        if cmd.contains(replace_str) {
+            cmds_new.push(cmd.replace(replace_str, &input));
+        } else {
+            cmds_new.push(cmd.to_string());
+        }
+    }
+    let child = Command::new(&cmds_new[0])
+        .args(&cmds_new[1..])
+        .stdout(Stdio::piped())
+        .spawn()
+        .expect("Failed to spawn child process");
+    let mut output = child
+        .wait_with_output()
+        .expect("Failed to read stdout")
+        .stdout;
+    if !chomp {
+        // Remove training new line.
+        // In the vast majority of cases,
+        // this new line is likely added by this function (see ADD NEW LINE)
+        if output.ends_with(&[line_end]) {
+            output.pop();
+        }
+    }
+    String::from_utf8_lossy(&output).to_string()
+}
+
+
+
+/// Execute single command and return the stdout of the command as String synchronously
 pub fn exec_cmd_sync(input: String, cmds: &Vec<String>, line_end: u8, chomp: bool) -> String {
     debug!("thread: exec_cmd_sync: {:?}", &cmds);
     let mut child = Command::new(&cmds[0])

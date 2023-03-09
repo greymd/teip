@@ -154,8 +154,11 @@ impl PipeIntercepter {
         line_end: u8,
         dryrun: bool,
         chomp: bool,
+        replace_str: Option<String>,
     ) -> Result<PipeIntercepter, errors::SpawnError> {
         let (tx, rx) = mpsc::channel();
+        let is_replace = replace_str.is_some();
+        let replace_str = replace_str.unwrap_or_else(|| "".to_string());
         let handler = thread::spawn(move || {
             debug!("thread: spawn");
             let mut writer = BufWriter::new(io::stdout());
@@ -176,10 +179,18 @@ impl PipeIntercepter {
                     }
                     Chunk::SHole(msg) => {
                         debug!("thread: rx.recv <= SHole:[{:?}]", msg);
-                        let result = spawnutils::exec_cmd_sync(msg, &cmds, line_end, chomp);
-                        writer
-                            .write(result.as_bytes())
-                            .unwrap_or_else(|e| exit_silently(&e.to_string()));
+                        // -I option
+                        if is_replace {
+                            let result = spawnutils::exec_cmd_sync_replace(msg, &cmds, line_end, chomp, replace_str.as_ref());
+                            writer
+                                .write(result.as_bytes())
+                                .unwrap_or_else(|e| exit_silently(&e.to_string()));
+                        } else {
+                            let result = spawnutils::exec_cmd_sync(msg, &cmds, line_end, chomp);
+                            writer
+                                .write(result.as_bytes())
+                                .unwrap_or_else(|e| exit_silently(&e.to_string()));
+                        }
                     }
                     Chunk::EOF => {
                         debug!("thread: rx.recv <= EOF");
