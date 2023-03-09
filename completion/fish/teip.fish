@@ -4,6 +4,7 @@ complete -c teip -n "__fish_use_subcommand" -s d -d 'Use <delimiter> for field d
 complete -c teip -n "__fish_use_subcommand" -s D -d 'Use regular expression <pattern> for field delimiter of -f'
 complete -c teip -n "__fish_use_subcommand" -s c -d 'Bypassing these characters'
 complete -c teip -n "__fish_use_subcommand" -s l -d 'Bypassing those lines'
+complete -c teip -n "__fish_use_subcommand" -s I -d 'Replace the <replace-str> with bypassed chunk in the <command> and -s is forcefully enabled.'
 complete -c teip -n "__fish_use_subcommand" -s e -d 'Execute <string> on another process that will receive identical standard input as the teip, and numbers given by the result are used as line numbers for bypassing'
 complete -c teip -n "__fish_use_subcommand" -s A -d 'Alias of -e \'grep -n -A <number> <pattern>\''
 complete -c teip -n "__fish_use_subcommand" -s B -d 'Alias of -e \'grep -n -B <number> <pattern>\''

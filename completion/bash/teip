@@ -20,7 +20,7 @@ _teip() {
 
     case "${cmd}" in
         teip)
-            opts=" -o -G -s -v -z -h -V -g -f -d -D -c -l -e -A -B -C  --csv --unko --chomp --help --version --sed --awk --completion  <command>... "
+            opts=" -o -G -s -v -z -h -V -g -f -d -D -c -l -I -e -A -B -C  --csv --unko --chomp --help --version --sed --awk --completion  <command>... "
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 1 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -48,6 +48,10 @@ _teip() {
                     return 0
                     ;;
                     -l)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                    -I)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;

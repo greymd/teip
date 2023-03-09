@@ -21,6 +21,7 @@ _teip() {
 '-D+[Use regular expression <pattern> for field delimiter of -f]' \
 '-c+[Bypassing these characters]' \
 '-l+[Bypassing those lines]' \
+'-I+[Replace the <replace-str> with bypassed chunk in the <command> and -s is forcefully enabled.]' \
 '-e+[Execute <string> on another process that will receive identical standard input as the teip, and numbers given by the result are used as line numbers for bypassing]' \
 '-A+[Alias of -e '\''grep -n -A <number> <pattern>'\'']' \
 '-B+[Alias of -e '\''grep -n -B <number> <pattern>'\'']' \
