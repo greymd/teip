@@ -961,6 +961,46 @@ mod cmdtest {
                     .stdout("名前,作者@,ノート@\n１レコード目,\"あいう@えお\"@,かきく@\n２レコード目,\"さしす@せそ\"@,\"たちつ@てと,@@");
             }
 
+            #[test]
+            fn test_solid_replace() {
+                let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
+                // separaate arguments -I @
+                 cmd.args(&["-I", "@", "-s", "-f", "2", "--", _ECHO_CMD, ">>@<<"])
+                     .write_stdin("AAA BBB CCC\nDDD EEE FFF\n")
+                     .assert()
+                     .stdout("AAA >>BBB<< CCC\nDDD >>EEE<< FFF\n");
+            }
+
+            #[test]
+            fn test_solid_replace_join() {
+                let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
+                // merged argument -I@
+                cmd.args(&["-I@", "-s", "-f", "2", "--", _ECHO_CMD, ">>@<<"])
+                    .write_stdin("AAA BBB CCC\nDDD EEE FFF\n")
+                    .assert()
+                    .stdout("AAA >>BBB<< CCC\nDDD >>EEE<< FFF\n");
+
+            }
+
+            #[test]
+            fn test_solid_replace_multi() {
+                let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
+                // separaate arguments -I@{}
+                cmd.args(&["-I","**", "-c", "2-4", "--", _ECHO_CMD, "[**]"])
+                    .write_stdin("AAA BBB CCC\nDDD EEE FFF\n")
+                    .assert()
+                    .stdout("A[AA ]BBB CCC\nD[DD ]EEE FFF\n");
+            }
+
+            #[test]
+            fn test_solid_replace_multi_join() {
+                let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
+                // merged argument -I{}
+                cmd.args(&["-I**", "-c", "2-4", "--", _ECHO_CMD, "[**]"])
+                    .write_stdin("AAA BBB CCC\nDDD EEE FFF\n")
+                    .assert()
+                    .stdout("A[AA ]BBB CCC\nD[DD ]EEE FFF\n");
+            }
         }
     }
 
