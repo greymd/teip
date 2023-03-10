@@ -124,6 +124,7 @@ pub fn regex_proc(
     Ok(())
 }
 
+/*
 /// Bypassing character range ( -c )
 pub fn char_proc(
     ch: &mut PipeIntercepter,
@@ -164,6 +165,33 @@ pub fn char_proc(
     } else {
         ch.send_keep(str_out)?;
     }
+    Ok(())
+}
+*/
+
+/// Bypassing character range ( -c )
+pub fn char_proc(
+    ch: &mut PipeIntercepter,
+    line: &Vec<u8>,
+    ranges: &Vec<list::ranges::Range>,
+) -> Result<(), errors::ChunkSendError> {
+    let line = String::from_utf8_lossy(&line).to_string();
+    let cs = line.chars();
+    let mut ri = 0; // range index
+    // Merge consequent characters' range to execute commands as few times as possible.
+    for (i, c) in cs.enumerate() {
+        // If the current position is out of the range, go to the next range.
+        if ranges[ri].high < (i + 1) && (ri + 1) < ranges.len() {
+            ri += 1;
+        }
+        if ranges[ri].low <= (i + 1) && (i + 1) <= ranges[ri].high {
+            ch.buf_send_byps(c.to_string())?
+        } else {
+            ch.buf_send_keep(c.to_string())?
+        }
+    }
+    ch.flush_byps()?;
+    ch.flush_keep()?;
     Ok(())
 }
 

@@ -25,7 +25,6 @@ impl ChunkBuf {
     }
 }
 
-
 /// struct for bypassing input and its interface
 pub struct PipeIntercepter {
     tx: Sender<Chunk>,
@@ -298,17 +297,17 @@ impl PipeIntercepter {
         }
     }
 
-    /// send_keep() with preventing sending chunk immediately.
+    /// Used as send_keep() but it prevents sending chunk immediately.
     /// Keep the chunk in the buffer until the next Hole is found.
+    /// Actually, send_keep() is not called directly but called by buf_send_byps().
     pub fn buf_send_keep(&mut self, msg: String) -> Result<(), errors::ChunkSendError> {
+        // append msg to keep_buf
+        self.chunk_buf.keep_buf.push_str(&msg);
         match self.chunk_buf.last_target {
             Some(ChunkGroup::Keep) => {
-                // append msg to keep_buf
-                self.chunk_buf.keep_buf.push_str(&msg);
                 return Ok(());
             }
             Some(ChunkGroup::Hole) => {
-                // send keep_buf
                 match self.send_byps(self.chunk_buf.byps_buf.clone()) {
                     Ok(_) => {
                         // clear keep_buf
@@ -319,38 +318,38 @@ impl PipeIntercepter {
                     Err(e) => return Err(e),
                 }
             }
+            // Initialize
             None => {
                 self.chunk_buf.last_target = Some(ChunkGroup::Keep);
-                self.chunk_buf.keep_buf.push_str(&msg);
                 return Ok(());
             }
         }
     }
 
+    /// Used as send_byps() but it prevents sending chunk immediately.
+    /// Keep the chunk in the buffer until the next Keep is found.
+    /// Actually, send_byps() is not called directly but called by buf_send_keep().
     pub fn buf_send_byps(&mut self, msg: String) -> Result<(), errors::ChunkSendError> {
+        // append msg to byps_buf
+        self.chunk_buf.byps_buf.push_str(&msg);
         match self.chunk_buf.last_target {
             Some(ChunkGroup::Keep) => {
-                // send keep_buf
                 match self.send_keep(self.chunk_buf.keep_buf.clone()) {
                     Ok(_) => {
                         // clear keep_buf
                         self.chunk_buf.keep_buf.clear();
                         self.chunk_buf.last_target = Some(ChunkGroup::Hole);
-                        // return self.send_byps(msg);
                         return Ok(());
                     }
                     Err(e) => return Err(e),
                 }
             }
             Some(ChunkGroup::Hole) => {
-                // append msg to keep_buf
-                self.chunk_buf.byps_buf.push_str(&msg);
                 return Ok(());
             }
             // Initialize
             None => {
                 self.chunk_buf.last_target = Some(ChunkGroup::Hole);
-                self.chunk_buf.byps_buf.push_str(&msg);
                 return Ok(());
             }
         }

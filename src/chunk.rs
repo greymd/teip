@@ -1,4 +1,5 @@
 /// Input stream is devided into multiple Chunks
+#[derive(Debug)]
 pub enum Chunk {
     Keep(String),   // a string under masking tape. Printed as is.
     Hole,           // A hole on the masking tape. The string in the hole being processed other thread.
@@ -6,6 +7,7 @@ pub enum Chunk {
     EOF,            // End of file
 }
 
+#[derive(Debug)]
 pub enum ChunkGroup {
     Keep,   // a string under masking tape. Printed as is.
     Hole,   // A hole on the masking tape. The string in the hole being processed other thread.
