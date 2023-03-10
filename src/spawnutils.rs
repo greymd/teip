@@ -40,7 +40,8 @@ pub fn exec_cmd(
     ))
 }
 
-/// Execute single command and return the stdout of the command as String synchronously
+/// Execute single command and return the stdout of the command as String synchronously with
+/// placeholder replacement (-I option)
 pub fn exec_cmd_sync_replace(input: String, cmds: &Vec<String>, line_end: u8, chomp: bool, replace_str: &str) -> String {
     debug!("thread: exec_cmd_sync: {:?}", &cmds);
     // check each element of cmds. If it contains replace_str, replace it with input
