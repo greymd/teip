@@ -93,6 +93,8 @@ FLAGS:
     -s                  Execute new command for each bypassed chunk
         --chomp         Command spawned by -s receives standard input without trailing
                         newlines
+    -I  <replace-str>   Replace the <replace-str> with bypassed chunk in the <command>
+                        then -s is forcefully enabled.
     -v                  Invert the range of bypassing
     -z                  Line delimiter is NUL instead of a newline
 
@@ -138,6 +140,8 @@ struct Args {
     line: Option<String>,
     #[structopt(short = "s", help = "Execute new command for each bypassed chunk")]
     solid: bool,
+    #[structopt(short = "I", help = "Replace the <replace-str> with bypassed chunk in the <command> then -s is forcefully enabled.")]
+    replace: Option<String>,
     #[structopt(long = "chomp", help = "Command spawned by -s receives standard input without trailing newlines")]
     solid_chomp: bool,
     #[structopt(short = "v", help = "Invert the range of bypassing")]
@@ -179,8 +183,9 @@ fn main() {
     let flag_only = args.only_matched;
     let mut flag_regex = args.regex.is_some();
     let flag_onig = args.onig_enabled;
-    let flag_solid = args.solid;
+    let mut flag_solid = args.solid;
     let flag_solid_chomp = args.solid_chomp;
+    let flag_replace = args.replace.is_some();
     let flag_invert = args.invert;
     let flag_char = args.char.is_some();
     let flag_lines = args.line.is_some();
@@ -353,9 +358,13 @@ fn main() {
         process_each_line = false;
     }
 
+    if flag_replace {
+        // If -I option is specified, enable -s option
+        flag_solid = true;
+    }
     if flag_solid {
         ch =
-            PipeIntercepter::start_solid_output(cmds, line_end, flag_dryrun, flag_solid_chomp)
+            PipeIntercepter::start_solid_output(cmds, line_end, flag_dryrun, flag_solid_chomp, args.replace)
                 .unwrap_or_else(|e| error_exit(&e.to_string()));
     } else {
         ch = PipeIntercepter::start_output(cmds, line_end, flag_dryrun)

@@ -70,6 +70,9 @@ OPTIONS
 `-s`
   Execute new command for each bypassed chunk
 
+`-I`
+  Replace the <replace-str> with bypassed chunk in the <command> then -s is forcefully enabled.
+
 `--chomp`
   Command spawned by -s receives standard input without trailing newlines
 

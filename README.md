@@ -196,6 +196,8 @@ FLAGS:
     -s                  Execute new command for each bypassed chunk
         --chomp         Command spawned by -s receives standard input without trailing
                         newlines
+    -I  <replace-str>   Replace the <replace-str> with bypassed chunk in the <command>
+                        then -s is forcefully enabled.
     -v                  Invert the range of bypassing
     -z                  Line delimiter is NUL instead of a newline
 
@@ -525,6 +527,31 @@ $ echo $?
 
 However, this option is not suitable for processing large files because of its high processing overhead, which can significantly degrade performance.
 
+#### Solid mode with placeholder (`-I <replace-str>`)
+
+If you want to use the contents of the hole as an argument of the targeted command, use the `-I` option.
+
+```bash
+$ echo AAA BBB CCC | teip -f 2 -I @ -- echo '[@]'
+AAA [BBB] CCC
+```
+
+`<replace-str>` can be any strings and multiple characters are allowed.
+
+```bash
+$ seq 5 | teip -f 1 -I NUMBER -- awk 'BEGIN{print NUMBER * 3}'
+3
+6
+9
+12
+15
+```
+
+Please note that `-s` is automatically enabled with `-I`.
+Therefore, it is not suitable for processing huge files.
+In addition, the targeted command does not get any input from stdin.
+The targeted command is expected to work without stdin.
+
 #### Solid mode with `--chomp` 
 
 If `-s` option does not work as expected, `--chomp` may be helpful.
@@ -543,7 +570,7 @@ $ echo AAABBBCCC | teip -og BBB -s -- tr '\n' '@'
 AAABBB@CCC
 ```
 
-The above is an example where the targeted command is a "tr command that converts line field (\x0A) to @".
+The above is an example where the targeted command is a "tr command that converts line field (`\x0A`) to @".
 "BBB" does not contain a newline, but the result is "BBB@", because implicitly added line breaks have been processed.
 To prevent this behavior, use the `--chomp` option.
 This option gives the targeted command pure input with no newlines added.
