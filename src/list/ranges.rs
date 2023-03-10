@@ -1,10 +1,8 @@
 /*
- * This file is part of the uutils coreutils package.
+ * This file is based on the uutils coreutils package.
  *
- * (c) Rolf Morel <rolfmorel@gmail.com>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
+ * For the full copyright and license information about
+ * the original file, please view the LICENSE
  */
 
 use std::str::FromStr;
@@ -13,6 +11,17 @@ use std::str::FromStr;
 pub struct Range {
     pub low: usize,
     pub high: usize,
+    pub join: RangeJoin,
+}
+
+#[derive(PartialEq, Eq, PartialOrd, Ord, Debug)]
+pub enum RangeJoin {
+    /// 1-5 .. Just select from 1 to 5 (default)
+    Normal,
+    /// 1~5 .. from 1 to 5 are explicitly merged
+    Merge,
+    /// 1^5 .. from 1 to 5 are explicitly split
+    Split,
 }
 
 impl FromStr for Range {
@@ -20,8 +29,20 @@ impl FromStr for Range {
 
     fn from_str(s: &str) -> Result<Range, &'static str> {
         use std::usize::MAX;
+        let join: RangeJoin;
 
-        let mut parts = s.splitn(2, '-');
+        // check if s includes a ~ or a - and split on that
+        // if not, assume it's a single number
+        let mut parts = if s.contains('~') {
+            join = RangeJoin::Merge;
+            s.splitn(2, '~')
+        } else if s.contains('^') {
+            join = RangeJoin::Split;
+            s.splitn(2, '^')
+        } else {
+            join = RangeJoin::Normal;
+            s.splitn(2, '-')
+        };
 
         let field = "fields and positions are numbered from 1";
         let order = "high end of range less than low end";
@@ -31,7 +52,7 @@ impl FromStr for Range {
             (Some(nm), None) => {
                 if let Ok(nm) = nm.parse::<usize>() {
                     if nm > 0 {
-                        Ok(Range { low: nm, high: nm })
+                        Ok(Range { low: nm, high: nm, join: RangeJoin::Normal })
                     } else {
                         Err(field)
                     }
@@ -42,7 +63,7 @@ impl FromStr for Range {
             (Some(n), Some(m)) if m.is_empty() => {
                 if let Ok(low) = n.parse::<usize>() {
                     if low > 0 {
-                        Ok(Range { low, high: MAX - 1 })
+                        Ok(Range { low, high: MAX - 1, join })
                     } else {
                         Err(field)
                     }
@@ -53,7 +74,7 @@ impl FromStr for Range {
             (Some(n), Some(m)) if n.is_empty() => {
                 if let Ok(high) = m.parse::<usize>() {
                     if high > 0 {
-                        Ok(Range { low: 1, high })
+                        Ok(Range { low: 1, high, join })
                     } else {
                         Err(field)
                     }
@@ -64,7 +85,7 @@ impl FromStr for Range {
             (Some(n), Some(m)) => match (n.parse::<usize>(), m.parse::<usize>()) {
                 (Ok(low), Ok(high)) => {
                     if low > 0 && low <= high {
-                        Ok(Range { low, high })
+                        Ok(Range { low, high, join })
                     } else if low == 0 {
                         Err(field)
                     } else {
@@ -111,11 +132,14 @@ pub fn complement(ranges: &[Range]) -> Vec<Range> {
     use std::usize;
 
     let mut complements = Vec::with_capacity(ranges.len() + 1);
+    // Use the default join type to keep back compatibility
+    const DEF_JOIN: RangeJoin = RangeJoin::Normal;
 
     if !ranges.is_empty() && ranges[0].low > 1 {
         complements.push(Range {
             low: 1,
             high: ranges[0].low - 1,
+            join: DEF_JOIN,
         });
     }
 
@@ -127,6 +151,7 @@ pub fn complement(ranges: &[Range]) -> Vec<Range> {
                     complements.push(Range {
                         low: left.high + 1,
                         high: right.low - 1,
+                        join: DEF_JOIN,
                     });
                 }
             }
@@ -135,6 +160,7 @@ pub fn complement(ranges: &[Range]) -> Vec<Range> {
                     complements.push(Range {
                         low: last.high + 1,
                         high: usize::MAX - 1,
+                        join: DEF_JOIN,
                     });
                 }
             }
