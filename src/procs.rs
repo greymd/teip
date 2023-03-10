@@ -134,11 +134,12 @@ pub fn char_proc(
     let cs = line.chars();
     let mut str_in = String::new();
     let mut str_out = String::new();
-    let mut ri = 0;
+    let mut ri = 0; // range index
     let mut is_in;
     let mut last_is_in = false;
     // Merge consequent characters' range to execute commands as few times as possible.
     for (i, c) in cs.enumerate() {
+        // If the current position is out of the range, go to the next range.
         if ranges[ri].high < (i + 1) && (ri + 1) < ranges.len() {
             ri += 1;
         }
