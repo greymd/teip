@@ -1,4 +1,4 @@
-use super::chunk::Chunk;
+use super::chunk::{Chunk, ChunkGroup};
 use super::spawnutils;
 use super::stringutils::trim_eol;
 use super::{errors,errors::*};
@@ -9,6 +9,23 @@ use std::sync::mpsc::{self, Sender};
 use std::thread::{self, JoinHandle};
 use log::debug;
 
+pub struct ChunkBuf {
+    keep_buf: String,
+    byps_buf: String,
+    last_target: Option<ChunkGroup>,
+}
+
+impl ChunkBuf {
+    fn new() -> ChunkBuf {
+        ChunkBuf {
+            keep_buf: String::with_capacity(DEFAULT_CAP),
+            byps_buf: String::with_capacity(DEFAULT_CAP),
+            last_target: None,
+        }
+    }
+}
+
+
 /// struct for bypassing input and its interface
 pub struct PipeIntercepter {
     tx: Sender<Chunk>,
@@ -17,6 +34,7 @@ pub struct PipeIntercepter {
     line_end: u8,
     solid: bool,
     dryrun: bool,
+    chunk_buf: ChunkBuf,
 }
 
 impl PipeIntercepter {
@@ -110,6 +128,7 @@ impl PipeIntercepter {
             line_end,
             solid: false,
             dryrun,
+            chunk_buf: ChunkBuf::new(),
         })
     }
 
@@ -210,6 +229,7 @@ impl PipeIntercepter {
             line_end,
             solid: true,
             dryrun,
+            chunk_buf: ChunkBuf::new(),
         })
     }
 
@@ -276,6 +296,95 @@ impl PipeIntercepter {
                 .map_err(|e| errors::ChunkSendError::Pipe(e))?;
             Ok(())
         }
+    }
+
+    /// send_keep() with preventing sending chunk immediately.
+    /// Keep the chunk in the buffer until the next Hole is found.
+    pub fn buf_send_keep(&mut self, msg: String) -> Result<(), errors::ChunkSendError> {
+        match self.chunk_buf.last_target {
+            Some(ChunkGroup::Keep) => {
+                // append msg to keep_buf
+                self.chunk_buf.keep_buf.push_str(&msg);
+                return Ok(());
+            }
+            Some(ChunkGroup::Hole) => {
+                // send keep_buf
+                match self.send_byps(self.chunk_buf.byps_buf.clone()) {
+                    Ok(_) => {
+                        // clear keep_buf
+                        self.chunk_buf.byps_buf.clear();
+                        self.chunk_buf.last_target = Some(ChunkGroup::Keep);
+                        return Ok(());
+                    }
+                    Err(e) => return Err(e),
+                }
+            }
+            None => {
+                self.chunk_buf.last_target = Some(ChunkGroup::Keep);
+                self.chunk_buf.keep_buf.push_str(&msg);
+                return Ok(());
+            }
+        }
+    }
+
+    pub fn buf_send_byps(&mut self, msg: String) -> Result<(), errors::ChunkSendError> {
+        match self.chunk_buf.last_target {
+            Some(ChunkGroup::Keep) => {
+                // send keep_buf
+                match self.send_keep(self.chunk_buf.keep_buf.clone()) {
+                    Ok(_) => {
+                        // clear keep_buf
+                        self.chunk_buf.keep_buf.clear();
+                        self.chunk_buf.last_target = Some(ChunkGroup::Hole);
+                        // return self.send_byps(msg);
+                        return Ok(());
+                    }
+                    Err(e) => return Err(e),
+                }
+            }
+            Some(ChunkGroup::Hole) => {
+                // append msg to keep_buf
+                self.chunk_buf.byps_buf.push_str(&msg);
+                return Ok(());
+            }
+            // Initialize
+            None => {
+                self.chunk_buf.last_target = Some(ChunkGroup::Hole);
+                self.chunk_buf.byps_buf.push_str(&msg);
+                return Ok(());
+            }
+        }
+    }
+
+    // send remaining chunks to be bypassed in the buffer
+    pub fn flush_byps(&mut self) -> Result<(), errors::ChunkSendError> {
+        if self.chunk_buf.byps_buf.len() > 0 {
+            match self.send_byps(self.chunk_buf.byps_buf.clone()) {
+                Ok(_) => {
+                    // clear keep_buf
+                    self.chunk_buf.byps_buf.clear();
+                    self.chunk_buf.last_target = None;
+                    return Ok(());
+                }
+                Err(e) => return Err(e),
+            }
+        }
+        return Ok(());
+    }
+
+    pub fn flush_keep(&mut self) -> Result<(), errors::ChunkSendError> {
+        if self.chunk_buf.keep_buf.len() > 0 {
+            match self.send_keep(self.chunk_buf.keep_buf.clone()) {
+                Ok(_) => {
+                    // clear keep_buf
+                    self.chunk_buf.keep_buf.clear();
+                    self.chunk_buf.last_target = None;
+                    return Ok(());
+                }
+                Err(e) => return Err(e),
+            }
+        }
+        return Ok(());
     }
 
     /// Notify PipeIntercepter the end of file to exit process
