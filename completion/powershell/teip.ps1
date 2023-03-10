@@ -26,7 +26,7 @@ Register-ArgumentCompleter -Native -CommandName 'teip' -ScriptBlock {
             [CompletionResult]::new('-D', 'D', [CompletionResultType]::ParameterName, 'Use regular expression <pattern> for field delimiter of -f')
             [CompletionResult]::new('-c', 'c', [CompletionResultType]::ParameterName, 'Bypassing these characters')
             [CompletionResult]::new('-l', 'l', [CompletionResultType]::ParameterName, 'Bypassing those lines')
-            [CompletionResult]::new('-I', 'I', [CompletionResultType]::ParameterName, 'Replace the <replace-str> with bypassed chunk in the <command> and -s is forcefully enabled.')
+            [CompletionResult]::new('-I', 'I', [CompletionResultType]::ParameterName, 'Replace the <replace-str> with bypassed chunk in the <command> then -s is forcefully enabled.')
             [CompletionResult]::new('-e', 'e', [CompletionResultType]::ParameterName, 'Execute <string> on another process that will receive identical standard input as the teip, and numbers given by the result are used as line numbers for bypassing')
             [CompletionResult]::new('-A', 'A', [CompletionResultType]::ParameterName, 'Alias of -e ''grep -n -A <number> <pattern>''')
             [CompletionResult]::new('-B', 'B', [CompletionResultType]::ParameterName, 'Alias of -e ''grep -n -B <number> <pattern>''')

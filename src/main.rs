@@ -94,7 +94,7 @@ FLAGS:
         --chomp         Command spawned by -s receives standard input without trailing
                         newlines
     -I  <replace-str>   Replace the <replace-str> with bypassed chunk in the <command>
-                        and -s is forcefully enabled.
+                        then -s is forcefully enabled.
     -v                  Invert the range of bypassing
     -z                  Line delimiter is NUL instead of a newline
 
@@ -140,7 +140,7 @@ struct Args {
     line: Option<String>,
     #[structopt(short = "s", help = "Execute new command for each bypassed chunk")]
     solid: bool,
-    #[structopt(short = "I", help = "Replace the <replace-str> with bypassed chunk in the <command> and -s is forcefully enabled.")]
+    #[structopt(short = "I", help = "Replace the <replace-str> with bypassed chunk in the <command> then -s is forcefully enabled.")]
     replace: Option<String>,
     #[structopt(long = "chomp", help = "Command spawned by -s receives standard input without trailing newlines")]
     solid_chomp: bool,
