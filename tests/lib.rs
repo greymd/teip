@@ -434,6 +434,15 @@ mod cmdtest {
     }
 
     #[test]
+    fn test_character_ends_with_hole() {
+        let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
+        cmd.args(&["-c", "2-", SED_CMD, "s/./@/g"])
+            .write_stdin("1234\n5678\n")
+            .assert()
+            .stdout("1@@@\n5@@@\n");
+    }
+
+    #[test]
     fn test_solid_character_range() {
         let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
         cmd.args(&["-s", "-c", "1-3,6-8", SED_CMD, "s/./A/"])
@@ -485,6 +494,15 @@ mod cmdtest {
             .write_stdin("1234\n")
             .assert()
             .stdout("123\n");
+    }
+
+    #[test]
+    fn test_solid_character_ends_with_hole() {
+        let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
+        cmd.args(&["-s", "-c", "2-", SED_CMD, "s/./@/g"])
+            .write_stdin("1234\n5678\n")
+            .assert()
+            .stdout("1@@@\n5@@@\n");
     }
 
     #[test]
