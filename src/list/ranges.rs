@@ -36,7 +36,7 @@ impl FromStr for Range {
         let mut parts = if s.contains('~') {
             join = RangeJoin::Merge;
             s.splitn(2, '~')
-        } else if s.contains('^') {
+        } else if s.contains(':') {
             join = RangeJoin::Split;
             s.splitn(2, ':')
         } else {
