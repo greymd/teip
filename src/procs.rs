@@ -124,51 +124,6 @@ pub fn regex_proc(
     Ok(())
 }
 
-/*
-/// Bypassing character range ( -c )
-pub fn char_proc(
-    ch: &mut PipeIntercepter,
-    line: &Vec<u8>,
-    ranges: &Vec<list::ranges::Range>,
-) -> Result<(), errors::ChunkSendError> {
-    let line = String::from_utf8_lossy(&line).to_string();
-    let cs = line.chars();
-    let mut str_in = String::new();
-    let mut str_out = String::new();
-    let mut ri = 0; // range index
-    let mut is_in;
-    let mut last_is_in = false;
-    // Merge consequent characters' range to execute commands as few times as possible.
-    for (i, c) in cs.enumerate() {
-        // If the current position is out of the range, go to the next range.
-        if ranges[ri].high < (i + 1) && (ri + 1) < ranges.len() {
-            ri += 1;
-        }
-        if ranges[ri].low <= (i + 1) && (i + 1) <= ranges[ri].high {
-            is_in = true;
-            str_in.push(c);
-        } else {
-            is_in = false;
-            str_out.push(c);
-        }
-        if is_in && !last_is_in {
-            ch.send_keep(str_out.to_string())?;
-            str_out.clear();
-        } else if !is_in && last_is_in {
-            ch.send_byps(str_in.to_string())?;
-            str_in.clear();
-        }
-        last_is_in = is_in;
-    }
-    if last_is_in && !str_in.is_empty() {
-        ch.send_byps(str_in)?;
-    } else {
-        ch.send_keep(str_out)?;
-    }
-    Ok(())
-}
-*/
-
 /// Bypassing character range ( -c )
 pub fn char_proc(
     ch: &mut PipeIntercepter,
@@ -402,11 +357,8 @@ pub fn csv_proc(
     ) -> Result<(), errors::ChunkSendError> {
     use super::csv::parser::Parser;
     let mut parser = Parser::new();
-    let mut str_byps = String::new();
-    let mut str_keep = String::new();
-    let mut is_byps;
     let line_end_char = line_end as char;
-    let mut last_is_byps = false;
+    let mut is_byps;
     let mut ri = 0;
     let stdin = io::stdin();
     loop {
@@ -426,33 +378,26 @@ pub fn csv_proc(
                         }
                         if ranges[ri].low <= field && field <= ranges[ri].high {
                             is_byps = true;
-                            str_byps.push(c);
+                            ch.buf_send_byps(c.to_string())?;
                         } else {
                             is_byps = false;
-                            str_keep.push(c);
+                            ch.buf_send_keep(c.to_string())?;
                         }
                     } else {
                         is_byps = false;
-                        str_keep.push(c);
+                        ch.buf_send_keep(c.to_string())?;
                     }
-                    if is_byps && !last_is_byps {
-                        ch.send_keep(str_keep.to_string())?;
-                        str_keep.clear();
-                    } else if !is_byps && last_is_byps {
-                        ch.send_byps(str_byps.to_string())?;
-                        str_byps.clear();
+                    if is_byps {
+                        ch.flush_keep()?;
+                    } else {
+                        ch.flush_byps()?;
                     }
-                    last_is_byps = is_byps;
                 }
                 ri = 0;
                 if n == 0 {
                     // If end of file does not have line feed, this part sends the remaining chunk
-                    if last_is_byps && !str_byps.is_empty() {
-                        ch.send_byps(str_byps)?;
-                    }
-                    if !str_keep.is_empty() {
-                        ch.send_keep(str_keep)?;
-                    }
+                    ch.flush_byps()?;
+                    ch.flush_keep()?;
                     ch.send_eof()?;
                     break;
                 }
