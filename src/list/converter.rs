@@ -72,7 +72,7 @@ mod test {
     }
     #[test]
     fn test_to_ranges_three_different_range() {
-        let range = to_ranges("1-3,5^10,12,13~15", false).unwrap();
+        let range = to_ranges("1-3,5:10,12,13~15", false).unwrap();
         println!("{:?}", range);
         assert_eq!(range[0].low, 1);
         assert_eq!(range[0].high, 3);

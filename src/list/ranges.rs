@@ -20,7 +20,7 @@ pub enum RangeJoin {
     Normal,
     /// 1~5 .. from 1 to 5 are explicitly merged
     Merge,
-    /// 1^5 .. from 1 to 5 are explicitly split
+    /// 1:5 .. from 1 to 5 are explicitly split
     Split,
 }
 
@@ -38,7 +38,7 @@ impl FromStr for Range {
             s.splitn(2, '~')
         } else if s.contains('^') {
             join = RangeJoin::Split;
-            s.splitn(2, '^')
+            s.splitn(2, ':')
         } else {
             join = RangeJoin::Normal;
             s.splitn(2, '-')
