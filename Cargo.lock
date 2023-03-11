@@ -777,7 +777,7 @@ dependencies = [
 
 [[package]]
 name = "teip"
-version = "2.2.0"
+version = "2.3.0"
 dependencies = [
  "assert_cmd",
  "cfg-if 0.1.10",
@@ -786,6 +786,7 @@ dependencies = [
  "lazy_static",
  "log",
  "onig",
+ "pkg-config",
  "regex",
  "serde",
  "structopt",
