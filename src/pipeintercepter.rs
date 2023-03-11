@@ -357,7 +357,7 @@ impl PipeIntercepter {
 
     // send remaining chunks to be bypassed in the buffer
     pub fn flush_byps(&mut self) -> Result<(), errors::ChunkSendError> {
-        if self.chunk_buf.byps_buf.len() > 0 {
+        if !self.chunk_buf.byps_buf.is_empty() {
             match self.send_byps(self.chunk_buf.byps_buf.clone()) {
                 Ok(_) => {
                     // clear keep_buf
@@ -372,7 +372,7 @@ impl PipeIntercepter {
     }
 
     pub fn flush_keep(&mut self) -> Result<(), errors::ChunkSendError> {
-        if self.chunk_buf.keep_buf.len() > 0 {
+        if !self.chunk_buf.keep_buf.is_empty() {
             match self.send_keep(self.chunk_buf.keep_buf.clone()) {
                 Ok(_) => {
                     // clear keep_buf
