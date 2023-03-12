@@ -73,7 +73,7 @@ See detail on <a href="https://github.com/greymd/teip/wiki/Benchmark">wiki > Ben
 
 ### macOS (x86_64, ARM64) / Linux (x86_64)
 
-Install [Homebrew](https://brew.sh/) if not, and
+Install [Homebrew](https://brew.sh/), and
 
 ```bash
 brew install teip
