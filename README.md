@@ -70,6 +70,15 @@ See detail on <a href="https://github.com/greymd/teip/wiki/Benchmark">wiki > Ben
 
 ## Installation
 
+
+### macOS (x86_64, ARM64) / Linux (x86_64)
+
+Using [Homebrew](https://brew.sh/)
+
+```bash
+brew install teip
+```
+
 ### Linux (x86_64, ARM64)
 
 #### `dpkg`
@@ -112,13 +121,6 @@ Files whose filenames end with `sha256` have hash values listed.
 <!-- release_url_end -->
 
 
-### macOS (x86_64, ARM64)
-
-Using [Homebrew](https://brew.sh/)
-
-```bash
-brew install greymd/tools/teip
-```
 
 ### Windows (x86_64)
 
