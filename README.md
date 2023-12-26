@@ -22,25 +22,25 @@
 $ cat /var/log/secure | teip -c 1-15 -- date -f- +%s
 ```
 
-* Replace 'WORLD' to 'EARTH' on lines containing 'HELLO'
+* Replace 'WORLD' with 'EARTH' on lines containing 'HELLO'
 
 ```bash
 $ cat file | teip -g HELLO -- sed 's/WORLD/EARTH/'
 ```
 
-* Make characters upper case on 2nd field of the CSV (RFC4180)
+* Make characters upper case on the 2nd field of a CSV (RFC4180)
 
 ```bash
 $ cat file.csv | teip --csv -f 2 -- tr a-z A-Z
 ```
 
-* Edit 2nd, 3rd and 4th fields of TSV file
+* Edit the 2nd, 3rd and 4th fields of a TSV file
 
 ```bash
 $ cat file.tsv | teip -D '\t' -f 2-4 -- tr a-z A-Z
 ```
 
-* Edit lines containing 'hello' and the three lines before and after it
+* Edit lines containing 'hello' and the three lines before and after
 
 ```bash
 $ cat access.log | teip -e 'grep -n -C 3 hello' -- sed 's/./@/g'
@@ -49,7 +49,7 @@ $ cat access.log | teip -e 'grep -n -C 3 hello' -- sed 's/./@/g'
 ## Performance enhancement
 `teip` allows a command to focus on its own task.
 
-Here is the comparison of processing time to replace approx 761,000 IP addresses with dummy ones in 100 MiB text file.
+Here is a comparison of the processing time to replace approx 761,000 IP addresses with dummy ones in a 100 MiB text file.
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/wiki/greymd/teip/benchmark/secure_bench.svg" width="80%" alt="benchmark bar chart" />
