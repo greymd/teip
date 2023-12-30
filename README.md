@@ -28,7 +28,7 @@ $ cat /var/log/secure | teip -c 1-15 -- date -f- +%s
 $ cat file | teip -g HELLO -- sed 's/WORLD/EARTH/'
 ```
 
-* Make characters upper case on the 2nd field of a CSV (RFC4180)
+* Make characters upper case in the 2nd field of a CSV (RFC4180)
 
 ```bash
 $ cat file.csv | teip --csv -f 2 -- tr a-z A-Z
@@ -47,6 +47,7 @@ $ cat access.log | teip -e 'grep -n -C 3 hello' -- sed 's/./@/g'
 ```
 
 ## Performance enhancement
+
 `teip` allows a command to focus on its own task.
 
 Here is a comparison of the processing time to replace approx 761,000 IP addresses with dummy ones in a 100 MiB text file.
@@ -55,21 +56,20 @@ Here is a comparison of the processing time to replace approx 761,000 IP address
   <img src="https://raw.githubusercontent.com/wiki/greymd/teip/benchmark/secure_bench.svg" width="80%" alt="benchmark bar chart" />
 </p>
 
-See detail on <a href="https://github.com/greymd/teip/wiki/Benchmark">wiki > Benchmark</a>.
+See detail at <a href="https://github.com/greymd/teip/wiki/Benchmark">wiki > Benchmark</a>.
 
 ## Features
 
 * Taping: Help the command "do one thing well"
-  - Bypassing a partial range of standard input to any command whatever you want
-  - The targeted command just handles bypassed parts of the standard input
-  - Flexible methods for selecting a range (Select like AWK, `cut` or `grep`)
+  - Passing a partial range of the standard input to any command — whatever you want
+  - The targeted command just actions the passed parts of the standard input
+  - Flexible methods for selecting a range (Select like `awk`, `cut` or `grep`)
 
-* High performer
-  - The targeted command's standard input/output are intercepted by multiple `teip`'s threads asynchronously.
-  - If general UNIX commands on your environment can process a few hundred MB files in a few seconds, then `teip` can do the same or better performance.
+* High performance
+  - The targeted command's standard input/output are written to and read from by multiple `teip` threads asynchronously.
+  - If general UNIX commands in your environment can process a few-hundred MB file in a few seconds, then `teip` can do the same or better performance.
 
 ## Installation
-
 
 ### macOS (x86_64, ARM64) / Linux (x86_64)
 
@@ -121,14 +121,13 @@ Files whose filenames end with `sha256` have hash values listed.
 <!-- release_url_end -->
 
 
-
 ### Windows (x86_64)
 
 <!-- ins_url_start -->
 Download installer from [here](https://github.com/greymd/teip/releases/download/v2.3.0/teip_installer-2.3.0-x86_64-pc-windows-msvc.exe).
 <!-- ins_url_end -->
 
-See [Wiki > Use on Windows](https://github.com/greymd/teip/wiki/Use-on-Windows) in detail.
+See [Wiki > Use on Windows](https://github.com/greymd/teip/wiki/Use-on-Windows) for detail.
 
 ### Other architectures
 
@@ -136,7 +135,7 @@ See [Wiki > Use on Windows](https://github.com/greymd/teip/wiki/Use-on-Windows) 
 Check the [latest release page](https://github.com/greymd/teip/releases/tag/v2.3.0) for executables for the platform you are using.
 <!-- release_url_end -->
 
-If not, please build it from source.
+If not present, please build teip from source.
 
 ### Build from source
 
@@ -147,7 +146,7 @@ cargo install teip
 ```
 
 To enable Oniguruma regular expression (`-G` option), build with `--features oniguruma` option.
-Please make sure `libclang` shared library is on your environment in advance.
+Please make sure the `libclang` shared library is available in your environment.
 
 ```bash
 ### Ubuntu
@@ -178,30 +177,30 @@ USAGE:
   teip -e <string> [-svz] [--] [<command>...]
 
 OPTIONS:
-    -g <pattern>        Bypassing lines that match the regular expression <pattern>
-        -o              -g bypasses only matched parts
+    -g <pattern>        Act on lines that match the regular expression <pattern>.
+        -o              -g acts on only matched ranges.
         -G              -g interprets Oniguruma regular expressions.
-    -c <list>           Bypassing these characters
-    -l <list>           Bypassing these lines
-    -f <list>           Bypassing these white-space separated fields
-        -d <delimiter>  Use <delimiter> for field delimiter of -f
-        -D <pattern>    Use regular expression <pattern> for field delimiter of -f
+    -c <list>           Act on these characters.
+    -l <list>           Act on these lines.
+    -f <list>           Act on these white-space separated fields.
+        -d <delimiter>  Use <delimiter> for the field delimiter of -f.
+        -D <pattern>    Use regular expression <pattern> for the field delimiter of -f
         --csv           -f interprets <list> as field number of a CSV according to
-                        RFC 4180, instead of white-space separated fields
-    -e <string>         Execute <string> on another process that will receive identical
-                        standard input as the teip, and numbers given by the result
-                        are used as line numbers for bypassing
+                        RFC 4180, instead of whitespace separated fields.
+    -e <string>         Execute <string> in another process that will receive identical
+                        standard input as the main teip command, emitting numbers to be
+                        used as line numbers for actioning.
 
 FLAGS:
-    -h, --help          Prints help information
-    -V, --version       Prints version information
-    -s                  Execute new command for each bypassed chunk
-        --chomp         Command spawned by -s receives standard input without trailing
-                        newlines
-    -I  <replace-str>   Replace the <replace-str> with bypassed chunk in the <command>
-                        then -s is forcefully enabled.
-    -v                  Invert the range of bypassing
-    -z                  Line delimiter is NUL instead of a newline
+    -h, --help          Prints help information.
+    -V, --version       Prints version information.
+    -s                  Execute a new command for each actioned chunk.
+        --chomp         The command spawned by -s receives the standard input without
+                        trailing newlines.
+    -I  <replace-str>   Replace the <replace-str> with the actioned chunk in <command>,
+                        implying -s.
+    -v                  Invert the range of actioning.
+    -z                  Line delimiter is NUL instead of a newline.
 
 ALIASES:
     -g <pattern>
@@ -214,20 +213,20 @@ ALIASES:
 
 ## Getting Started
 
-Try this at first.
+Try this at first:
 
 ```bash
 $ echo "100 200 300 400" | teip -f 3
 ```
 
-The result is almost the same as the input but "300" is highlighted and surrounded by `[...]`.
-Because `-f 3` specifies the 3rd field of space-separated input.
+The result is almost the same as the input, but "300" is highlighted and surrounded by `[...]`,
+because `-f 3` specifies the 3rd field of space-separated input.
 
 ```bash
 100 200 [300] 400
 ```
 
-Understand that the area enclosed in `[...]` is a **hole** on the masking tape.
+Understand that the area enclosed in `[...]` is a **hole** in the masking tape.
 
 <img src="https://raw.githubusercontent.com/wiki/greymd/teip/img/teip_hole.png" width="300" />
 
@@ -238,44 +237,45 @@ $ echo "100 200 300 400" | teip -f 3 sed 's/./@/g'
 ```
 
 The result is as below.
-Highlight and `[...]` is gone then.
+The highlight and `[...]` will not be present when a command is added.
 
 ```
 100 200 @@@ 400
 ```
 
-As you can see, the `sed` only processed the input in the "hole" and ignores masked parts.
-Technically, `teip` passes only highlighted part to the `sed` and replaces it with the result of the `sed`.
+As you can see, the `sed` command only acted on the input defined by the "hole" and ignored the masked
+parts.  Technically, `teip` passes only the highlighted part to the `sed` process, and replaces the
+highlighted part with the result of the `sed` command.
 
-Off-course, any command whatever you like can be specified.
+Of course, any command you like can be specified.
 It is called the **targeted command** in this article.
 
-Let's try the `cut` as the targeted command to extract the first character only.
+Let's try `cut` as the targeted command, to extract the first character only.
 
 ```bash
 $ echo "100 200 300 400" | teip -f 3 cut -c 1
 teip: Invalid arguments.
 ```
 
-Oops? Why is it failed?
+Oops! Why did this fail?
 
-This is because the `cut` uses the `-c` option.
-The option of the same name is also provided by `teip`, which is confusing.
+This is because the `cut`command  uses the `-c` option.
+An option of the same name is also provided by `teip`, which is confusing.
 
-When entering a targeted command with `teip`, it is better to enter it after `--`.
-Then, `teip` interprets the arguments after `--` as the targeted command and its argument.
+When specifying a targeted command to `teip`, it is better to give it after `--`.
+Then, `teip` interprets any arguments after `--` as the targeted command and its arguments.
 
 ```bash
 $ echo "100 200 300 400" | teip -f 3 -- cut -c 1
 100 200 3 400
 ```
 
-Great, the first character `3` is extracted from `300`!
+Great — the first character `3` is extracted from `300`!
 
-Although `--` is not always necessary, it is always better to be used.
-So, `--` is used in all the examples from here.
+Although `--` is not always necessary, it is always better to use it.
+So, `--` is used in all the examples from here on.
 
-Now let's double this number with the `awk`.
+Now let's double these number with `awk`.
 The command looks like the following (Note that the variable to be doubled is not `$3`).
 
 ```bash
@@ -283,20 +283,21 @@ $ echo "100 200 300 400" | teip -f 3 -- awk '{print $1*2}'
 100 200 600 400
 ```
 
-OK, the result went from 300 to 600.
+OK, the selection in the "hole" went from 300 to 600.
 
-Now, let's change `-f 3` to `-f 3,4` and run it.
+Now, let's change `-f 3` to `-f 3,4` and run teip.
 
 ```bash
 $ echo "100 200 300 400" | teip -f 3,4 -- awk '{print $1*2}'
 100 200 600 800
 ```
 
-The numbers in the 3rd and 4th were doubled!
+The numbers in the 3rd and 4th fields were doubled!
 
-As some of you may have noticed, the argument of `-f` is compatible with the __LIST__ of `cut`.
+As you may have noticed, the argument to `-f` is compatible with the __LIST__ of `cut`.
+You can refer to `cut --help` to see how it works.
 
-Let's see how it works with `cut --help`.
+Examples:
 
 ```bash
 $ echo "100 200 300 400" | teip -f -3 -- sed 's/./@/g'
@@ -311,8 +312,8 @@ $ echo "100 200 300 400" | teip -f 1- -- sed 's/./@/g'
 
 ## Select range by character
 
-The `-c` option allows you to specify a range by character-base.
-The below example is specifing 1st, 3rd, 5th, 7th characters and apply the `sed` command to them.
+The `-c` option allows you to specify a range by character.
+The below example is specifying the 1st, 3rd, 5th, 7th characters and applying the `sed` command to them.
 
 ```bash
 $ echo ABCDEFG | teip -c 1,3,5,7
@@ -322,13 +323,13 @@ $ echo ABCDEFG | teip -c 1,3,5,7 -- sed 's/./@/'
 @B@D@F@
 ```
 
-As same as `-f`, `-c`'s argument is compatible with `cut`'s __LIST__.
+Like `-f`, the argument to `-c` is compatible with `cut`'s __LIST__.
 
-## Processing delimited text like CSV, TSV
+## Processing delimited text like CSV and TSV
 
 The `-f` option recognizes delimited fields [like `awk`](https://www.gnu.org/software/gawk/manual/html_node/Regexp-Field-Splitting.html) by default.
 
-The continuous white spaces (all forms of whitespace categorized by [Unicode](https://www.unicode.org/Public/UCD/latest/ucd/PropList.txt)) is interpreted as a single delimiter.
+Any continuous whitespace (all forms of whitespace categorized by [Unicode](https://www.unicode.org/Public/UCD/latest/ucd/PropList.txt)) is interpreted as a single delimiter.
 
 ```bash
 $ printf "A       B \t\t\t\   C \t D" | teip -f 3 -- sed s/./@@@@/
@@ -337,16 +338,16 @@ A       B                       @@@@   C         D
 
 This behavior might be inconvenient for the processing of CSV and TSV.
 
-However, the `-d` option in conjunction with the `-f` can be used to specify a delimiter.
-Now you can process the CSV file like this.
+However, the `-d` option in conjunction with `-f` can be used to specify a delimiter.
+You can process a simple CSV file like this:
 
 ```bash
 $ echo "100,200,300,400" | teip -f 3 -d , -- sed 's/./@/g'
 100,200,@@@,400
 ```
 
-In order to process TSV, the TAB character need to be typed.
-If you are using Bash, type `$'\t'` which is one of [ANSI-C Quoting](https://www.gnu.org/software/bash/manual/html_node/ANSI_002dC-Quoting.html).
+In order to process TSV, the TAB character must be given at the command line.
+If you are using Bash, type `$'\t'` which is in the form of [ANSI-C Quoting](https://www.gnu.org/software/bash/manual/html_node/ANSI_002dC-Quoting.html).
 
 ```bash
 $ printf "100\t200\t300\t400\n" | teip -f 3 -d $'\t' -- sed 's/./@/g'
@@ -354,7 +355,7 @@ $ printf "100\t200\t300\t400\n" | teip -f 3 -d $'\t' -- sed 's/./@/g'
 ```
 
 `teip` also provides `-D` option to specify an extended regular expression as the delimiter.
-This is useful when you want to ignore consecutive delimiters, or when there are multiple types of delimiters.
+This is useful when you want to ignore consecutive delimiters, or when there are multiple types of delimiter.
 
 ```bash
 $ echo 'A,,,,,B,,,,C' | teip -f 2 -D ',+'
@@ -366,14 +367,14 @@ $ echo "1970-01-02 03:04:05" | teip -f 2-5 -D '[-: ]'
 1970-[01]-[02] [03]:[04]:05
 ```
 
-The regular expression of TAB character (`\t`) can also be specified with the `-D` option.
+The TAB character regular expression (`\t`) can also be specified with the `-D` option.
 
 ```
 $ printf "100\t200\t300\t400\n" | teip -f 3 -D '\t' -- sed 's/./@/g'
 100     200     @@@     400
 ```
 
-Regarding available notations of the regular expression, refer to [regular expression of Rust](https://docs.rs/regex/1.3.7/regex/).
+For the available regular expression notations, refer to [regular expression of Rust](https://docs.rs/regex/1.3.7/regex/).
 
 ## Complex CSV processing
 
@@ -389,7 +390,7 @@ Yui Nagomi,"Nagomi Street 456, Nagomitei, Oishina town",26930-0312
 
 With `--csv`, teip will parse the input as a CSV file according to [RFC4180](https://www.rfc-editor.org/rfc/rfc4180). Thus, you can use `-f` to specify column numbers for CSV files with complex structures.
 
-For example, the CSV just mentioned above will have a "hole" as shown below.
+For example, the CSV above will have a "hole" as shown below.
 
 ```
 $ cat tests/sample.csv | teip --csv -f2 
@@ -412,14 +413,14 @@ Yui Nagomi,"@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@",26930-0312
 "Conectol Motimotit Hooklala Glycogen Comex II a.k.a ""Kome kome""","@@@@@@@@@@@",513123
 ```
 
-Note for `--csv` option:
+Notes for the `--csv` option:
 
-* Double quotation `"` surrounding fields are also included in the holes.
-* Escaped double quotes `""` are treated as is; two double quotes `""` are given as input to the targeted command.
+* Double quotes `"` surrounding fields are also included in the holes.
+* Escaped double quotes `""` are treated as-is; two double quotes `""` are given as input to the targeted command.
 * Fields containing newlines will have multiple holes, separated by newlines, instead of a single hole.
-  * However, if the `-s` or `-z` option is used, it is treated as a single hole, including line breaks.
+  * However, if the `-s` or `-z` option is used, such a field is treated as a single hole, and line breaks are included.
 
-## Matching with Regular Expression
+## Matching with Regular Expressions
 
 You can also use `-g` to select a specific line matching a regular expression as the hole location.
 
@@ -431,7 +432,7 @@ ABC1
 ```
 
 By default, the entire line containing the pattern is the range of holes.
-With the -o option, the range of holes will be only at matched range.
+With the -o option, the range of the holes will ony cover the matched range.
 
 ```bash
 $ echo -e "ABC1\nEFG2\nHIJ3" | teip -og '[GJ]\d'
@@ -440,9 +441,9 @@ EF[G2]
 HI[J3]
 ```
 
-Note that `-og` is one of the useful idiom and frequently used in this manual.
+Note that `-og` is one of the most useful idioms and is frequently used in this manual.
 
-Here is an example of using `\d` which matches numbers.
+Here is an example using `\d`, which matches numbers.
 
 ```bash
 $ echo ABC100EFG200 | teip -og '\d+'
@@ -452,17 +453,17 @@ $ echo ABC100EFG200 | teip -og '\d+' -- sed 's/.*/@@@/g'
 ABC@@@EFG@@@
 ```
 
-This feature is quite versatile and can be useful for handling the file that has no fixed form like logs, markdown, etc.
+This feature is quite versatile and can be useful for handling files that have no fixed form such as logs, markdown, etc.
 
 ## What commands are appropriate?
 
-`teip` bypasses the string in the hole line by line so that each hole is one line of input.
+`teip` passes the strings from the hole line-by-line, so that each hole is one line of input.
 Therefore, a targeted command must follow the below rule.
 
 * **A targeted command must print a single line of result for each line of input.**
 
-In the simplest example, the `cat` command always succeeds.
-Because the `cat` prints the same number of lines against the input.
+In the simplest example, the `cat` command always succeeds,
+because the `cat` prints the same number of lines as it is given in input.
 
 ```bash
 $ echo ABCDEF | teip -og . -- cat
@@ -485,7 +486,7 @@ $ echo $?
 1
 ```
 
-`teip` could not get the result corresponding to the hole of D, E, and F.
+`teip` did not receive results corresponding to the holes of D, E, and F.
 That is why the above example fails.
 
 If an inconsistency occurs, `teip` will exit with the error message.
@@ -497,15 +498,15 @@ To learn more about `teip`'s behavior, see [Wiki > Chunking](https://github.com/
 
 ### Solid mode (`-s`)
 
-If you want to use a command that does not satisfy the condition, **"A targeted command must print a single line of result for each line of input"**, enable "Solid mode" which is available with the `-s` option.
+If you want to use a command that does not satisfy the condition, **"A targeted command must print a single line of result for each line of input"**, enable "Solid mode" with the `-s` option.
 
-Solid mode spawns the targeted command for each hole and executes it each time.
+Solid mode spawns the targeted command multiple times: once for each hole in the input.
 
 ```bash
 $ echo ABCDEF | teip -s -og . -- grep '[ABC]'
 ```
 
-In the above example, understand the following commands are executed in `teip`'s internal procedure.
+In the above example, understand that the following commands are executed by `teip` internally:
 
 ```bash
 $ echo A | grep '[ABC]' # => A
@@ -517,7 +518,7 @@ $ echo F | grep '[ABC]' # => Empty
 ```
 
 The empty result is replaced with an empty string.
-Therefore, D, E, and F are replaced with empty as expected.
+Therefore, D, E, and F are replaced with the empty string.
 
 ```bash
 $ echo ABCDEF | teip -s -og . -- grep '[ABC]'
@@ -527,18 +528,18 @@ $ echo $?
 0
 ```
 
-However, this option is not suitable for processing large files because of its high processing overhead, which can significantly degrade performance.
+However, this option is not suitable for processing large files because of its high overhead, which can significantly degrade performance.
 
 #### Solid mode with placeholder (`-I <replace-str>`)
 
-If you want to use the contents of the hole as an argument of the targeted command, use the `-I` option.
+If you want to use the contents of the hole as an argument to the targeted command, use the `-I` option.
 
 ```bash
 $ echo AAA BBB CCC | teip -f 2 -I @ -- echo '[@]'
 AAA [BBB] CCC
 ```
 
-`<replace-str>` can be any strings and multiple characters are allowed.
+`<replace-str>` can be any string, and multiple characters are allowed.
 
 ```bash
 $ seq 5 | teip -f 1 -I NUMBER -- awk 'BEGIN{print NUMBER * 3}'
@@ -554,7 +555,7 @@ Therefore, it is not suitable for processing huge files.
 In addition, the targeted command does not get any input from stdin.
 The targeted command is expected to work without stdin.
 
-#### Solid mode with `--chomp` 
+#### Solid mode with `--chomp`
 
 If `-s` option does not work as expected, `--chomp` may be helpful.
 
