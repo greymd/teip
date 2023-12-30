@@ -63,7 +63,7 @@ lazy_static! {
 
 #[derive(StructOpt, Debug)]
 #[structopt(
-    about = "Bypassing a partial range of standard input to an arbitrary command",
+    about = "Act on a partial range of standard input with an arbitrary command",
     usage = "teip [OPTIONS] [FLAGS] [--] [<command>...]",
     help = "USAGE:
   teip -g <pattern> [-Gosvz] [--] [<command>...]
@@ -73,30 +73,30 @@ lazy_static! {
   teip -e <string> [-svz] [--] [<command>...]
 
 OPTIONS:
-    -g <pattern>        Bypassing lines that match the regular expression <pattern>
-        -o              -g bypasses only matched parts
+    -g <pattern>        Act on lines that match the regular expression <pattern>.
+        -o              -g acts on only matched parts.
         -G              -g interprets Oniguruma regular expressions.
-    -c <list>           Bypassing these characters
-    -l <list>           Bypassing these lines
-    -f <list>           Bypassing these white-space separated fields
-        -d <delimiter>  Use <delimiter> for field delimiter of -f
-        -D <pattern>    Use regular expression <pattern> for field delimiter of -f
-        --csv           -f interprets <list> as field number of a CSV according to
-                        RFC 4180, instead of white-space separated fields
+    -c <list>           Act on these characters.
+    -l <list>           Act on these lines.
+    -f <list>           Act on these white-space separated fields.
+        -d <delimiter>  Use <delimiter> for the field delimiter of -f.
+        -D <pattern>    Use regular expression <pattern> for the field delimiter of -f.
+        --csv           -f interprets <list> as field numbers of a CSV according to
+                        RFC 4180, instead of whitespace separated fields.
     -e <string>         Execute <string> on another process that will receive identical
-                        standard input as the teip, and numbers given by the result
-                        are used as line numbers for bypassing
+                        standard input as the main teip aommane, emitting numbers to be
+                        used as line numbers for actioning.
 
 FLAGS:
-    -h, --help          Prints help information
-    -V, --version       Prints version information
-    -s                  Execute new command for each bypassed chunk
-        --chomp         Command spawned by -s receives standard input without trailing
-                        newlines
-    -I  <replace-str>   Replace the <replace-str> with bypassed chunk in the <command>
-                        then -s is forcefully enabled.
-    -v                  Invert the range of bypassing
-    -z                  Line delimiter is NUL instead of a newline
+    -h, --help          Prints help information.
+    -V, --version       Prints version information.
+    -s                  Execute a new command for each actioned chunk.
+        --chomp         The command spawned by -s receives the standard input without
+                        trailing newlines.
+    -I  <replace-str>   Replace the <replace-str> with the actioned chunk in <command>,
+                        implying -s.
+    -v                  Invert the range of actioning.
+    -z                  Line delimiter is NUL instead of a newline.
 
 ALIASES:
     -g <pattern>
@@ -107,7 +107,7 @@ ALIASES:
     --awk <pattern>     Alias of -e 'awk \"<pattern>{print NR}\"'
 
 EXAMPLES:
-  Replace 'WORLD' to 'EARTH' on line including 'HELLO' in input:
+  Replace 'WORLD' with 'EARTH' on lines containing 'HELLO':
     $ cat file | teip -g HELLO -- sed 's/WORLD/EARTH/'
   Edit '|' separated fields of input:
     $ cat file.csv | teip -f 2 -d '|' -- sed 's/./@/g'

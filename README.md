@@ -185,7 +185,7 @@ OPTIONS:
     -f <list>           Act on these white-space separated fields.
         -d <delimiter>  Use <delimiter> for the field delimiter of -f.
         -D <pattern>    Use regular expression <pattern> for the field delimiter of -f
-        --csv           -f interprets <list> as field number of a CSV according to
+        --csv           -f interprets <list> as field numbers of a CSV according to
                         RFC 4180, instead of whitespace separated fields.
     -e <string>         Execute <string> in another process that will receive identical
                         standard input as the main teip command, emitting numbers to be
