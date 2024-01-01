@@ -17,9 +17,14 @@ regex = "1"
 log = { version = "0.4", features = ["max_level_trace", "release_max_level_warn"] }
 env_logger = "0.7.1"
 lazy_static = "1.4.0"
-onig = { version = "6", optional = true }
 structopt = "0.3.15"
 cfg-if = "0.1"
+
+# Workaround of build failure https://github.com/rust-onig/rust-onig/pull/174#issuecomment-1730863567 Keep them until new onig crate' is released
+onig = { git = "https://github.com/rust-onig/rust-onig", revision = "fa90c0e97e90a056af89f183b23cd417b59ee6a2" , optional = true}
+
+[patch.crates-io]
+onig_sys = { git = "https://github.com/rust-onig/rust-onig", revision = "fa90c0e97e90a056af89f183b23cd417b59ee6a2", optional = true }
 
 [dev-dependencies]
 assert_cmd = "1.0.1"
@@ -31,4 +36,4 @@ harness = false
 
 [features]
 default = []
-oniguruma = ["onig"]
+oniguruma = ["onig", "onig_sys"]
