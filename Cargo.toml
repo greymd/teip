@@ -36,4 +36,4 @@ harness = false
 
 [features]
 default = []
-oniguruma = ["onig", "onig_sys"]
+oniguruma = ["onig"]
