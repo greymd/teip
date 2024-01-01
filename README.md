@@ -723,7 +723,7 @@ $ printf '111,\n222,33\n3\0\n444,55\n5,666\n' | teip -z -f3 -d, -- sed 's/.*/@@@
 5,teip: Output of given command is exhausted
 ```
 
-Specifying from one line to another is a typical use case for this option.
+This option is useful for treating multiple lines as a single combined input.
 
 ```bash
 $ cat test.html | teip -z -og '<body>.*</body>'
