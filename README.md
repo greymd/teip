@@ -682,7 +682,7 @@ $ echo 1 2 3 4 5 | teip -v -f 1,3,5 -- sed 's/./_/'
 Of course, `-v` can also be used with `-og`.
 
 ```bash
-$ printf 'AAA\n123\nBBB\n' | teip -vg '\d+' -- sed 's/./@/g'
+$ printf 'AAA\n123\nBBB\n' | teip -og '\d+' -- sed 's/./@/g'
 @@@
 123
 @@@
