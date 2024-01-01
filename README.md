@@ -6,7 +6,7 @@
 <p align="center">
   <a href="https://github.com/greymd/teip/releases/latest"><img src="https://img.shields.io/github/release/greymd/teip.svg" alt="Latest version" /></a>
   <a href="https://crates.io/crates/teip" alt="crate.io"><img src="https://img.shields.io/crates/v/teip.svg"/></a>
-  <a href="https://github.com/greymd/teip/actions?query=workflow%3ATest"><img src="https://github.com/greymd/teip/workflows/Test/badge.svg" alt="Test Status" /></a>
+  <a href="https://github.com/greymd/teip/actions?query=workflow%3ATest"><img src="https://github.com/greymd/teip/actions/workflows/test.yml/badge.svg" alt="Test Status" /></a>
   <a href="LICENSE" alt="MIT License"><img src="http://img.shields.io/badge/license-MIT-blue.svg?style=flat" /></a>
 </p>
 
@@ -682,7 +682,7 @@ $ echo 1 2 3 4 5 | teip -v -f 1,3,5 -- sed 's/./_/'
 Of course, `-v` can also be used with `-og`.
 
 ```bash
-$ printf 'AAA\n123\nBBB\n' | teip -vg '\d+' -- sed 's/./@/g'
+$ printf 'AAA\n123\nBBB\n' | teip -og '\d+' -- sed 's/./@/g'
 @@@
 123
 @@@
