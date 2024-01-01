@@ -1,4 +1,4 @@
-name: Test for UNIX-like OS
+name: Tests for UNIX-like OS
 
 on:
   push:
