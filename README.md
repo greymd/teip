@@ -557,45 +557,45 @@ The targeted command is expected to work without stdin.
 
 #### Solid mode with `--chomp`
 
-If `-s` option does not work as expected, `--chomp` may be helpful.
+If the `-s` option does not work as expected, `--chomp` may be helpful.
 
-A targeted command in solid mode always accepts input with a line field (`\x0A`) at the end.
-This is because `teip` assumes the use of commands that return a single line of result in response to a single line of input.
-Therefore, even if there is no line break in the hole, a line break is given to treat it as a single line of input.
+A targeted command in solid mode always accepts input with a newline (`\x0A`) at the end.
+This is because `teip` assumes the use of commands which return a single line of output in response to a single line of input.
+Therefore, even if there is no line break in the hole, a line break is added, to ensure it is treated as a single line of input.
 
 However, there are situations where this behavior is inconvenient.
-For example, when using commands whose behavior changes depending on the presence or absence of line field.
+For example, when using commands whose behavior changes depending on the presence or absence of a newline.
 
-```
+```bash
 $ echo AAABBBCCC | teip -og BBB -s
 AAA[BBB]CCC
 $ echo AAABBBCCC | teip -og BBB -s -- tr '\n' '@'
 AAABBB@CCC
 ```
 
-The above is an example where the targeted command is a "tr command that converts line field (`\x0A`) to @".
-"BBB" does not contain a newline, but the result is "BBB@", because implicitly added line breaks have been processed.
+The above is an example where the targeted command is: "`tr` command which converts newlines (`\x0A`) to @".
+"BBB" does not contain a newline, but the output is "BBB@", because implicitly-added line breaks have been processed.
 To prevent this behavior, use the `--chomp` option.
 This option gives the targeted command pure input with no newlines added.
 
-```
+```bash
 $ echo AAABBBCCC | teip -og BBB -s --chomp -- tr '\n' '@'
 AAABBBCCC
 ```
 
-For example, it is useful when using commands that interpret and process input as binary like `tr`.
-Below is an example of "removing newlines from the second column of a CSV that contains newlines.
+`--chomp` is useful whenever using commands which interpret and process input as binary such as `tr`.
+Below is an example of "removing newlines from the second column of a CSV which contains newlines.
 
-```
+```bash
 $ cat tests/sample.csv
 Name,Address,zipcode
 Sola Harewatar,"Doreami Road 123
 Sorashido city",12877
 ```
 
-The result is.
+The result is:
 
-```
+```bash
 $ cat tests/sample.csv | teip --csv -f 2 -s --chomp -- tr '\n' '@'
 Name,Address,zipcode
 Sola Harewatar,"Doreami Road 123@Sorashido city",12877
@@ -604,7 +604,7 @@ Sola Harewatar,"Doreami Road 123@Sorashido city",12877
 ### Line number (`-l`)
 
 You can specify a line number and drill holes only in that line.
-  
+
 ```bash
 $ echo -e "ABC\nDEF\nGHI" | teip -l 2
 ABC
@@ -634,13 +634,14 @@ $ echo "AAA@@@@@AAA@@@@@AAA" | teip -og '@.*@' -- teip -og 'A+' -- tr A _
 AAA@@@@@___@@@@@AAA
 ```
 
-In other words, by connecting multiple functions of `teip` with AND conditions, it is possible to drill holes in a more complex range.
-Furthermore, it works asynchronously and in multi-processes, similar to the shell pipeline.
-It will hardly degrade performance unless the machine faces the limits of parallelism.
+In other words, by composing multiple functions of `teip` with AND conditions, it is possible to drill holes in a more complex range.
+Furthermore, this works asynchronously and in multi-processes, similar to the shell pipeline.
+Performance will hardly degrade unless the machine reaches the limits of parallelism.
 
-### Oniguruma regular expressior (`-G`)
+### Oniguruma regular expression (`-G`)
 
-If `-G` option is given together with `-g`, the regular expressin is interpreted as [Oniguruma regular expression](https://github.com/kkos/oniguruma/blob/master/doc/RE). For example, "keep" and "look-ahead" syntax can be used.
+If `-G` option is given together with `-g`, the regular expressin is interpreted as an [Oniguruma regular expression](https://github.com/kkos/oniguruma/blob/master/doc/RE).
+For example, "keep" and "look-ahead" syntax can be used.
 
 ```bash
 $ echo 'ABC123DEF456' | teip -G -og 'DEF\K\d+'
@@ -650,35 +651,35 @@ $ echo 'ABC123DEF456' | teip -G -og '\d+(?=D)'
 ABC[123]DEF456
 ```
 
-### Empty hole
+### Empty holes
 
-If a blank field exists when the `-f` option is used, the blank is not ignored and treated as an empty hole.
+If a blank field exists when the `-f` option is used, the blank is not ignored and is treated as an empty hole.
 
 ```bash
 $ echo ',,,' | teip -d , -f 1-
 [],[],[],[]
 ```
 
-Therefore, the following command can work (Note that `*` matches empty as well).
+Therefore, the following command can work (Note that `.*` matches empty values as well).
 
 ```bash
 $ echo ',,,' | teip -f 1- -d, sed 's/.*/@@@/'
 @@@,@@@,@@@,@@@
 ```
 
-In the above example, the `sed` loads four newline characters and prints `@@@` four times.
+In the above example, the `sed` command reads four newline characters and prints `@@@` four times.
 
 ### Invert match (`-v`)
 
 The `-v` option allows you to invert the range of holes.
-When the `-f` or `-c` option is used with `-v`, holes to be made in the complement of the specified field instead.
+When the `-f` or `-c` option is used with `-v`, holes are made in the complement of the specified field.
 
 ```bash
 $ echo 1 2 3 4 5 | teip -v -f 1,3,5 -- sed 's/./_/'
 1 _ 3 _ 5
 ```
 
-Of course, it can also be used for the `-og` option.
+Of course, `-v` can also be used with `-og`.
 
 ```bash
 $ printf 'AAA\n123\nBBB\n' | teip -vg '\d+' -- sed 's/./@/g'
@@ -690,8 +691,8 @@ $ printf 'AAA\n123\nBBB\n' | teip -vg '\d+' -- sed 's/./@/g'
 ### Zero-terminated mode (`-z`)
 
 If you want to process the data in a more flexible way, the `-z` option may be useful.
-This option allows you to use the NUL character (the ASCII NUL character) instead of the newline character.
-It behaves like `-z` provided by GNU sed or GNU grep, or `-0` option provided by xargs.
+This option allows you to use the NUL character (the ASCII NUL character) as a line delimiter, instead of the newline character.
+It behaves like `-z` provided by GNU sed or GNU grep, or the `-0` option provided by xargs.
 
 ```bash
 $ printf '111,\n222,33\n3\0\n444,55\n5,666\n' | teip -z -f3 -d,
@@ -702,10 +703,10 @@ $ printf '111,\n222,33\n3\0\n444,55\n5,666\n' | teip -z -f3 -d,
 5,[666]
 ```
 
-With this option, the standard input is interpreted per a NUL character rather than per a newline character.
-You should also pay attention to that strings in the hole are concatenated with the NUL character instead of a newline character in `teip`'s procedure.
+With this option, the standard input is interpreted per each NUL character rather than per each newline character.
+You should also pay attention to the fact that strings in the hole have the NUL character appended instead of a newline character.
 
-In other words, if you use a targeted command that cannot handle NUL characters (and cannot print NUL-separated results), the final result can be unintended.
+If you use a targeted command that cannot handle NUL characters (and cannot print NUL-separated results), the final result can be unintended.
 
 ```bash
 $ printf '111,\n222,33\n3\0\n444,55\n5,666\n' | teip -z -f3 -d, -- sed -z 's/.*/@@@/g'
@@ -722,7 +723,7 @@ $ printf '111,\n222,33\n3\0\n444,55\n5,666\n' | teip -z -f3 -d, -- sed 's/.*/@@@
 5,teip: Output of given command is exhausted
 ```
 
-Specifying from one line to another is a typical use case for this option.
+This option is useful for treating multiple lines as a single combined input.
 
 ```bash
 $ cat test.html | teip -z -og '<body>.*</body>'
@@ -748,14 +749,14 @@ $ cat test.html | teip -z -og '<body>.*</body>' -- grep -a BBB
 
 ### External execution for match offloading (`-e`)
 
-`-e` is the option to use external commands for pattern matching.
-Until the above, you had to use `teip`'s own functions, such as `-c` or `-g`, to control the position of the holes on the masking tape.
+`-e` is the option to use external commands to define pattern matching.
+Without `-e`, you must use `teip`'s own functions, such as `-c` or `-g`, to control the position of the holes on the masking tape.
 With `-e`, however, you can use the external commands you are familiar with to specify the range of holes.
 
-`-e` allows you to specify the shell pipeline as a string.
-On UNIX-like OS, this pipeline is executed in `/bin/sh`, on Windows in `cmd.exe`.
+`-e` allows you to specify a shell pipeline as a string.
+On a UNIX-like OS, this pipeline is executed via `/bin/sh`; on Windows via `cmd.exe`.
 
-For example, with a pipeline `echo 3` that outputs `3`, then only the third line will be bypassed.
+For example, given a simple pipeline `echo 3`, which outputs `3`, only the third line will be actioned by teip.
 
 ```bash
 $ echo -e 'AAA\nBBB\nCCC' | teip -e 'echo 3'
@@ -764,9 +765,9 @@ BBB
 [CCC]
 ```
 
-It works even if the output is somewhat 'dirty'.
-For example, if any spaces or tab characters are included at the beginning of a line, they are ignored.
-Also, once a number is given, it does not matter if there are non-numerical characters to the right of the number.
+This works even if the `-e` output is somewhat "dirty".
+For example, if spaces or tab characters are included at the beginning of the `-e` output, they are ignored.
+Also, once a number is seen, all non-numerical characters to the right of the number are ignored.
 
 ```bash
 $ echo -e 'AAA\nBBB\nCCC' | teip -e 'echo " 3"'
@@ -782,7 +783,7 @@ BBB
 Technically, the first captured group in the regular expression `^\s*([0-9]+)` is interpreted as a line number.
 
 `-e` will also recognize multiple numbers if the pipeline provides multiple lines of numbers.
-For example, the `seq` command to display only odd numbers up to 10 is.
+For example, the `seq` command to display only odd numbers up to 10 is
 
 ```bash
 $ seq 1 2 10
@@ -793,7 +794,7 @@ $ seq 1 2 10
 9
 ```
 
-This means that only odd-numbered rows can be bypassed by specifying the following.
+This means that only odd-numbered rows can be actioned by specifying the following:
 
 ```bash
 $ echo -e 'AAA\nBBB\nCCC\nDDD\nEEE\nFFF' | teip -e 'seq 1 2 10' -- sed 's/. /@/g'
@@ -805,14 +806,14 @@ DDD
 FFF
 ```
 
-Note that the order of the numbers must be in ascending order.
-Now, on its own, this looks like a feature that is just a slight development of the `-l` option.
+Note that the order of the numbers must be ascending.
+Now, on its own, this looks like a feature that is just a slight improvement of the `-l` option.
 
-However, the breakthrough of this feature is that **the pipeline obtains identical standard input as `teip`**.
-Thus, it can output any number using not only `seq` and `echo`, but also commands such as `grep`, `sed`, and `awk`, which process the standard input.
+However, the breakthrough feature of `-e` is that **the pipeline obtains identical standard input as the main `teip` command**.
+Thus, it generates output using not only `seq` and `echo`, but also commands such as `grep`, `sed`, and `awk`, which process the standard input.
 
 Let's look at a more concrete example.
-The following command is a `grep` command that prints **the line numbers of the line containing the string "CCC" and the two lines after it**.
+The following is a `grep` command that prints **the line numbers of the line containing the string "CCC" and the two lines after it**.
 
 ```bash
 $ echo -e 'AAA\nBBB\nCCC\nDDD\nEEE\nFFF' | grep -n -A 2 CCC
@@ -833,9 +834,9 @@ BBB
 FFF
 ```
 
-`grep` is not the only one.
+`grep` is not the only useful command for `-e`.
 GNU `sed` has `=`, which prints the line number being processed.
-Below is an example of how to drill from the line containing "BBB" to the line containing "EEE".
+Below is an example of how to use `=` to drill from the line containing "BBB" to the line containing "EEE".
 
 ```bash
 $ echo -e 'AAA\nBBB\nCCC\nDDD\nEEE\nFFF' | teip -e 'sed -n "/BBB/,/EEE/="'
@@ -854,7 +855,7 @@ $ echo -e 'AAA\nBBB\nCCC\nDDD\nEEE\nFFF' | teip -e 'awk "/BBB/,/EEE/{print NR}"'
 ```
 
 The following is an example of combining the commands `nl` and `tail`.
-You can only make holes in the last three lines of input!
+You can make holes in only the last three lines of input!
 
 ```bash
 $ echo -e 'AAA\nBBB\nCCC\nDDD\nEEE\nFFF' | teip -e 'nl -ba | tail -n 3'
@@ -866,20 +867,21 @@ CCC
 [FFF]
 ```
 
-The `-e` argument is a single string.
-Therefore, pipe `|` and other symbols can be used as it is.
+The argument to `-e` is a single string.
+The pipe (`|`) and other symbols can be used within it.
 
 ### Alias options (`-A`, `-B`, `-C`, `--awk`, `--sed`)
 
-There are several **experimental options** which are alias of `-e` and specific string.
-These options may be discontinued in the future since they are just experimental ones.
-Do not use them in the script or something that is not a one-off.
+There are several **experimental options** which are aliases of `-e` and specific directives.
+These options may be discontinued in the future since they are only experimental.
+Do not use them in a script or something that is not a one-off.
 
 #### `-A <number>`
-This is an alias of `-e 'grep -n -A <number> <pattern>'`.
-If it is used together with `-g <pattern>` option, it makes holes in row matching `<pattern>` and `<number>` rows after the row.
 
-```
+This is an alias of `-e 'grep -n -A <number> <pattern>'`.
+If it is used together with `-g <pattern>`, it makes holes in rows matching `<pattern>`, and `<number>` rows after the match.
+
+```bash
 $ cat AtoG.txt | teip -g B -A 2
 A
 [B]
@@ -894,7 +896,7 @@ G
 #### `-B <number>`
 
 This is an alias of `-e 'grep -n -B <number> <pattern>'`
-If it is used together with `-g <pattern>` option, it makes holes in row matching `<pattern>` and `<number>` rows before the row.
+If it is used together with `-g <pattern>`, it makes holes in rows matching `<pattern>`, and `<number>` rows before the match.
 
 ```
 $ cat AtoG.txt | teip -g E -B 2
@@ -910,10 +912,11 @@ G
 
 
 #### `-C <number>`
-This is an alias of `-e 'grep -n -C <number> <pattern>'`.
-If it is used together with `-g <pattern>` option, it makes holes in row matching `<pattern>` and `<number>` rows before and after the row.
 
-```
+This is an alias of `-e 'grep -n -C <number> <pattern>'`.
+If it is used together with `-g <pattern>`, it makes holes in rows matching `<pattern>`, and `<number>` rows before and after the match.
+
+```bash
 $ cat AtoG.txt | teip -g E -C 2
 A
 B
@@ -928,7 +931,7 @@ B
 
 This is an alias of `-e 'sed -n "<pattern>="`.
 
-```
+```bash
 $ cat AtoG.txt | teip --sed '/B/,/E/'
 A
 [B]
@@ -939,7 +942,7 @@ F
 G
 ```
 
-```
+```bash
 $ cat AtoG.txt | teip --sed '1~3'
 [A]
 B
@@ -954,7 +957,7 @@ F
 
 This is an alias of `-e 'awk "<pattern>{print NR}"`.
 
-```
+```bash
 $ cat AtoG.txt | teip --awk '/B/,/E/'
 A
 [B]
@@ -965,7 +968,7 @@ F
 G
 ```
 
-```
+```bash
 $ cat AtoG.txt | teip --awk 'NR%3==0'
 A
 B
@@ -980,17 +983,18 @@ G
 ## Environment variables
 
 `teip` refers to the following environment variables.
-Add the statement to your default shell's startup file (i.e `.bashrc`, `.zshrc`) to change them as you like.
+Add a statement to your default shell's startup file (i.e `.bashrc`, `.zshrc`) to change them as you like.
 
 ### `TEIP_HIGHLIGHT`
 
 **DEFAULT VALUE:** `\x1b[36m[\x1b[0m\x1b[01;31m{}\x1b[0m\x1b[36m]\x1b[0m`
 
-The default format for highlighting hole.
+The default format for highlighting holes.
 It must include at least one `{}` as a placeholder.
 
 Example:
-```
+
+```bash
 $ export TEIP_HIGHLIGHT="<<<{}>>>"
 $ echo ABAB | teip -og A
 <<<A>>>B<<<A>>>B
@@ -1000,16 +1004,16 @@ $ echo ABAB | teip -og A
 ABAB  ### Same color as grep
 ```
 
-[ANSI Escape Sequences](https://gist.github.com/fnky/458719343aabd01cfb17a3a4f7296797) and [ANSI-C Quoting](https://www.gnu.org/software/bash/manual/html_node/ANSI_002dC-Quoting.html) are helpful to customize this value.
+[ANSI Escape Sequences](https://gist.github.com/fnky/458719343aabd01cfb17a3a4f7296797) and [ANSI-C Quoting](https://www.gnu.org/software/bash/manual/html_node/ANSI_002dC-Quoting.html) are helpful for customizing this value.
 
 ### `TEIP_GREP_PATH`
 
 **DEFAULT VALUE:** `grep`
 
-The path to `grep` command used by `-A`, `-B`, `-C` options.
+The path to the `grep` command used by the `-A`, `-B`, and `-C` options.
 For example, if you want to use `ggrep` instead of `grep`, set this variable to `ggrep`.
 
-```
+```bash
 $ export TEIP_GREP_PATH=/opt/homebrew/bin/ggrep
 $ echo -e 'AAA\nBBB\nCCC\nDDD\nEEE\nFFF' | teip -g CCC -A 2
 AAA
@@ -1024,19 +1028,20 @@ FFF
 
 **DEFAULT VALUE:** `sed`
 
-The path to `sed` command used by `--sed` option.
+The path to the `sed` command used by the `--sed` option.
 For example, if you want to use `gsed` instead of `sed`, set this variable to `gsed`.
 
 ### `TEIP_AWK_PATH`
 
 **DEFAULT VALUE:** `awk`
 
-The path to `awk` command used by `--awk` option.
+The path to the `awk` command used by the `--awk` option.
 For example, if you want to use `gawk` instead of `awk`, set this variable to `gawk`.
 
 ## Background
 
-### Why made it?
+### Why make this?
+
 See this [post](https://dev.to/greymd/teip-masking-tape-for-shell-is-what-we-needed-5e05).
 
 ### Why "teip"?
@@ -1048,19 +1053,21 @@ See this [post](https://dev.to/greymd/teip-masking-tape-for-shell-is-what-we-nee
 
 ### Modules imported/referenced from other repositories
 
-Thank you so much for helpful modules!
+Thank you so much for these helpful modules!
 
 * ./src/list/ranges.rs
-  - One of the module used in `cut` command of [uutils/coreutils](https://github.com/uutils/coreutils)
-  - Original souce codes are distributed under MIT license
-  - The license file is on the same directory
+  - One of the modules used in the `cut` command is from [uutils/coreutils](https://github.com/uutils/coreutils)
+  - The original source code is distributed under the MIT license
+  - The license file is in the same directory
 
 * ./src/csv/parser.rs
   - Many parts of the source code are referenced from [BurntSushi/rust-csv](https://github.com/BurntSushi/rust-csv).
-  - Original source codes are distributed under dual-licensed under MIT and Unlicense
+  - The original source code is dual-licensed under the MIT and Unlicense
 
 ### Source code
-The scripts are available as open source under the terms of the [MIT License](http://opensource.org/licenses/MIT).
+
+Teip is available as open source under the terms of the [MIT License](http://opensource.org/licenses/MIT).
 
 ### Logo
+
 <a rel="license" href="http://creativecommons.org/licenses/by-nc/4.0/"><img alt="Creative Commons License" style="border-width:0" src="https://i.creativecommons.org/l/by-nc/4.0/88x31.png" /></a><br />The logo of teip is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by-nc/4.0/">Creative Commons Attribution-NonCommercial 4.0 International License</a>.
