@@ -15,9 +15,9 @@ edition = "2018"
 serde = { version = "1", features = ["derive"] }
 regex = "1"
 log = { version = "0.4", features = ["max_level_trace", "release_max_level_warn"] }
-env_logger = "0.7.1"
+env_logger = "0.10.1"
 lazy_static = "1.4.0"
-structopt = "0.3.15"
+structopt = "0.3.26"
 cfg-if = "0.1"
 
 # Workaround of build failure https://github.com/rust-onig/rust-onig/pull/174#issuecomment-1730863567 Keep them until new onig crate' is released
@@ -28,7 +28,7 @@ onig_sys = { git = "https://github.com/rust-onig/rust-onig", revision = "fa90c0e
 
 [dev-dependencies]
 assert_cmd = "1.0.1"
-criterion = "0.3.2"
+criterion = "0.5.1"
 
 [[bench]]
 name = "cmdbench"
