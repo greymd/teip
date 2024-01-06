@@ -17,7 +17,7 @@ teip \- Masking tape to help commands "do one thing well"
 \fB\fCteip\fR \-\-help | \-\-version
 .SH DESCRIPTION
 .PP
-Bypassing a partial range of standard input to any command whatever you want
+Passing a partial range of the standard input to any command — whatever you want
 .SH OPTIONS
 .TP
 \fB\fC\-\-help\fR
@@ -48,7 +48,7 @@ Use regular expression <\fIpattern\fP> for the field delimiter of \-f
 Act on these characters
 .TP
 \fB\fC\-e\fR <\fIstring\fP>
-Execute <\fIstring\fP> on another process that will receive identical standard input as the main teip aommane, emitting numbers to be used as line numbers for actioning.
+Execute <\fIstring\fP> on another process that will receive identical standard input as the main teip command, emitting numbers to be used as line numbers for actioning.
 .TP
 \fB\fC\-l\fR <\fIlist\fP>
 Act on these lines
@@ -94,12 +94,10 @@ See also
 .BR awk (1)
 .SS \fIcommand\fP
 .PP
-\fIcommand\fP is the command and its arguments that \fB\fCteip\fR executes.
-\fIcommand\fP must print a single line of result for each line of the input.
-In the simplest example, the 
-.BR cat (1) 
-command always succeeds.
-Because the cat prints the same number of lines against the input.
+\fIcommand\fP refers to the command and its arguments that \fB\fCteip\fR executes.
+Each \fIcommand\fP should output a single line of result for each line of input.
+In the simplest example, the \fB\fCcat(1)\fR command is always successful,
+as \fB\fCcat\fR outputs the same number of lines as its input.
 .PP
 .RS
 .nf
@@ -108,8 +106,7 @@ ABCDEF
 .fi
 .RE
 .PP
-.BR sed (1) 
-works with the typical pattern.
+The \fB\fCsed(1)\fR command works well with typical patterns.
 .PP
 .RS
 .nf
@@ -118,10 +115,8 @@ $ echo ABCDEF | teip \-og . \-\- sed 's/[ADF]/@/'
 .fi
 .RE
 .PP
-If the rule is not satisfied, the result will be inconsistent.
-For example, the 
-.BR grep (1) 
-may fail. Here is an example.
+If the rule is not adhered to, the result may be inconsistent.
+For example, \fB\fCgrep(1)\fR might fail, as shown here.
 .PP
 .RS
 .nf
@@ -131,8 +126,8 @@ teip: Output of given command is exhausted
 .fi
 .RE
 .PP
-\fB\fCteip\fR could not get the result corresponding to D, E, and F. That is why the example fails.
-If such the inconsistency occurs, \fB\fCteip\fR will exit with the error message. Then, the exit status will be 1.
+In this case, \fB\fCteip\fR could not retrieve results corresponding to D, E, and F, leading to the failure of the example.
+If such inconsistency occurs, \fB\fCteip\fR will terminate with an error message, and the exit status will be set to 1.
 .PP
 .RS
 .nf
@@ -141,7 +136,7 @@ $ echo $?
 .fi
 .RE
 .PP
-If \fIcommand\fP is not given, \fB\fCteip\fR shows how standard input will be devided into chunks.
+If no \fIcommand\fP is specified, \fB\fCteip\fR displays how the standard input will be divided into chunks.
 .PP
 .RS
 .nf
@@ -151,15 +146,11 @@ $ echo ABCDEF | teip \-og .
 .RE
 .SS \fIlist\fP
 .PP
-\fIlist\fP is an expression to specify the range of fields or characters.
-The notation is compatible with the one used in 
-.BR cut (1). 
-Refer to the 
-.BR cut (1) 
-manual in detail.
-Here are some examples.
+\fIlist\fP is a specification used to define the range of fields or characters.
+This notation is compatible with that used in \fB\fCcut(1)\fR\&. For detailed information, please refer to the \fB\fCcut(1)\fR manual.
+Here are some examples:
 .PP
-Select 1st, 3rd, and 5th fields.
+Select the 1st, 3rd, and 5th fields.
 .PP
 .RS
 .nf
@@ -168,7 +159,7 @@ $ echo 1 2 3 4 5 | teip \-f 1,3,5 \-\- sed 's/./@/'
 .fi
 .RE
 .PP
-Select fields between 2nd and 4th.
+Select fields from the 2nd to the 4th.
 .PP
 .RS
 .nf
@@ -177,7 +168,7 @@ $ echo 1 2 3 4 5 | teip \-f 2\-4 \-\- sed 's/./@/'
 .fi
 .RE
 .PP
-Select all the fields after 3rd.
+Select all fields starting from the 3rd.
 .PP
 .RS
 .nf
@@ -186,7 +177,7 @@ $ echo 1 2 3 4 5 | teip \-f 3\- \-\- sed 's/./@/'
 .fi
 .RE
 .PP
-Select all the fields before 4th.
+Select all fields up to the 4th.
 .PP
 .RS
 .nf
@@ -196,13 +187,13 @@ $ echo 1 2 3 4 5 | teip \-f \-4 \-\- sed 's/./@/'
 .RE
 .SS \fIpattern\fP
 .PP
-\fIpattern\fP is a regular expression whose grammar follows "regex crate".
-Refer to the link in \fISEE ALSO\fP about the details.
-.SS Necessity of \fB\-\-\fP
+\fIpattern\fP is a regular expression based on the "regex crate" syntax.
+For more details, refer to the link in the \fISEE ALSO\fP section.
+.SS The Necessity of \fB\-\-\fP
 .PP
-\fB\fCteip\fR interprets arguments after \fB\fC\-\-\fR as \fIcommand\fP and its argument.
+\fB\fCteip\fR interprets arguments after \fB\fC\-\-\fR as a \fIcommand\fP and its arguments.
 .PP
-If \fB\-\-\fP is omitted, the command fails in this example.
+Omitting \fB\-\-\fP causes failure in this example:
 .PP
 .RS
 .nf
@@ -211,7 +202,9 @@ teip: Invalid arguments.
 .fi
 .RE
 .PP
-This is because the \fB\fCcut\fR uses the \fB\fC\-c\fR option. The option of the same name is also provided by \fB\fCteip\fR, which is confusing.
+This error occurs because \fB\fCcut\fR uses the \fB\fC\-c\fR option, which is also a \fB\fCteip\fR option, leading to confusion.
+.PP
+However, with the use of \fB\-\-\fP, the command executes successfully:
 .PP
 .RS
 .nf
@@ -219,12 +212,11 @@ $ echo "100 200 300 400" | teip \-f 3 \-\- cut \-c 1
 100 200 3 400
 .fi
 .RE
-.SS External execution for match offloading (\fB\fC\-e\fR)
+.SS External Execution for Match Offloading (\fB\fC\-e\fR)
 .PP
-With \fB\fC\-e\fR, you can use the external commands you are familiar with to specify the range of holes.
-\fB\fC\-e\fR allows you to specify the shell pipeline as a string. This pipeline is executed in \fB\fC/bin/sh\fR\&.
+With \fB\fC\-e\fR, you can use external commands to specify the range of holes. \fB\fC\-e\fR allows you to specify a shell pipeline as a string, which is executed in \fB\fC/bin/sh\fR\&.
 .PP
-For example, with a pipeline \fB\fCecho 3\fR that outputs \fB\fC3\fR, then only the third line will be bypassed.
+For instance, using a pipeline like \fB\fCecho 3\fR, which outputs \fB\fC3\fR, only the third line will be selected.
 .PP
 .RS
 .nf
@@ -235,9 +227,7 @@ BBB
 .fi
 .RE
 .PP
-It works even if the output is somewhat 'dirty'.
-For example, if any spaces or tab characters are included at the beginning of a line, they are ignored.
-Also, once a number is given, it does not matter if there are non\-numerical characters to the right of the number.
+It also works even if the output includes extraneous characters. For example, spaces or tab characters at the start of a line are ignored. Additionally, once a number is provided, non\-numerical characters to the right of the number are disregarded.
 .PP
 .RS
 .nf
@@ -252,8 +242,7 @@ BBB
 .fi
 .RE
 .PP
-Technically, the first captured group in the regular expression \fB\fC^\\s*([0\-9]+)\fR is interpreted as a line number.
-\fB\fC\-e\fR will also recognize multiple numbers if the pipeline provides multiple lines of numbers.
+Technically, the first captured group in the regular expression \fB\fC^\\s*([0\-9]+)\fR is interpreted as a line number. \fB\fC\-e\fR will also recognize multiple numbers if provided across multiple lines.
 .PP
 .RS
 .nf
@@ -267,10 +256,9 @@ FFF
 .fi
 .RE
 .PP
-Note that the order of the numbers must be in ascending order.
+Note that the numbers must be in ascending order.
 .PP
-The pipeline obtains identical standard input as \fB\fCteip\fR\&.
-The following command is a \fB\fCgrep\fR command that prints \fBthe line numbers of the line containing the string "CCC" and the two lines after it\fP\&.
+The pipeline receives the same standard input as \fB\fCteip\fR\&. Here's a command using \fB\fCgrep\fR to print line numbers of a line containing "CCC" and the two following lines.
 .PP
 .RS
 .nf
@@ -281,7 +269,7 @@ $ echo \-e 'AAA\\nBBB\\nCCC\\nDDD\\nEEE\\nFFF' | grep \-n \-A 2 CCC
 .fi
 .RE
 .PP
-If you give this command to \fB\fC\-e\fR, you can punch holes in \fBthe line containing the string "CCC" and the two lines after it\fP\&.
+Using this with \fB\fC\-e\fR punches holes in the line containing "CCC" and the two subsequent lines.
 .PP
 .RS
 .nf
@@ -295,8 +283,7 @@ FFF
 .fi
 .RE
 .PP
-GNU \fB\fCsed\fR has \fB\fC=\fR, which prints the line number being processed.
-Below is an example of how to drill from the line containing "BBB" to the line containing "EEE".
+GNU \fB\fCsed\fR has an \fB\fC=\fR option, which prints the line number being processed. Below is an example to drill holes from the line containing "BBB" to "EEE".
 .PP
 .RS
 .nf
@@ -310,7 +297,7 @@ FFF
 .fi
 .RE
 .PP
-Of course, similar operations can also be done with \fB\fCawk\fR\&.
+Similarly, you can perform these operations with \fB\fCawk\fR\&.
 .PP
 .RS
 .nf
@@ -318,8 +305,7 @@ $ echo \-e 'AAA\\nBBB\\nCCC\\nDDD\\nEEE\\nFFF' | teip \-e 'awk "/BBB/,/EEE/{prin
 .fi
 .RE
 .PP
-The following is an example of combining the commands \fB\fCnl\fR and \fB\fCtail\fR\&.
-You can only make holes in the last three lines of input.
+Here's an example using \fB\fCnl\fR and \fB\fCtail\fR to make holes in the last three lines of input.
 .PP
 .RS
 .nf
@@ -333,11 +319,10 @@ CCC
 .fi
 .RE
 .PP
-The \fB\fC\-e\fR argument is a single string.
-Therefore, pipe \fB\fC|\fR and other symbols can be used as it is.
+The \fB\fC\-e\fR argument is a single string, so pipes \fB\fC|\fR and other symbols can be used as is.
 .SH EXAMPLES
 .PP
-Replace 'WORLD' to 'EARTH' on lines containing 'HELLO'
+Replace 'WORLD' with 'EARTH' on lines containing 'HELLO'
 .PP
 .RS
 .nf
@@ -345,7 +330,7 @@ $ cat file | teip \-g HELLO \-\- sed 's/WORLD/EARTH/'
 .fi
 .RE
 .PP
-Edit 2nd field of the CSV file
+Edit the 2nd field of a CSV file
 .PP
 .RS
 .nf
@@ -353,7 +338,7 @@ $ cat file.csv | teip \-\-csv \-f 2 \-\- tr a\-z A\-Z
 .fi
 .RE
 .PP
-Edit 2nd, 3rd and 4th fields of TSV file
+Edit the 2nd, 3rd, and 4th fields of a TSV file
 .PP
 .RS
 .nf

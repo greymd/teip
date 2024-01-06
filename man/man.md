@@ -27,7 +27,7 @@ SYNOPSIS
 
 DESCRIPTION
 -----------
-Bypassing a partial range of standard input to any command whatever you want
+Passing a partial range of the standard input to any command — whatever you want
 
 OPTIONS
 -------
@@ -59,7 +59,7 @@ OPTIONS
   Act on these characters
 
 `-e` <*string*>
-  Execute <*string*> on another process that will receive identical standard input as the main teip aommane, emitting numbers to be used as line numbers for actioning.
+  Execute <*string*> on another process that will receive identical standard input as the main teip command, emitting numbers to be used as line numbers for actioning.
 
 `-l` <*list*>
   Act on these lines
