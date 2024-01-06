@@ -2,7 +2,7 @@
 Use md2man (https://github.com/sunaku/md2man) to generate the man file like this.
 $ md2man-roff man.md > teip.1
 -->
-TEIP 1 "FEB 2023" "User Commands" ""
+TEIP 1 "JAN 2024" "User Commands" ""
 =======================================
 
 NAME
@@ -32,62 +32,62 @@ Bypassing a partial range of standard input to any command whatever you want
 OPTIONS
 -------
 `--help`
-  Display this help and exit
+  Prints help information
 
 `-V`, `--version`
-  Show version and exit
+  Prints version information
 
 `-g` <*pattern*>
-  Bypassing lines that match the regular expression <*pattern*>
+  Act on lines that match the regular expression <*pattern*>
 
 `-o`
-  -g bypasses only matched parts
+  -g acts on only matched parts
 
 `-G`
-  -g adopts Oniguruma regular expressions
+  -g interprets Oniguruma regular expressions
 
 `-f` <*list*>
-  Bypassing these white-space separated fields
+  Act on these white-space separated fields
 
 `-d` <*delimiter*>
-  Use <*delimiter*> for field delimiter of -f
+  Use <*delimiter*> for the field delimiter of -f
 
 `-D` <*pattern*>
-  Use a regular expression <*pattern*> for field delimiter of -f
+  Use regular expression <*pattern*> for the field delimiter of -f
 
 `-c` <*list*>
-  Select only these characters
+  Act on these characters
 
 `-e` <*string*>
-  Execute <*string*> on another process that will receive identical standard input as the teip, and numbers given by the result are used as line numbers for bypassing
+  Execute <*string*> on another process that will receive identical standard input as the main teip aommane, emitting numbers to be used as line numbers for actioning.
 
 `-l` <*list*>
-  Bypassing these lines
+  Act on these lines
 
 `--csv`
-  -f interprets <list> as field number of a CSV according to RFC 4180, instead of white-space separated fields
+  -f interprets <*list*> as field numbers of a CSV according to RFC 4180, instead of whitespace separated fields
 
 `-s`
-  Execute new command for each bypassed chunk
+  Execute a new command for each actioned chunk
 
 `-I`
-  Replace the <replace-str> with bypassed chunk in the <command> then -s is forcefully enabled.
+  Replace the <*replace-str*> with the actioned chunk in <*command*>, implying -s
 
 `--chomp`
-  Command spawned by -s receives standard input without trailing newlines
+  The command spawned by -s receives the standard input without trailing newlines
 
 `-v`
-  Invert the sense of selecting
+  Invert the range of actioning
 
 `-z`
-  NUL is used as line delimiter instead of the newline
+  Line delimiter is NUL instead of a newline
 
 -A <*number*>
   Use  together with `-g <pattern>`.
   Alias of `-e 'grep -n -A <number> <pattern>'`
 
 -B <*number*>
-  Use  together with `-g <pattern>`.
+  Use together with `-g <pattern>`.
   Alias of `-e 'grep -n -B <number> <pattern>'`
 
 -C <*number*>
@@ -101,7 +101,6 @@ OPTIONS
 --awk <*pattern*>
   Alias of `-e 'awk "<pattern>{print NR}"'`
   See also awk(1)
-
 
 ### *command*
 

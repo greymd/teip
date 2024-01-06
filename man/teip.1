@@ -1,4 +1,4 @@
-.TH TEIP 1 "FEB 2023" "User Commands" ""
+.TH TEIP 1 "JAN 2024" "User Commands" ""
 .SH NAME
 .PP
 teip \- Masking tape to help commands "do one thing well"
@@ -21,62 +21,62 @@ Bypassing a partial range of standard input to any command whatever you want
 .SH OPTIONS
 .TP
 \fB\fC\-\-help\fR
-Display this help and exit
+Prints help information
 .TP
 \fB\fC\-V\fR, \fB\fC\-\-version\fR
-Show version and exit
+Prints version information
 .TP
 \fB\fC\-g\fR <\fIpattern\fP>
-Bypassing lines that match the regular expression <\fIpattern\fP>
+Act on lines that match the regular expression <\fIpattern\fP>
 .TP
 \fB\fC\-o\fR
-\-g bypasses only matched parts
+\-g acts on only matched parts
 .TP
 \fB\fC\-G\fR
-\-g adopts Oniguruma regular expressions
+\-g interprets Oniguruma regular expressions
 .TP
 \fB\fC\-f\fR <\fIlist\fP>
-Bypassing these white\-space separated fields
+Act on these white\-space separated fields
 .TP
 \fB\fC\-d\fR <\fIdelimiter\fP>
-Use <\fIdelimiter\fP> for field delimiter of \-f
+Use <\fIdelimiter\fP> for the field delimiter of \-f
 .TP
 \fB\fC\-D\fR <\fIpattern\fP>
-Use a regular expression <\fIpattern\fP> for field delimiter of \-f
+Use regular expression <\fIpattern\fP> for the field delimiter of \-f
 .TP
 \fB\fC\-c\fR <\fIlist\fP>
-Select only these characters
+Act on these characters
 .TP
 \fB\fC\-e\fR <\fIstring\fP>
-Execute <\fIstring\fP> on another process that will receive identical standard input as the teip, and numbers given by the result are used as line numbers for bypassing
+Execute <\fIstring\fP> on another process that will receive identical standard input as the main teip aommane, emitting numbers to be used as line numbers for actioning.
 .TP
 \fB\fC\-l\fR <\fIlist\fP>
-Bypassing these lines
+Act on these lines
 .TP
 \fB\fC\-\-csv\fR
-\-f interprets <list> as field number of a CSV according to RFC 4180, instead of white\-space separated fields
+\-f interprets <\fIlist\fP> as field numbers of a CSV according to RFC 4180, instead of whitespace separated fields
 .TP
 \fB\fC\-s\fR
-Execute new command for each bypassed chunk
+Execute a new command for each actioned chunk
 .TP
 \fB\fC\-I\fR
-Replace the <replace\-str> with bypassed chunk in the <command> then \-s is forcefully enabled.
+Replace the <\fIreplace\-str\fP> with the actioned chunk in <\fIcommand\fP>, implying \-s
 .TP
 \fB\fC\-\-chomp\fR
-Command spawned by \-s receives standard input without trailing newlines
+The command spawned by \-s receives the standard input without trailing newlines
 .TP
 \fB\fC\-v\fR
-Invert the sense of selecting
+Invert the range of actioning
 .TP
 \fB\fC\-z\fR
-NUL is used as line delimiter instead of the newline
+Line delimiter is NUL instead of a newline
 .TP
 \-A <\fInumber\fP>
 Use  together with \fB\fC\-g <pattern>\fR\&.
 Alias of \fB\fC\-e 'grep \-n \-A <number> <pattern>'\fR
 .TP
 \-B <\fInumber\fP>
-Use  together with \fB\fC\-g <pattern>\fR\&.
+Use together with \fB\fC\-g <pattern>\fR\&.
 Alias of \fB\fC\-e 'grep \-n \-B <number> <pattern>'\fR
 .TP
 \-C <\fInumber\fP>
