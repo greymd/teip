@@ -104,25 +104,25 @@ OPTIONS
 
 ### *command*
 
-*command* is the command and its arguments that `teip` executes.
-*command* must print a single line of result for each line of the input.
-In the simplest example, the cat(1) command always succeeds.
-Because the cat prints the same number of lines against the input.
+*command* refers to the command and its arguments that `teip` executes.
+Each *command* should output a single line of result for each line of input.
+In the simplest example, the `cat(1)` command is always successful,
+as `cat` outputs the same number of lines as its input.
 
 ```
 $ echo ABCDEF | teip -og . -- cat
 ABCDEF
 ```
 
-sed(1) works with the typical pattern.
+The `sed(1)` command works well with typical patterns.
 
 ```
 $ echo ABCDEF | teip -og . -- sed 's/[ADF]/@/'
 @BC@E@
 ```
 
-If the rule is not satisfied, the result will be inconsistent.
-For example, the grep(1) may fail. Here is an example.
+If the rule is not adhered to, the result may be inconsistent.
+For example, `grep(1)` might fail, as shown here.
 
 ```
 $ echo ABCDEF | teip -og . -- grep '[ABC]'
@@ -130,15 +130,15 @@ ABC
 teip: Output of given command is exhausted
 ```
 
-`teip` could not get the result corresponding to D, E, and F. That is why the example fails.
-If such the inconsistency occurs, `teip` will exit with the error message. Then, the exit status will be 1.
+In this case, `teip` could not retrieve results corresponding to D, E, and F, leading to the failure of the example.
+If such inconsistency occurs, `teip` will terminate with an error message, and the exit status will be set to 1.
 
 ```
 $ echo $?
 1
 ```
 
-If *command* is not given, `teip` shows how standard input will be devided into chunks.
+If no *command* is specified, `teip` displays how the standard input will be divided into chunks.
 
 ```
 $ echo ABCDEF | teip -og .
@@ -147,32 +147,32 @@ $ echo ABCDEF | teip -og .
 
 ### *list*
 
-*list* is an expression to specify the range of fields or characters.
-The notation is compatible with the one used in cut(1). Refer to the cut(1) manual in detail.
-Here are some examples.
+*list* is a specification used to define the range of fields or characters.
+This notation is compatible with that used in `cut(1)`. For detailed information, please refer to the `cut(1)` manual.
+Here are some examples:
 
-Select 1st, 3rd, and 5th fields.
+Select the 1st, 3rd, and 5th fields.
 
 ```
 $ echo 1 2 3 4 5 | teip -f 1,3,5 -- sed 's/./@/'
 @ 2 @ 4 @
 ```
 
-Select fields between 2nd and 4th.
+Select fields from the 2nd to the 4th.
 
 ```
 $ echo 1 2 3 4 5 | teip -f 2-4 -- sed 's/./@/'
 1 @ @ @ 5
 ```
 
-Select all the fields after 3rd.
+Select all fields starting from the 3rd.
 
 ```
 $ echo 1 2 3 4 5 | teip -f 3- -- sed 's/./@/'
 1 2 @ @ @
 ```
 
-Select all the fields before 4th.
+Select all fields up to the 4th.
 
 ```
 $ echo 1 2 3 4 5 | teip -f -4 -- sed 's/./@/'
@@ -181,33 +181,34 @@ $ echo 1 2 3 4 5 | teip -f -4 -- sed 's/./@/'
 
 ### *pattern*
 
-*pattern* is a regular expression whose grammar follows "regex crate".
-Refer to the link in *SEE ALSO* about the details.
+*pattern* is a regular expression based on the "regex crate" syntax.
+For more details, refer to the link in the *SEE ALSO* section.
 
-### Necessity of **--**
+### The Necessity of **--**
 
-`teip` interprets arguments after `--` as *command* and its argument.
+`teip` interprets arguments after `--` as a *command* and its arguments.
 
-If **--** is omitted, the command fails in this example.
+Omitting **--** causes failure in this example:
 
 ```
 $ echo "100 200 300 400" | teip -f 3 cut -c 1
 teip: Invalid arguments.
 ```
 
-This is because the `cut` uses the `-c` option. The option of the same name is also provided by `teip`, which is confusing.
+This error occurs because `cut` uses the `-c` option, which is also a `teip` option, leading to confusion.
+
+However, with the use of **--**, the command executes successfully:
 
 ```
 $ echo "100 200 300 400" | teip -f 3 -- cut -c 1
 100 200 3 400
 ```
 
-### External execution for match offloading (`-e`)
+### External Execution for Match Offloading (`-e`)
 
-With `-e`, you can use the external commands you are familiar with to specify the range of holes.
-`-e` allows you to specify the shell pipeline as a string. This pipeline is executed in `/bin/sh`.
+With `-e`, you can use external commands to specify the range of holes. `-e` allows you to specify a shell pipeline as a string, which is executed in `/bin/sh`.
 
-For example, with a pipeline `echo 3` that outputs `3`, then only the third line will be bypassed.
+For instance, using a pipeline like `echo 3`, which outputs `3`, only the third line will be selected.
 
 ```bash
 $ echo -e 'AAA\nBBB\nCCC' | teip -e 'echo 3'
@@ -216,9 +217,7 @@ BBB
 [CCC]
 ```
 
-It works even if the output is somewhat 'dirty'.
-For example, if any spaces or tab characters are included at the beginning of a line, they are ignored.
-Also, once a number is given, it does not matter if there are non-numerical characters to the right of the number.
+It also works even if the output includes extraneous characters. For example, spaces or tab characters at the start of a line are ignored. Additionally, once a number is provided, non-numerical characters to the right of the number are disregarded.
 
 ```bash
 $ echo -e 'AAA\nBBB\nCCC' | teip -e 'echo " 3"'
@@ -231,8 +230,7 @@ BBB
 [CCC]
 ```
 
-Technically, the first captured group in the regular expression `^\s*([0-9]+)` is interpreted as a line number.
-`-e` will also recognize multiple numbers if the pipeline provides multiple lines of numbers.
+Technically, the first captured group in the regular expression `^\s*([0-9]+)` is interpreted as a line number. `-e` will also recognize multiple numbers if provided across multiple lines.
 
 ```
 $ echo -e 'AAA\nBBB\nCCC\nDDD\nEEE\nFFF' | teip -e 'seq 1 2 10' -- sed 's/. /@/g'
@@ -244,10 +242,9 @@ DDD
 FFF
 ```
 
-Note that the order of the numbers must be in ascending order.
+Note that the numbers must be in ascending order.
 
-The pipeline obtains identical standard input as `teip`.
-The following command is a `grep` command that prints **the line numbers of the line containing the string "CCC" and the two lines after it**.
+The pipeline receives the same standard input as `teip`. Here's a command using `grep` to print line numbers of a line containing "CCC" and the two following lines.
 
 ```
 $ echo -e 'AAA\nBBB\nCCC\nDDD\nEEE\nFFF' | grep -n -A 2 CCC
@@ -256,7 +253,7 @@ $ echo -e 'AAA\nBBB\nCCC\nDDD\nEEE\nFFF' | grep -n -A 2 CCC
 5-EEE
 ```
 
-If you give this command to `-e`, you can punch holes in **the line containing the string "CCC" and the two lines after it**.
+Using this with `-e` punches holes in the line containing "CCC" and the two subsequent lines.
 
 ```
 $ echo -e 'AAA\nBBB\nCCC\nDDD\nEEE\nFFF' | teip -e 'grep -n -A 2 CCC'
@@ -268,8 +265,7 @@ BBB
 FFF
 ```
 
-GNU `sed` has `=`, which prints the line number being processed.
-Below is an example of how to drill from the line containing "BBB" to the line containing "EEE".
+GNU `sed` has an `=` option, which prints the line number being processed. Below is an example to drill holes from the line containing "BBB" to "EEE".
 
 ```
 $ echo -e 'AAA\nBBB\nCCC\nDDD\nEEE\nFFF' | teip -e 'sed -n "/BBB/,/EEE/="'
@@ -281,14 +277,13 @@ AAA
 FFF
 ```
 
-Of course, similar operations can also be done with `awk`.
+Similarly, you can perform these operations with `awk`.
 
 ```
 $ echo -e 'AAA\nBBB\nCCC\nDDD\nEEE\nFFF' | teip -e 'awk "/BBB/,/EEE/{print NR}"'
 ```
 
-The following is an example of combining the commands `nl` and `tail`.
-You can only make holes in the last three lines of input.
+Here's an example using `nl` and `tail` to make holes in the last three lines of input.
 
 ```
 $ echo -e 'AAA\nBBB\nCCC\nDDD\nEEE\nFFF' | teip -e 'nl -ba | tail -n 3'
@@ -300,27 +295,24 @@ CCC
 [FFF]
 ```
 
-The `-e` argument is a single string.
-Therefore, pipe `|` and other symbols can be used as it is.
-
+The `-e` argument is a single string, so pipes `|` and other symbols can be used as is.
 
 EXAMPLES
 -------
 
-
-Replace 'WORLD' to 'EARTH' on lines containing 'HELLO'
+Replace 'WORLD' with 'EARTH' on lines containing 'HELLO'
 
 ```
 $ cat file | teip -g HELLO -- sed 's/WORLD/EARTH/'
 ```
 
-Edit 2nd field of the CSV file
+Edit the 2nd field of a CSV file
 
 ```
 $ cat file.csv | teip --csv -f 2 -- tr a-z A-Z
 ```
 
-Edit 2nd, 3rd and 4th fields of TSV file
+Edit the 2nd, 3rd, and 4th fields of a TSV file
 
 ```
 $ cat file.tsv | teip -D '\t' -f 2-4 -- tr a-z A-Z
@@ -337,7 +329,6 @@ Edit lines containing 'hello' and the three lines before and after it
 ```
 $ cat access.log | teip -e 'grep -n -C 3 hello' -- sed 's/./@/g'
 ```
-
 
 SEE ALSO
 --------
