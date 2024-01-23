@@ -46,6 +46,7 @@ jobs:
       - name: Run tests
         timeout-minutes: 10
         run: |
-          LC_ALL=ja_JP.UTF-8 cargo test --verbose --features oniguruma
+          export LC_ALL=ja_JP.UTF-8 LANG=ja_JP.UTF-8
+          cargo test --verbose --features oniguruma
           bash tests/test_large_file.sh
           bash tests/test_long_line.sh
