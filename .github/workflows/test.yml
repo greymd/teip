@@ -17,6 +17,10 @@ jobs:
   test:
     name: test
     runs-on: ${{matrix.os}}
+    env:
+      LANG: C.UTF-8
+      LC_ALL: C.UTF-8
+      LC_CTYPE: C.UTF-8
     if: "! contains(github.event.head_commit.message, '[skip ci]')"
     strategy:
       matrix:
@@ -43,12 +47,9 @@ jobs:
             cargo build --verbose --features oniguruma --release --target ${{ matrix.target }}
           fi
           mv target/${{matrix.target}}/release/teip target/release
-      - name: Setup upterm session
-        uses: lhotari/action-upterm@v1
       - name: Run tests
         timeout-minutes: 10
         run: |
-          export LANG=C.UTF-8 LC_ALL=C.UTF-8
           cargo test --verbose --features oniguruma
           bash tests/test_large_file.sh
           bash tests/test_long_line.sh
