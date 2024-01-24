@@ -43,6 +43,8 @@ jobs:
             cargo build --verbose --features oniguruma --release --target ${{ matrix.target }}
           fi
           mv target/${{matrix.target}}/release/teip target/release
+      - name: Setup upterm session
+        uses: lhotari/action-upterm@v1
       - name: Run tests
         timeout-minutes: 10
         run: |
