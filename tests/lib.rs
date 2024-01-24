@@ -885,7 +885,6 @@ mod cmdtest {
             fn test_csv_double_quotation_utf8() {
                 let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
                 cmd.args(&["--csv", "-f", "2", "--", SED_CMD, "s/./@/g"])
-                    .env("LANG", "en_US.UTF-8")
                     .write_stdin("名前,\"作\"\"者\",ノート\n１レコード目,\"あ\"\"いう\"\"\nえお\",かきく\n２レコード目,\"\"\"さしす\n\"\"せそ\",\"たちつ\nてと\"\n")
                     .assert()
                     .stdout("名前,@@@@@@,ノート\n１レコード目,@@@@@@@@\n@@@,かきく\n２レコード目,@@@@@@\n@@@@@,\"たちつ\nてと\"\n");

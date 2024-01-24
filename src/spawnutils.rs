@@ -25,6 +25,7 @@ pub fn exec_cmd(
         return Ok((Box::new(io::sink()), Box::new(io::empty()), "".to_string()));
     }
     let child = Command::new(&cmds[0])
+        .env("LANG", "en_US.UTF-8")
         .args(&cmds[1..])
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
@@ -54,6 +55,7 @@ pub fn exec_cmd_sync_replace(input: String, cmds: &Vec<String>, line_end: u8, ch
         }
     }
     let child = Command::new(&cmds_new[0])
+        .env("LANG", "en_US.UTF-8")
         .args(&cmds_new[1..])
         .stdout(Stdio::piped())
         .spawn()
@@ -79,6 +81,7 @@ pub fn exec_cmd_sync_replace(input: String, cmds: &Vec<String>, line_end: u8, ch
 pub fn exec_cmd_sync(input: String, cmds: &Vec<String>, line_end: u8, chomp: bool) -> String {
     debug!("thread: exec_cmd_sync: {:?}", &cmds);
     let mut child = Command::new(&cmds[0])
+        .env("LANG", "en_US.UTF-8")
         .args(&cmds[1..])
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
