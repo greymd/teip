@@ -18,9 +18,8 @@ jobs:
     name: test
     runs-on: ${{matrix.os}}
     env:
-      LANG: C.UTF-8
-      LC_ALL: C.UTF-8
-      LC_CTYPE: C.UTF-8
+      LANG: ja_JP.UTF-8
+      LC_ALL: ja_JP.UTF-8
     if: "! contains(github.event.head_commit.message, '[skip ci]')"
     strategy:
       matrix:
@@ -50,6 +49,8 @@ jobs:
       - name: Run tests
         timeout-minutes: 10
         run: |
+          echo 'あ' | sed 's/./@/g'
+          env
           cargo test --verbose --features oniguruma
           bash tests/test_large_file.sh
           bash tests/test_long_line.sh
