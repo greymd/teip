@@ -1,4 +1,5 @@
 mod cmdtest {
+    use std::env;
     cfg_if::cfg_if! {
         if #[cfg(windows)] {
             static SED_CMD: &str = "C:\\Program Files\\Git\\usr\\bin\\sed.exe";
@@ -883,6 +884,7 @@ mod cmdtest {
 
             #[test]
             fn test_csv_double_quotation_utf8() {
+                env::set_var("LANG", "ja_JP.UTF-8");
                 let mut cmd = assert_cmd::Command::cargo_bin(env!("CARGO_PKG_NAME")).unwrap();
                 cmd.args(&["--csv", "-f", "2", "--", SED_CMD, "s/./@/g"])
                     .write_stdin("名前,\"作\"\"者\",ノート\n１レコード目,\"あ\"\"いう\"\"\nえお\",かきく\n２レコード目,\"\"\"さしす\n\"\"せそ\",\"たちつ\nてと\"\n")
