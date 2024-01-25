@@ -17,6 +17,10 @@ jobs:
   test:
     name: test
     runs-on: ${{matrix.os}}
+    env:
+      # Apply UTF-8 since GitHub actions has en_US.UTF-8 as of Jan 2024
+      LANG: en_US.UTF-8
+      LC_ALL: en_US.UTF-8
     if: "! contains(github.event.head_commit.message, '[skip ci]')"
     strategy:
       matrix:
