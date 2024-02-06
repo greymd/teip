@@ -1,6 +1,6 @@
 [package]
 name = "teip"
-version = "2.3.0"
+version = "2.3.1"
 authors = ["Yasuhiro Yamada <yamada@gr3.ie>"]
 description = "Masking tape to help commands \"do one thing well\""
 keywords = ["sed", "awk", "util"]
