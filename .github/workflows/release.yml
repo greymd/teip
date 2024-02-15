@@ -78,8 +78,6 @@ jobs:
             mkdir -p $HOME/.cargo
             echo "[target.aarch64-unknown-linux-musl]" >> $HOME/.cargo/config
             echo 'linker = "aarch64-linux-gnu-gcc"' >> $HOME/.cargo/config
-            sed 2iREALGCC=aarch64-linux-gnu-gcc /usr/bin/musl-gcc | sudo tee /usr/bin/aarch64-linux-musl-gcc
-            sudo chmod +x /usr/bin/aarch64-linux-musl-gcc
           # For ARMv6, ARMv7
           elif [[ "${{ matrix.target }}" =~ ^arm-unknown-linux-gnueabihf ]]; then
             sudo apt-get -y update
@@ -95,6 +93,8 @@ jobs:
           rustup target add ${{ matrix.target }}
           case ${{ matrix.target }} in
             x86_64-unknown-linux-musl) CFLAGS="-fPIE" CC="musl-gcc -static" cargo build --verbose --features oniguruma --release --target ${{ matrix.target }} ;;
+            # Use musl libc for static build but use gnu-gcc to avoid compile error
+            aarch64-unknown-linux-musl) CC="aarch64-linux-gnu-gcc -specs /usr/lib/x86_64-linux-musl/musl-gcc.specs" cargo build --verbose --features oniguruma --release --target ${{ matrix.target }}
             *) cargo build --verbose --features oniguruma --release --target ${{ matrix.target }} ;;
           esac
 
