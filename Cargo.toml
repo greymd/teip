@@ -21,10 +21,10 @@ structopt = "0.3.26"
 cfg-if = "0.1"
 
 # Workaround of build failure https://github.com/rust-onig/rust-onig/pull/174#issuecomment-1730863567 Keep them until new onig crate' is released
-onig = { git = "https://github.com/greymd/rust-onig", revision = "85989776a46c96347c6586ca4ab3ba62cce27332" , optional = true}
+onig = { git = "https://github.com/rust-onig/rust-onig", revision = "fa90c0e97e90a056af89f183b23cd417b59ee6a2" , optional = true}
 
 [patch.crates-io]
-onig_sys = { git = "https://github.com/greymd/rust-onig", revision = "85989776a46c96347c6586ca4ab3ba62cce27332", optional = true }
+onig_sys = { git = "https://github.com/rust-onig/rust-onig", revision = "fa90c0e97e90a056af89f183b23cd417b59ee6a2", optional = true }
 
 [dev-dependencies]
 assert_cmd = "1.0.1"
