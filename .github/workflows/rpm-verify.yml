@@ -127,8 +127,12 @@ jobs:
           %{__rm} -rf %{buildroot}
           EOF
 
-          docker build -t ${{ matrix.rpm_arch }}-rpm-builder -f .github/dockerfiles/Dockerfile.${{ matrix.rpm_arch }} .
-          sudo docker run --rm -v "$PWD/$RPM_BUILD":/root/rpmbuild ${{ matrix.rpm_arch }}-rpm-builder \
+          DOCKER_PLATFORM=
+          if [[ "${{ matrix.rpm_arch }}" == "aarch64" ]]; then
+            DOCKER_PLATFORM="--platform linux/arm64"
+          fi
+          docker build ${DOCKER_PLATFORM} -t ${{ matrix.rpm_arch }}-rpm-builder -f .github/dockerfiles/Dockerfile.${{ matrix.rpm_arch }} .
+          sudo docker run ${DOCKER_PLATFORM} --rm -v "$PWD/$RPM_BUILD":/root/rpmbuild ${{ matrix.rpm_arch }}-rpm-builder \
             rpmbuild --undefine=_disable_source_fetch -ba /root/rpmbuild/SPECS/template.spec
 
           sudo mv "$RPM_BUILD"/RPMS/"${{ matrix.rpm_arch }}"/teip-*.rpm "$BIN_NAME"

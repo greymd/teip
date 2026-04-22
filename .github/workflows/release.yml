@@ -211,8 +211,12 @@ jobs:
 
           ## Build
           sudo apt-get update && sudo apt-get install -y qemu-user-static
-          docker build -t ${RPM_ARCH}-rpm-builder -f .github/dockerfiles/Dockerfile.${RPM_ARCH} .
-          sudo docker run --rm -v "$PWD/$RPM_BUILD":/root/rpmbuild ${RPM_ARCH}-rpm-builder \
+          DOCKER_PLATFORM=
+          if [[ "${RPM_ARCH}" == "aarch64" ]]; then
+            DOCKER_PLATFORM="--platform linux/arm64"
+          fi
+          docker build ${DOCKER_PLATFORM} -t ${RPM_ARCH}-rpm-builder -f .github/dockerfiles/Dockerfile.${RPM_ARCH} .
+          sudo docker run ${DOCKER_PLATFORM} --rm -v "$PWD/$RPM_BUILD":/root/rpmbuild ${RPM_ARCH}-rpm-builder \
             rpmbuild --undefine=_disable_source_fetch -ba /root/rpmbuild/SPECS/template.spec
 
           BIN_NAME="teip-${{ steps.vars.outputs.ver }}.${{ matrix.target }}.rpm"

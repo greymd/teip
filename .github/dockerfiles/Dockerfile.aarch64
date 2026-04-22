@@ -1,3 +1,3 @@
-FROM arm64v8/almalinux:9
+FROM almalinux:9
 RUN dnf install -y rpm-build redhat-rpm-config rpmdevtools \
     && dnf clean all
