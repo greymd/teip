@@ -163,6 +163,8 @@ jobs:
           esac;
 
           cat > "${RPM_BUILD}/SPECS/template.spec" <<EOF
+          %global _binary_filedigest_algorithm 10
+          %global _source_filedigest_algorithm 10
           Name:       ${PROJECT_NAME}
           Summary:    Masking tape to help commands "do one thing well"
           Version:    ${PROJECT_VERSION}
@@ -209,8 +211,12 @@ jobs:
 
           ## Build
           sudo apt-get update && sudo apt-get install -y qemu-user-static
-          docker build -t ${RPM_ARCH}-rpm-builder -f .github/dockerfiles/Dockerfile.${RPM_ARCH} .
-          sudo docker run --rm -v "$PWD/$RPM_BUILD":/root/rpmbuild ${RPM_ARCH}-rpm-builder \
+          DOCKER_PLATFORM=
+          if [[ "${RPM_ARCH}" == "aarch64" ]]; then
+            DOCKER_PLATFORM="--platform linux/arm64"
+          fi
+          docker build ${DOCKER_PLATFORM} -t ${RPM_ARCH}-rpm-builder -f .github/dockerfiles/Dockerfile.${RPM_ARCH} .
+          sudo docker run ${DOCKER_PLATFORM} --rm -v "$PWD/$RPM_BUILD":/root/rpmbuild ${RPM_ARCH}-rpm-builder \
             rpmbuild --undefine=_disable_source_fetch -ba /root/rpmbuild/SPECS/template.spec
 
           BIN_NAME="teip-${{ steps.vars.outputs.ver }}.${{ matrix.target }}.rpm"
@@ -219,6 +225,15 @@ jobs:
           ## Generate sha256
           echo "$( sha256sum "$BIN_NAME" | awk '{print $1}' )" > "${BIN_NAME}.sha256"
           sudo cp -l "${BIN_NAME}" "${BIN_NAME}.sha256" "${{ env.RELEASE_DIR }}"
+
+      - name: Verify rpm on Fedora 43
+        if: matrix.ext == 'rpm'
+        run: |
+          BIN_NAME="teip-${{ steps.vars.outputs.ver }}.${{ matrix.target }}.rpm"
+          sudo docker run --rm -v "$PWD":/work -w /work fedora:43 sh -lc '
+            dnf install -y --nogpgcheck /work/'"$BIN_NAME"'
+            rpm -Kv /work/'"$BIN_NAME"'
+          '
 
       - name: Create Debian package
         id: deb
