@@ -19,7 +19,7 @@ jobs:
     runs-on: ubuntu-latest
     if: "contains(github.event.head_commit.message, '[bench]')"
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Build
       run: cargo build --release
     - name: Benchmark for each functions
@@ -43,7 +43,7 @@ jobs:
             # same as: awk '{gsub(".","@",$2);print}' FS=, OFS=, < test.csv
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
     - name: Install dependencies
       run: |
@@ -69,7 +69,7 @@ jobs:
         hyperfine --export-json ./${{ matrix.name }}.json "./target/release/${{ matrix.cmd }}"
 
     - name: Save benchmark result for processing time
-      uses: actions/upload-artifact@v1
+      uses: actions/upload-artifact@v4
       with:
         name: ${{ matrix.name }}
         path: ./${{ matrix.name }}.json

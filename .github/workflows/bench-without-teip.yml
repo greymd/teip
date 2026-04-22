@@ -20,7 +20,7 @@ jobs:
     if: "contains(github.event.head_commit.message, '[bench-spec]')"
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Install dependencies
       run: |
         sudo apt-get install valgrind
@@ -36,7 +36,7 @@ jobs:
         valgrind --tool=massif --time-unit=ms --trace-children=yes --peak-inaccuracy=0.5 --pages-as-heap=yes --massif-out-file=test_without_teip.txt ./tests/test_without_teip.sh > /dev/null
 
     - name: Save benchmark result for memory usage
-      uses: actions/upload-artifact@v1
+      uses: actions/upload-artifact@v4
       with:
         name: test_without_teip
         path: ./test_without_teip.txt
