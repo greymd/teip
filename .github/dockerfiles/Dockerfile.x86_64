@@ -1,2 +1,3 @@
-FROM centos:7
-RUN yum install -y rpm-build redhat-rpm-config rpmdevtools
+FROM almalinux:9
+RUN dnf install -y rpm-build redhat-rpm-config rpmdevtools \
+    && dnf clean all
