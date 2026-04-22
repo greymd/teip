@@ -1,0 +1,149 @@
+name: Verify RPM Packages
+
+on:
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+  workflow_dispatch:
+
+jobs:
+  rpm-verify:
+    name: rpm-${{ matrix.target }}
+    runs-on: ubuntu-latest
+    if: github.event_name != 'pull_request' || !contains(github.event.pull_request.title, '[skip ci]')
+    env:
+      LANG: en_US.UTF-8
+      LC_ALL: en_US.UTF-8
+    strategy:
+      matrix:
+        include:
+          - target: x86_64-unknown-linux-musl
+            rpm_arch: x86_64
+          - target: aarch64-unknown-linux-musl
+            rpm_arch: aarch64
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set envs
+        run: |
+          echo "PROJECT_VERSION=$(sed -n 's/^version = \"\(.*\)\"/\1/p' Cargo.toml | head -n1)" >> $GITHUB_ENV
+          echo "PROJECT_NAME=$(sed -n 's/^name = \"\(.*\)\"/\1/p' Cargo.toml | head -n1)" >> $GITHUB_ENV
+          echo "PROJECT_MAINTAINER=$(sed -n 's/^authors = \[\"\(.*\)\"\]/\1/p' Cargo.toml)" >> $GITHUB_ENV
+          echo "PROJECT_HOMEPAGE=$(sed -n 's/^homepage = \"\(.*\)\"/\1/p' Cargo.toml)" >> $GITHUB_ENV
+
+      - name: Install prerequisites
+        shell: bash
+        run: |
+          sudo apt-get -y update
+          sudo apt-get -y install musl-tools qemu-user-static
+          if [[ "${{ matrix.target }}" =~ ^aarch64-unknown-linux ]]; then
+            sudo apt-get -y install gcc-aarch64-linux-gnu
+            mkdir -p $HOME/.cargo
+            echo "[target.aarch64-unknown-linux-musl]" >> $HOME/.cargo/config
+            echo 'linker = "aarch64-linux-gnu-gcc"' >> $HOME/.cargo/config
+          fi
+
+      - name: Build the release target
+        shell: bash
+        run: |
+          rustup target add ${{ matrix.target }}
+          case ${{ matrix.target }} in
+            x86_64-unknown-linux-musl) CFLAGS="-fPIE" CC="musl-gcc -static" cargo build --verbose --features oniguruma --release --target ${{ matrix.target }} ;;
+            aarch64-unknown-linux-musl) CC="aarch64-linux-gnu-gcc -specs /usr/lib/x86_64-linux-musl/musl-gcc.specs" cargo build --verbose --features oniguruma --release --target ${{ matrix.target }} ;;
+          esac
+
+      - name: Pack files for RPM
+        shell: bash
+        run: |
+          mkdir -p package/bin
+          mkdir -p package/man
+          mkdir -p package/doc
+          cp README.md package/doc
+          cp LICENSE package/doc
+          cp target/${{ matrix.target }}/release/teip package/bin
+          cp man/teip.1 package/man
+          cp -r completion package/
+
+      - name: Build RPM
+        shell: bash
+        run: |
+          RPM_BUILD=rpmbuild
+          RPM_PACK=teip-${PROJECT_VERSION}
+          BIN_NAME=teip-${PROJECT_VERSION}.${{ matrix.target }}.rpm
+
+          cp -al "package/" "${RPM_PACK}/"
+          tar zcvf "${RPM_PACK}.tar.gz" -C "$PWD" "${RPM_PACK}"
+          mkdir -p "${RPM_BUILD}/SOURCES"
+          mkdir -p "${RPM_BUILD}/SPECS"
+          cp "${RPM_PACK}.tar.gz" "${RPM_BUILD}/SOURCES"
+
+          cat > "${RPM_BUILD}/SPECS/template.spec" <<EOF
+          %global _binary_filedigest_algorithm 10
+          %global _source_filedigest_algorithm 10
+          Name:       ${PROJECT_NAME}
+          Summary:    Masking tape to help commands "do one thing well"
+          Version:    ${PROJECT_VERSION}
+          Group:      Applications
+          License:    MIT
+          Release:    1
+          BuildArch:  ${{ matrix.rpm_arch }}
+          URL:        ${PROJECT_HOMEPAGE}
+          Source:     ${RPM_PACK}.tar.gz
+          Vendor:     Yasuhiro Yamada <yamada@gr3.ie>
+          Provides:   ${PROJECT_NAME}
+          BuildRoot: %(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
+          %description
+          Masking tape to help commands "do one thing well"
+          Bypassing a partial range of standard input to any command
+          whatever you want
+          %prep
+          %setup
+          %install
+          install -d -m 0755 %{buildroot}%{_bindir}
+          install -d -m 0755 %{buildroot}%{_mandir}/man1
+          install -d -m 0755 %{buildroot}%{_docdir}/%{name}/
+          install -d -m 0755 %{buildroot}%{_datadir}/zsh/site-functions
+          install -d -m 0755 %{buildroot}%{_datadir}/fish/completions
+          install -d -m 0755 %{buildroot}%{_datadir}/bash-completion/completions/
+          %{__cp} -a bin/* %{buildroot}%{_bindir}/
+          %{__cp} -a man/*.1 %{buildroot}%{_mandir}/man1/
+          %{__cp} -a doc/README.md %{buildroot}%{_docdir}/%{name}/
+          %{__cp} -a doc/LICENSE %{buildroot}%{_docdir}/%{name}/
+          %{__cp} -a completion/zsh/* %{buildroot}%{_datadir}/zsh/site-functions/
+          %{__cp} -a completion/fish/* %{buildroot}%{_datadir}/fish/completions/
+          %{__cp} -a completion/bash/* %{buildroot}%{_datadir}/bash-completion/completions/
+          %files
+          %attr(0644, root, root) %{_mandir}/man1/*
+          %attr(0755, root, root) %{_bindir}/*
+          %attr(0644, root, root) %{_datadir}/zsh/site-functions/*
+          %attr(0644, root, root) %{_datadir}/fish/completions/*
+          %attr(0644, root, root) %{_datadir}/bash-completion/completions/*
+          %attr(0644, root, root) %doc %{_docdir}/%{name}/README.md
+          %attr(0644, root, root) %doc %{_docdir}/%{name}/LICENSE
+          %clean
+          %{__rm} -rf %{buildroot}
+          EOF
+
+          docker build -t ${{ matrix.rpm_arch }}-rpm-builder -f .github/dockerfiles/Dockerfile.${{ matrix.rpm_arch }} .
+          sudo docker run --rm -v "$PWD/$RPM_BUILD":/root/rpmbuild ${{ matrix.rpm_arch }}-rpm-builder \
+            rpmbuild --undefine=_disable_source_fetch -ba /root/rpmbuild/SPECS/template.spec
+
+          sudo mv "$RPM_BUILD"/RPMS/"${{ matrix.rpm_arch }}"/teip-*.rpm "$BIN_NAME"
+          echo "BIN_NAME=$BIN_NAME" >> $GITHUB_ENV
+
+      - name: Upload RPM artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: rpm-${{ matrix.target }}
+          path: ${{ env.BIN_NAME }}
+
+      - name: Verify RPM on Fedora 43
+        shell: bash
+        run: |
+          sudo docker run --rm -v "$PWD":/work -w /work fedora:43 sh -lc '
+            dnf install -y --nogpgcheck /work/'"$BIN_NAME"'
+            rpm -Kv /work/'"$BIN_NAME"'
+          '
